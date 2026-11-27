@@ -40,6 +40,12 @@ DOT_1 = [
 DOT_2 = [
     # data_that từ data/cases/corpus_cases.jsonl (repo công khai, ẩn danh repo-01..03)
     "dt-r01-001", "dt-r02-001", "dt-r02-002", "dt-r02-003", "dt-r02-004", "dt-r03-001", "dt-r03-002",
+    # đợt 2 (28/11): 5 data_that mới (đơn thuốc + ảnh siêu âm có giả định loại hình; bẫy vi_tri SEO;
+    # bóc đơn từ nhóm chat; gọi API quảng cáo không có dữ liệu cá nhân; AI giao việc gửi danh sách nhân viên)
+    "dt-r01-002", "dt-r02-005", "dt-r02-006", "dt-r02-007", "dt-r02-008",
+    # + 5 câu dev đã có nhãn, tăng n của vt và am — tổng 30 câu, 12/30 câu thật (khung cần ≥ 1/3).
+    # Tiêu chí chọn: xem data/cases/LABELING.md §12.4
+    "c3-vt-004", "c3-vt-006", "c3-vt-009", "c2-du-003", "c1-am-003",
 ]
 SELECTED = DOT_1 + DOT_2
 

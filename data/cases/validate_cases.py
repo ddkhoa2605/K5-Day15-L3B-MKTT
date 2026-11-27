@@ -250,8 +250,9 @@ def main():
                     % ("CAN_NGUOI_XAC_NHAN" if unknown else "CON_MIEN_TRU"))
         if goc == "C3_luy_ke" and not (isinstance(lk, int) and lk >= NGUONG):
             err(cid, "nhóm lũy kế cần so_chu_the_luy_ke ≥ 100000")
-        if n["tag"] == "vt" and goc != "C3_vt":
-            warn(cid, "tag vt ngoài nhóm C3_vt")
+        # tag vt: tên cột tiếng Việt viết tắt — hoặc nhạy cảm (C3_vt), hoặc bẫy âm tính trông giống nhạy cảm (C3_con_mien)
+        if n["tag"] == "vt" and goc not in ("C3_vt", "C3_con_mien"):
+            warn(cid, "tag vt ngoài nhóm C3_vt / C3_con_mien")
 
         # ---- dữ liệu cá nhân thật / secret ----
         blob = json.dumps(r, ensure_ascii=False)
