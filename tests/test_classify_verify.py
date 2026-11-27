@@ -139,3 +139,29 @@ class TestVerify(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestVerifyUserTypedVsBusiness(unittest.TestCase):
+    """Review của Thịnh (PR #15): chữ người dùng cuối tự gõ ≠ nội dung nghiệp vụ lấy từ request."""
+
+    def test_prompt_distinguishes_end_user_text_from_business_content(self):
+        s = verify.SYSTEM
+        for must in ("NGƯỜI DÙNG CUỐI", "nguoi_dung_tu_nhap", "Nội dung nghiệp vụ", "mô tả sản phẩm",
+                     "xac_nhan = false"):
+            self.assertIn(must, s)
+
+    def _c1(self, reply_text):
+        import rules
+        sink = {"file": "app/api/viet-lai/route.ts", "line": 6, "kind": "ai_nuoc_ngoai", "endpoint": "responses.create",
+                "snippet": "const { tieuDe, gioiThieu } = await req.json();\nawait client.responses.create({ input: gioiThieu });"}
+        with mock.patch.object(verify, "call_model", lambda *a, **k: reply(reply_text)):
+            res = verify.verify_path_llm(sink, [{"table": "khach", "column": "email"}])
+        res["sink"] = sink
+        return rules.evaluate_c1([res])["trang_thai"]
+
+    def test_business_content_path_is_not_activated(self):
+        self.assertEqual(self._c1('{"xac_nhan": false, "truong_ca_nhan": [], "nguon": "khong_ro"}'), "KHONG_KICH_HOAT")
+
+    def test_end_user_free_text_needs_lawyer(self):
+        self.assertEqual(self._c1('{"xac_nhan": true, "truong_ca_nhan": [], "nguon": "nguoi_dung_tu_nhap"}'), "CAN_LUAT_SU")
+
