@@ -103,7 +103,10 @@ def _pipeline(ctx, mode):
 
 
 def _confirm():
-    """Cổng người duyệt (spec.md §4): chỉ sinh bản nháp hồ sơ SAU KHI người chịu trách nhiệm xác nhận kết luận gần nhất."""
+    """Cổng người duyệt (spec.md §4): chỉ sinh bản nháp hồ sơ SAU KHI người chịu trách nhiệm xác nhận kết luận gần nhất.
+
+    Chỉ xác nhận được kết luận của lượt NGAY TRƯỚC: lượt nào khác (kể cả lượt bị từ chối) cũng xoá _LAST.
+    _LAST là biến của tiến trình, đủ cho CLI một người dùng; chạy nhiều phiên song song thì phải gắn theo phiên."""
     if not _LAST.get("findings"):
         return _refuse("Chưa có kết luận nào để xác nhận — hãy kiểm một app trước.")
     findings, mo_ta = _LAST["findings"], _LAST.get("mo_ta", "")
@@ -186,6 +189,7 @@ def _llm_only(ctx):
 def answer(text: str) -> dict:
     if CONFIRM.match(text or ""):
         return _confirm()
+    _LAST.clear()  # mọi lượt không phải xác nhận (kể cả lượt bị từ chối) huỷ kết luận đang chờ
     kind, val = _parse_input(text)
     if kind == "refuse":
         return _refuse(val)
