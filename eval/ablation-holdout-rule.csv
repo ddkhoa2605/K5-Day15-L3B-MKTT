@@ -1,0 +1,11 @@
+﻿id,tag,do_kho,pass,phan_loai_viet_tat,trich_dan_dung,bao_dong_gia,tu_choi_dung,tokens_in,tokens_out,model_calls,models,latency_s,error,ghi_chu
+c1-ro-006,ro,hard,1,,1,,,0,0,0,,0.007,,đạt
+c1-am-005,am,hard,1,,,0,,0,0,0,,0.006,,đạt
+c1-chat-004,chatbox,hard,0,,0,,0,0,0,0,,0.005,,"C1: KHONG_KICH_HOAT ≠ CAN_LUAT_SU; can_cu: thừa —, thiếu ['Luat91 D20.6']"
+c2-du-002,am,hard,1,,,0,,0,0,0,,0.005,,đạt
+c2-thieu-006,ro,medium,1,,1,,,0,0,0,,0.004,,đạt
+c3-ro-004,ro,easy,1,,1,,,0,0,0,,0.005,,đạt
+c3-vt-005,vt,medium,0,0,0,,,0,0,0,,0.007,,"C3: CON_MIEN_TRU ≠ MAT_MIEN_TRU; nhom: thừa —, thiếu ['hanh_vi_mang']; can_cu: thừa —, thiếu ['ND356 D4l']"
+c3-vt-008,vt,hard,1,1,1,,,0,0,0,,0.006,,đạt
+c3-am-001,am,medium,1,,,0,,0,0,0,,0.006,,đạt
+c3-lk-002,luy_ke,hard,1,,1,,,0,0,0,,0.004,,đạt

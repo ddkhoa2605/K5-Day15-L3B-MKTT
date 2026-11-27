@@ -1,0 +1,1 @@
+{"ngay": "28/11/2026 02:44", "commit": "81e8ef3", "provider": "openai", "lenh": "python eval/ablation.py --tap holdout", "tap": "holdout", "n": 10, "thu": false, "model_thu": ["gpt-6-luna", "gpt-6.1-terra"]}
