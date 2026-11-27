@@ -206,7 +206,7 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
 | XN3 | `Luat91 D20.2`, `Luat91 D20.6` | ✅ Có trong `citations.json`. Khoản 6 điểm c là "chủ thể tự chuyển dữ liệu của mình". |
 | XN4 | Mã C2 | ✅ Dùng `ND356 D6` (cấp điều) + `ND356 D6.3`. Không dùng `ND356 D6.2` (không có trong `citations.json`). |
 | XN5 | `CON_MIEN_TRU` có kèm `ND356 D41.x` | ✅ Khoa: C3 miễn trừ trích cả `Luat91 D38.x` và `ND356 D41.x` |
-| XN6 | **Giả định bộ dữ liệu:** C1 chỉ xét lời gọi tới dịch vụ bên thứ ba trong code, không xét nơi đặt máy chủ Supabase. Nếu CSDL đặt ở nước ngoài cũng tính là chuyển xuyên biên giới thì gần như mọi case đều C1. Cần ý kiến luật sư. | ⏳ Còn mở — Khoa |
+| XN6 | Phạm vi C1: có tính nơi đặt hạ tầng nền (CSDL, Auth của Supabase) không | ✅ Khoa chốt 27/11: chỉ tính lời gọi tới dịch vụ bên thứ ba có trong code (API AI, email, analytics đặt ngoài lãnh thổ). **Không** tính nơi đặt hạ tầng nền như CSDL hay Auth của Supabase, vì quét từ mã nguồn không biết vùng đặt máy chủ. Không nhãn nào phải đổi. Đã ghi vào `spec.md` §7. |
 | XN7 | Phạm vi điểm k gắn với "khách hàng tại tổ chức tín dụng, trung gian thanh toán…". Nhãn coi thông tin thẻ, tài khoản ngân hàng do app lưu là thuộc điểm k. | ⏳ Còn mở — Khoa |
 | XN8 | Thứ tự C3: doanh nghiệp lớn → `KHONG_THUOC_DIEN_MIEN`; thiếu loại hình hoặc quy mô → `CAN_NGUOI_XAC_NHAN`. Cả hai đều xét **trước** luật nhạy cảm, khác plan M5. | ⏳ Còn mở — Khoa, Minh |
 | XN9 | Ô tích sẵn → `KICH_HOAT_NANG`. ND356 Điều 6 khoản 3 (cấm mặc định đồng ý) đã kiểm. Việc xếp hành vi này cùng mức phạt với "coi im lặng là đồng ý" của ND330 thì chưa kiểm. | ⏳ Còn mở — Khoa |
@@ -302,7 +302,7 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
 - `grade.py` so `can_cu` theo tập, gộp 3 nhóm. `can_cu_theo_nhom` dùng để phân tích lỗi.
 
 **Khoa:**
-- Trả lời các cờ ⏳ còn mở ở mục 6.4 (XN6, XN7, XN8, XN9, XN12).
+- Trả lời các cờ ⏳ còn mở ở mục 6.4 (XN7, XN8, XN9, XN12).
 - Nếu đổi mã trong `citations.json`, báo Thịnh và Minh cùng lúc. Validator sẽ báo lỗi ngay mọi mã không còn trong file.
 
 **Kiểm sau mỗi thay đổi:** chạy `python data/cases/validate_cases.py`. Khi đã có `data/legal/citations.json`, script sẽ tự đối chiếu mã căn cứ với file đó.
@@ -320,7 +320,7 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
   | `dt-r02-003` | C3: GPS chấm công nhân viên |
   | `dt-r02-004` | C1, bẫy chatbox: hệ thống tự gắn họ tên vào prompt |
   | `dt-r03-001` | C3, bẫy: toạ độ là của trường, chưa dùng |
-  | `dt-r03-002` | C1 âm tính: email mời gửi qua Supabase Auth (XN6) |
+  | `dt-r03-002` | C1 âm tính: email mời gửi qua Supabase Auth, không tính theo XN6 đã chốt |
 
 - **Quy tắc riêng:**
   - Ghi `nhan.nguon = "data_that: corpus/repo-NN"`.
