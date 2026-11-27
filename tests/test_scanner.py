@@ -150,6 +150,21 @@ class TestCorpusFeedback(unittest.TestCase):
         r = self.consent("profiles(id, marketing_opt_in, opt_in_at)")
         self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("profiles", False))
 
+    def test_consent_flag_on_leads_found_but_not_full(self):
+        r = self.consent("leads(id, ho_ten, email, sdt, consent_marketing, created_at)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("leads", False))
+
+    def test_ambiguous_columns_on_unrelated_tables_are_not_consent(self):
+        """Âm tính (Thắng 27/11): accepted_at của hộp thư gửi đi, agreed_at của giải đấu, policy_version của quy trình khám."""
+        for schema in ("consultation_email_outbox(id, to_email, status, accepted_at, created_at)",
+                       "tournament_settlements(id, tournament_id, winner_id, agreed_at)",
+                       "clinical_routes(id, name, policy_version, updated_at)"):
+            self.assertIsNone(self.consent(schema)["bang_consent"], schema)
+
+    def test_ambiguous_columns_with_user_time_version_count(self):
+        r = self.consent("users(id, email, policy_version, agreed_at)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("users", True))
+
     def test_plain_table_not_consent(self):
         self.assertIsNone(self.consent("orders(id, user_id, total, created_at)")["bang_consent"])
 

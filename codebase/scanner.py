@@ -231,7 +231,13 @@ _USER_COL = re.compile(r"(^|_)(user|nguoi_dung|khach_hang|khach|customer|profile
                        r"|^uid$|^owner_id$")
 _TIME_COL = re.compile(r"(_at$|^thoi_gian|^ngay_|_time$|timestamp|_date$)")
 _VERSION_COL = re.compile(r"(version|phien_ban|policy_hash|terms_rev)")
-_EMBEDDED_CONSENT = re.compile(r"(terms|consent|dong_y|dongy|dieu_khoan|privacy|chinh_sach|policy|agree|accept|opt_?in)")
+# Cột đồng ý gắn trên bảng khác (vd users.terms_accepted_at). Hai mức:
+# - chắc chắn: tên cột tự nói là đồng ý/điều khoản (consent_marketing, terms_version, opt_in…) → nhận bảng.
+# - mơ hồ: accepted_at, agreed_at, policy_version cũng gặp ở bảng không liên quan (thư được dịch vụ email nhận,
+#   chốt kết quả giải đấu, phiên bản quy trình khám — phản hồi corpus của Thắng 27/11) → chỉ nhận khi bảng có
+#   khoá người dùng VÀ đủ mốc thời gian + phiên bản trong các cột đồng ý.
+_EMBEDDED_STRONG = re.compile(r"(terms|consent|dong_y|dongy|dieu_khoan|privacy|chinh_sach|opt_?in)")
+_EMBEDDED_WEAK = re.compile(r"(policy|agree|accept)")
 # Tên bảng nhật ký đồng ý: consents, dong_y_du_lieu, user_agreements, terms_acceptances, marketing_opt_ins…
 _CONSENT_TABLE = re.compile(r"(consent|dong_?y|agreement|acceptance|opt_?in)")
 _USER_TABLE = re.compile(r"^(users?|profiles?|accounts?|customers?|members?|khach(_hang)?|nguoi_dung|hoc_vien|tai_khoan)$")
@@ -254,11 +260,14 @@ def find_consent(files: dict, columns: list) -> dict:
                   and any(_VERSION_COL.search(c) for c in cols))
         else:
             # Đồng ý lưu bằng cột ngay trên bảng người dùng: users(terms_accepted_at, terms_version)
-            embedded = [c for c in cols if _EMBEDDED_CONSENT.search(c)]
+            strong = [c for c in cols if _EMBEDDED_STRONG.search(c)]
+            embedded = strong + [c for c in cols if c not in strong and _EMBEDDED_WEAK.search(c)]
             if not embedded:
                 continue
             ok = ((_USER_TABLE.search(table) is not None or any(_USER_COL.search(c) for c in cols))
                   and any(_TIME_COL.search(c) for c in embedded) and any(_VERSION_COL.search(c) for c in embedded))
+            if not strong and not ok:
+                continue  # chỉ có cột mơ hồ mà không đủ 3 trường → không coi là nơi lưu đồng ý
         if best is None or (ok and not full):
             best, full = table, ok
     tich_san, im_lang = [], []
