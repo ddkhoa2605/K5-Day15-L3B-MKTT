@@ -26,6 +26,7 @@ FREE_TEXT = re.compile(r"(^|_)(noi_dung|ghi_chu|loi_nhan|tin_nhan|y_kien|phan_ho
                        r"(^|_)(message|messages|msg|content|body|text|note|notes|comment|comments|feedback|question|"
                        r"reply|remark|remarks)$")
 FREE_TEXT_CONF = 0.8
+KEYWORD_CONF = 0.75   # nhóm lấy từ từ khoá khi model không chắc: vừa trên ngưỡng CONF_MIN = 0.7 của rule engine
 
 
 def is_free_text(column: str) -> bool:
@@ -212,6 +213,13 @@ def classify_llm(columns: list, mo_ta: str) -> list:
                 and not any(h[2] == nhom for h in _keyword_hits(c["column"])):
             note("classify_llm: %s.%s → %s không có căn cứ trong đầu vào (%r), hạ khong_ro" % (c["table"], c["column"], nhom, can_cu))
             nhom, conf = "khong_ro", 0.0
+        if nhom == "khong_ro" and any(key in p for p in passes):
+            # Đối chiếu chéo (mục 4, chiều ngược lại): model không chắc nhưng tên cột khớp từ khoá của một nhóm nhạy cảm
+            # → lấy nhóm theo từ khoá, như chế độ rule. Lộ ra ở repo demo C (vi_tri_gan_nhat ra khong_ro 3/3 lần sau mục 2–3).
+            # Chỉ khi model ĐÃ trả lời cột đó; model hỏng hẳn thì giữ khong_ro để người xem.
+            hits = [h for h in _keyword_hits(c["column"]) if h[0]]
+            if hits:
+                nhom, conf = max(hits)[2], KEYWORD_CONF
         if nhom == "khong_ro" and any(key in p for p in passes) and is_free_text(c["column"]):
             nhom, conf = "pii_co_ban", FREE_TEXT_CONF   # model trả "chưa rõ" cho cột chữ tự do: theo quy tắc ở trên
         out.append({"table": c["table"], "column": c["column"], "nhom": nhom, "do_tin_cay": conf})

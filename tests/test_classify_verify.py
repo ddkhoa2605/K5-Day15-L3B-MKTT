@@ -319,3 +319,22 @@ class TestVerifyQuotedEvidence(unittest.TestCase):
         for must in ("bang_chung", "CHÉP NGUYÊN VĂN"):
             self.assertIn(must, verify.SYSTEM)
 
+
+class TestKeywordFallback(unittest.TestCase):
+    def _run(self, replies, cols, mo_ta=""):
+        it = iter(replies)
+        with mock.patch.object(classify, "call_model", lambda *a, **k: reply(next(it))):
+            return classify.classify_llm(cols, mo_ta)
+
+    def test_model_broken_keeps_khong_ro(self):
+        r = self._run(["không phải json"] * (2 * classify.PASSES), [{"table": "chuyen_xe", "column": "toa_do_gps_khach"}])
+        self.assertEqual(r[0]["nhom"], "khong_ro")
+
+    def test_model_unsure_but_sensitive_keyword_uses_keyword_group(self):
+        col = {"table": "chuyen_xe", "column": "toa_do_gps_khach"}
+        hit = [h for h in classify._keyword_hits(col["column"]) if h[0]]
+        self.assertTrue(hit)
+        rep = '[{"table":"chuyen_xe","column":"toa_do_gps_khach","nhom":"khong_ro","do_tin_cay":0.0,"can_cu":""}]'
+        r = self._run([rep] * classify.PASSES, [col], "")
+        self.assertEqual((r[0]["nhom"], r[0]["do_tin_cay"]), (max(hit)[2], classify.KEYWORD_CONF))
+
