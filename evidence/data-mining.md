@@ -41,12 +41,12 @@ Quét 27/11/2026, **N = 35 repo**, quét được 35/35 (0 lỗi). Số "máy đ
 | Có lời gọi ra dịch vụ ngoài (AI, email, analytics, HTTP) | 17/35 (49%) | — | Chưa kiểm tay từng lời gọi |
 | … trong đó gọi AI nước ngoài | 11/35 (31%) | — | |
 | **X** — gửi dữ liệu cá nhân ra nước ngoài (C1 = `KICH_HOAT`) | 3/35 (9%) | **1/35** chắc chắn, +1 chưa rõ | 1 repo là chuỗi chữ trong script tạo tài liệu (báo nhầm); 1 repo gửi qua SMTP, không biết máy chủ đặt ở đâu |
-| **Y** — không có nhật ký đồng ý đủ 3 trường (người dùng + thời điểm + phiên bản) | 34/35 (97%) | — | Chỉ 1 repo có bảng consent đủ 3 trường |
-| … không có bảng consent nào | 33/35 (94%) | **29/35 (83%)** không có cột hay bảng nào liên quan tới đồng ý | Kiểm chéo bằng tìm tên cột (`consent*`, `agreed_at`, `policy_version`…) trong mọi file `.sql`: 6 repo có, máy chỉ nhận ra 2 |
+| **Y** — không có nhật ký đồng ý đủ 3 trường (người dùng + thời điểm + phiên bản) | 34/35 (97%) | **33/35 (94%)** | Kiểm tay: 2 repo có nhật ký gần đủ — repo-17 (bảng `consents`) và repo-02 (bảng `dong_y_du_lieu` có email/SĐT, thời điểm, phiên bản; máy chấm thiếu vì định danh bằng email/SĐT thay vì `user_id`) |
+| … không có chỗ nào lưu sự đồng ý (bảng hay cột) | 33/35 (94%) | **32/35 (91%)** | Kiểm chéo bằng tìm tên cột (`consent*`, `agreed_at`, `accepted_at`, `policy_version`…) trong mọi file `.sql` rồi đọc từng kết quả: 6 repo khớp, nhưng 3 là trùng tên (thời điểm dịch vụ email nhận thư, thời điểm chốt kết quả giải đấu, phiên bản quy trình khám). Chỉ 3 repo thật sự có: repo-02, repo-17, repo-44 (`leads.consent_marketing` — chỉ cờ đúng/sai, không có thời điểm, phiên bản) |
 | **Z** — chạm dữ liệu nhạy cảm (ND356 Điều 4) | 9/35 (26%) | **2/35 (6%)** chắc chắn, +1 cần người xem | 6/9 là báo nhầm (xem mục 4) |
 
 **Đọc số này thế nào:**
-- **Y là số mạnh nhất**: ≥29/35 repo không có chỗ nào trong schema để lưu sự đồng ý của người dùng, dù 32/35 repo có cột dữ liệu cá nhân cơ bản (SĐT, email, địa chỉ, họ tên, CCCD…; tìm theo tên cột trong mọi file `.sql`). Đây là chiều "sót", kiểm chéo bằng cách khác vẫn ra ≥83%.
+- **Y là số mạnh nhất**: 32/35 repo không có chỗ nào trong schema để lưu sự đồng ý của người dùng, dù 32/35 repo có cột dữ liệu cá nhân cơ bản (SĐT, email, địa chỉ, họ tên, CCCD…; tìm theo tên cột trong mọi file `.sql`). Số này đã kiểm chéo bằng 2 cách (bộ quét và tìm tên cột rồi đọc tay) và ra gần như nhau (33/35 và 32/35).
 - **X và Z thấp sau khi kiểm tay**: corpus phần lớn là app quản lý nội bộ, bán hàng, đặt lịch, ít app gửi dữ liệu cá nhân sang AI. Nhưng **31% repo đã gọi AI nước ngoài** — chỉ là bộ quét chưa chứng minh được dữ liệu cá nhân đi theo lời gọi đó.
 - **C3 của cả 35 repo là `CAN_NGUOI_XAC_NHAN`**: repo công khai không cho biết loại hình doanh nghiệp hay số người dùng, nên không chốt được miễn trừ.
 - **Bộ quét báo nhầm nhiều ở phân loại tên cột** (6/9 cờ "nhạy cảm" sai) → khớp đúng pain mà metric `phan_loai_viet_tat` và `bao_dong_gia` muốn đo; **cần báo Minh**.
@@ -57,7 +57,7 @@ Quét 27/11/2026, **N = 35 repo**, quét được 35/35 (0 lỗi). Số "máy đ
 1. repo-01 (quản lý phòng khám): bảng phiếu khám có cột `diagnosis` → tình trạng sức khoẻ (ND356 Điều 4.1 điểm d).
 2. repo-45 (phòng khám nhiều bác sĩ): `prescriptions.diagnosis`, `visits.diagnosis_code`, `visits.diagnosis_name` → tình trạng sức khoẻ.
 3. repo-14 (nền tảng gia sư): route gửi email tư vấn `fetch('https://api.resend.com/emails', …)` kèm email của gia sư (`tutors.email`) → dữ liệu cá nhân đi tới dịch vụ email nước ngoài (C1).
-4. repo-17: có bảng `consents` đủ 3 trường — repo **duy nhất** trong 35 có nhật ký đồng ý đầy đủ.
+4. repo-17: có bảng `consents` (`user_id`, `granted_at`, `policy_version`, `purpose`, `withdrawn_at`…) — một trong **2/35** repo có nhật ký đồng ý gần đủ (repo kia: repo-02, bảng `dong_y_du_lieu`).
 
 **Cần người xem:**
 

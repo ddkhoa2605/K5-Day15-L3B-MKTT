@@ -10,7 +10,7 @@ Các trường `why` trong `metric_spec.yaml` (đã chốt ở CP2) trỏ về c
 
 | # | Pain (không có chữ AI) | Metric trỏ về | Bằng chứng hiện có | Còn thiếu |
 |---|---|---|---|---|
-| P-a | **Không biết app đã kích hoạt nghĩa vụ nào**: freelancer đặt tên cột kiểu `tt_sk`, `vi_tri_gan_nhat`, gửi dữ liệu người dùng sang dịch vụ nước ngoài mà không nhận ra đó là chuyển dữ liệu xuyên biên giới | `phan_loai_viet_tat` | Corpus (mục 2.2): 32/35 repo lưu dữ liệu cá nhân cơ bản, ≥29/35 không có chỗ lưu sự đồng ý; 11/35 gọi AI nước ngoài. Bộ quét tự động gắn nhầm 6/9 cờ "nhạy cảm" → tên cột thật khó phân loại. Số nền B1, B4 | Phỏng vấn xác nhận "không biết" |
+| P-a | **Không biết app đã kích hoạt nghĩa vụ nào**: freelancer đặt tên cột kiểu `tt_sk`, `vi_tri_gan_nhat`, gửi dữ liệu người dùng sang dịch vụ nước ngoài mà không nhận ra đó là chuyển dữ liệu xuyên biên giới | `phan_loai_viet_tat` | Corpus (mục 2.2): 32/35 repo lưu dữ liệu cá nhân cơ bản, 32/35 không có chỗ lưu sự đồng ý; 11/35 gọi AI nước ngoài. Bộ quét tự động gắn nhầm 6/9 cờ "nhạy cảm" → tên cột thật khó phân loại. Số nền B1, B4 | Phỏng vấn xác nhận "không biết" |
 | P-b | **Bị khách hoặc nhà đầu tư hỏi mà không trả lời được**: không chỉ ra được căn cứ điều khoản nào, dòng code nào | `trich_dan_dung` | Chưa có số | Phỏng vấn: số lần bị hỏi / tháng, lần gần nhất mất bao lâu |
 | P-c | **Tốn thời gian tra cứu cho cả những app không cần**: không biết app nào còn được miễn trừ (ND356 Điều 41) | `bao_dong_gia` | Corpus: sau kiểm tay chỉ 2/35 repo chạm dữ liệu nhạy cảm và 1/35 chắc chắn gửi dữ liệu cá nhân ra nước ngoài → phần lớn app **không** kích hoạt C1/C3-nhạy cảm, báo đỏ đồng loạt là sai | Phỏng vấn: phút tra cứu / app |
 | P-d | **Hậu quả khi không biết nghĩa vụ**: mức phạt tối đa theo ND330 và Luật 91; hồ sơ nộp sai phải làm lại | `tu_choi_dung` | B4 (mục 2.1); mức phạt tối đa theo `data/legal/penalties.json` của Khoa | Nguồn gốc của B4 |
@@ -44,8 +44,8 @@ Các số này cho thấy app dựng nhanh bằng AI thường xử lý dữ li�
 | Đếm gì | Kết quả | Cách đếm |
 |---|---|---|
 | Lưu dữ liệu cá nhân cơ bản (SĐT, email, địa chỉ, họ tên, CCCD…) | **32/35 (91%)** | tên cột trong mọi file `.sql` |
-| **Không có chỗ lưu sự đồng ý** (bảng hay cột consent, `agreed_at`, `policy_version`…) | **29/35 (83%)** | kiểm chéo tên cột; máy đếm 33/35 không có bảng consent |
-| Có nhật ký đồng ý đủ 3 trường (người dùng + thời điểm + phiên bản) | **1/35** | `scanner.find_consent` |
+| **Không có chỗ lưu sự đồng ý** (bảng hay cột consent) | **32/35 (91%)** | kiểm chéo tên cột rồi đọc tay từng kết quả; máy đếm 33/35 |
+| Có nhật ký đồng ý gần đủ (người dùng + thời điểm + phiên bản) | **2/35** | kiểm tay; máy đếm 1/35 |
 | Gọi AI nước ngoài | 11/35 (31%) | máy đếm, chưa kiểm từng lời gọi |
 | Gửi dữ liệu cá nhân ra nước ngoài (C1) | **1/35** chắc chắn, +1 chưa rõ (máy đếm 3/35) | kiểm tay |
 | Chạm dữ liệu nhạy cảm (ND356 Điều 4) | **2/35** chắc chắn, +1 cần người xem (máy đếm 9/35) | kiểm tay |
@@ -75,12 +75,12 @@ Ví dụ từ corpus ở mục 2.2 và `evidence/data-mining.md` mục 4 (10 ví
 
 ## 4. Các nguồn có khớp nhau không
 
-Corpus nói: 32/35 app lưu dữ liệu cá nhân, chỉ 1/35 có nhật ký đồng ý đủ 3 trường, 31% gọi AI nước ngoài. Khớp hướng với số nền B1–B3 (app dựng nhanh xử lý dữ liệu cá nhân thiếu cẩn thận), dù B1–B3 nói về bảo mật chứ không về nghĩa vụ. Lệch: corpus cho thấy C1 (gửi dữ liệu cá nhân ra nước ngoài) **ít hơn** giả thuyết — chỉ 1/35 chắc chắn sau kiểm tay. Phỏng vấn cần trả lời vì sao: không biết, hay biết mà bỏ qua.
+Corpus nói: 32/35 app lưu dữ liệu cá nhân, 32/35 không có chỗ lưu sự đồng ý, chỉ 2/35 có nhật ký đồng ý gần đủ, 31% gọi AI nước ngoài. Khớp hướng với số nền B1–B3 (app dựng nhanh xử lý dữ liệu cá nhân thiếu cẩn thận), dù B1–B3 nói về bảo mật chứ không về nghĩa vụ. Lệch: corpus cho thấy C1 (gửi dữ liệu cá nhân ra nước ngoài) **ít hơn** giả thuyết — chỉ 1/35 chắc chắn sau kiểm tay. Phỏng vấn cần trả lời vì sao: không biết, hay biết mà bỏ qua.
 
 ## 5. Kết luận
 
 Giả thuyết ở `evidence/hypothesis.md` — *"freelancer/agency dựng app cho SME chưa biết Điều 20 áp cho lời gọi AI"*: **phải đổi một phần** (corpus nghiêng về cách giải thích khác số 3 trong file đó). Phần "không biết" chưa kiểm được bằng code, chờ phỏng vấn theo ngưỡng đã đặt trước ở `hypothesis.md` mục 2b.
-- **Đúng hơn dự kiến ở C2**: thiếu bằng chứng đồng ý là chuyện gần như mọi app (≥29/35 không có chỗ lưu).
+- **Đúng hơn dự kiến ở C2**: thiếu bằng chứng đồng ý là chuyện gần như mọi app (32/35 không có chỗ lưu).
 - **Yếu hơn dự kiến ở C1**: 11/35 app gọi AI nước ngoài, nhưng mới chứng minh được 1/35 gửi kèm dữ liệu cá nhân. Chưa biết bộ quét bỏ sót bao nhiêu → cần kiểm ngẫu nhiên các repo không bị gắn cờ.
 
 Điều vẫn chưa biết:

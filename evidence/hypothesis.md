@@ -30,7 +30,7 @@
 |---|---|---|
 | Phần lớn app lưu dữ liệu cá nhân | 32/35 | Có (bối cảnh) |
 | Phần lớn app gọi AI nước ngoài **kèm** dữ liệu cá nhân (C1) | 1/35 chắc chắn (11/35 gọi AI) | **Không** — ít hơn giả thuyết |
-| Phần lớn app không lưu bằng chứng đồng ý (C2) | ≥29/35 không có chỗ lưu | Có — mạnh hơn giả thuyết |
+| Phần lớn app không lưu bằng chứng đồng ý (C2) | 32/35 không có chỗ lưu | Có — mạnh hơn giả thuyết |
 
 → Corpus nghiêng về **cách giải thích khác số 3**: pain lớn nhất trong code là **thiếu bằng chứng đồng ý (C2)**, không phải chuyển dữ liệu ra nước ngoài (C1). Kết luận đầy đủ ở `evidence/summary.md` mục 5.
 
