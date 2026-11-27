@@ -64,6 +64,24 @@ QUERIES = [
     "supabase nextjs school vietnam",
     "supabase nextjs booking",
     "supabase nextjs crm",
+    # Thêm khi đã có token (Search API 30 lượt/phút): cụm tiếng Việt không dấu theo ngành SME
+    "supabase quan ly ban hang",
+    "supabase phong kham",
+    "supabase benh nhan",
+    "supabase truong hoc",
+    "supabase hoc sinh",
+    "supabase nhan su cham cong",
+    "supabase dat ban nha hang",
+    "supabase spa salon",
+    "supabase khach san homestay",
+    "supabase giao hang",
+    "supabase bat dong san",
+    "supabase tuyen dung",
+    "supabase ung dung viet nam",
+    "supabase nextjs tiếng việt",
+    "supabase đồ án tốt nghiệp",
+    "nextjs supabase lovable",
+    "nextjs supabase bolt.new",
 ]
 
 
@@ -129,6 +147,49 @@ def search(query: str, token: str | None, page: int = 1) -> list[dict]:
     return []
 
 
+# Tìm trong code (cần token): repo dùng Supabase có chuỗi giao diện tiếng Việt → tín hiệu "người Việt dựng" mạnh hơn mô tả repo.
+CODE_QUERIES = [
+    '"Đăng nhập" "@supabase/supabase-js" extension:tsx',
+    '"Đăng ký" "@supabase/ssr" extension:tsx',
+    '"Số điện thoại" supabase extension:tsx',
+    '"Họ và tên" supabase extension:tsx',
+    '"Địa chỉ" "createClient" supabase extension:tsx',
+    '"khách hàng" "create table" extension:sql path:supabase',
+    '"Xin chào" supabase extension:tsx',
+    '"Quản lý" "@supabase/supabase-js" extension:tsx',
+]
+
+
+def code_search(query: str, token: str | None) -> list[dict]:
+    """→ danh sách repo (dạng rút gọn) có file khớp query. Chỉ chạy khi có token."""
+    if not token:
+        return []
+    url = "https://api.github.com/search/code?" + urllib.parse.urlencode({"q": query, "per_page": 100})
+    for _ in range(3):
+        try:
+            items = http_get(url, token).get("items", [])
+            break
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 429):
+                print("  giới hạn Code Search API, chờ 65s…")
+                time.sleep(65)
+                continue
+            return []
+    else:
+        return []
+    repos = {}
+    for it in items:
+        r = it.get("repository") or {}
+        if r.get("fork") or not r.get("full_name"):
+            continue
+        repos[r["full_name"]] = {
+            "full_name": r["full_name"], "html_url": r["html_url"],
+            "clone_url": r["html_url"] + ".git", "default_branch": "HEAD",
+            "description": r.get("description") or "", "pushed_at": "", "_code_vn": True,
+        }
+    return list(repos.values())
+
+
 def readme_text(full_name: str, branch: str) -> str:
     for name in ("README.md", "readme.md", "README.MD"):
         try:
@@ -148,6 +209,25 @@ def candidate(item: dict) -> bool:
     if item.get("size", 0) > 200_000:  # KB; bỏ repo khổng lồ
         return False
     return True
+
+
+def tree_precheck(full_name: str, token: str | None) -> bool:
+    """Có token: hỏi cây thư mục qua API trước khi clone (rẻ, 5.000 lượt/giờ).
+    Bỏ repo không có file .sql, hoặc không có cả next.config.* lẫn package.json → khỏi clone vô ích.
+    Lưu ý: chỉ cần có package.json bất kỳ là qua phần "Next.js" (không đọc nội dung), nên gần như
+    repo JS nào có .sql cũng được clone; việc kiểm "next" trong package.json nằm ở bộ lọc sau clone.
+    Giữ nguyên như vậy để lần chạy corpus 35 repo (27/11) tái lập được.
+    Không có token, hoặc API lỗi: trả True để kiểm sau khi clone như cũ."""
+    if not token:
+        return True
+    try:
+        tree = http_get(f"https://api.github.com/repos/{full_name}/git/trees/HEAD?recursive=1", token)
+    except Exception:  # noqa: BLE001
+        return True
+    paths = [t["path"] for t in tree.get("tree", []) if "node_modules/" not in t["path"]]
+    has_next = any(re.search(r"(^|/)next\.config\.", p) for p in paths) or any(p.endswith("package.json") for p in paths)
+    has_sql = any(p.endswith(".sql") for p in paths)
+    return has_next and has_sql
 
 
 def vn_signal(item: dict, readme: str) -> bool:
@@ -276,6 +356,17 @@ def main() -> int:
             time.sleep(7)
     # Ưu tiên repo cập nhật gần đây
     cands = sorted(seen.values(), key=lambda i: i.get("pushed_at") or "", reverse=True)
+    # Ứng viên từ tìm trong code (chuỗi tiếng Việt) xếp TRƯỚC: tín hiệu người Việt mạnh hơn
+    code_cands = []
+    for q in CODE_QUERIES:
+        found = [r for r in code_search(q, token) if r["html_url"].lower() not in known and r["full_name"] not in seen]
+        for r in found:
+            seen[r["full_name"]] = r
+        code_cands += found
+        if token:
+            print(f"  code '{q}': {len(found)} repo mới")
+            time.sleep(6)  # Code Search: 10 lượt/phút kể cả khi có token
+    cands = code_cands + cands
     print(f"Ứng viên chưa lọc tiếng Việt: {len(cands)}")
 
     # 2. Lọc tiếng Việt (README qua raw.githubusercontent, không tính vào giới hạn API) → clone → kiểm schema
@@ -286,10 +377,12 @@ def main() -> int:
         if len(index) >= args.target:
             break
         readme = readme_text(item["full_name"], item.get("default_branch") or "main")
-        if not vn_signal(item, readme):
+        if not (item.get("_code_vn") or vn_signal(item, readme)):
             continue
         if args.dry_run:
             print(f"  [dry] {item['full_name']} · {item.get('description') or ''}"[:140])
+            continue
+        if not tree_precheck(item["full_name"], token):
             continue
         ma = f"repo-{next_no:02d}"
         dest = CORPUS / ma
