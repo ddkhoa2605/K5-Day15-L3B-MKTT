@@ -116,5 +116,65 @@ class TestRepo(unittest.TestCase):
         self.assertEqual(len(consent["tich_san"]), 1)
 
 
+class TestCorpusFeedback(unittest.TestCase):
+    """Lỗi tìm thấy khi kiểm tay kết quả quét corpus (27/11): sink giả do chữ, consent bị bỏ sót hoặc nhận nhầm.
+    Tên bảng/cột ở đây là mẫu chung dựng theo cấu trúc lỗi, không chép từ repo nào trong corpus."""
+
+    def sinks(self, text):
+        return [(x["line"], x["kind"]) for x in scanner.find_sinks({"x.js": text})]
+
+    def test_vendor_name_in_string_is_not_a_sink(self):
+        self.assertEqual(self.sinks('const vendors = ["Mailchimp.com", "Gửi qua SendGrid"]\nconsole.log("dùng hotjar")'), [])
+
+    def test_vendor_name_in_trailing_comment_is_not_a_sink(self):
+        self.assertEqual(self.sinks("const x = 1 // trước đây dùng mailchimp.com"), [])
+
+    def test_real_calls_still_found(self):
+        got = self.sinks("await mailchimp.lists.addListMember(id, {email})\nposthog.capture('signup')\n"
+                         "const sg = require('sendgrid')(KEY)\nimport mailgun from \"mailgun.js\"\n"
+                         "fetch(\"https://api.openai.com/v1/chat/completions\")")
+        self.assertEqual(got, [(1, "email"), (2, "analytics"), (3, "email"), (4, "email"), (5, "ai_nuoc_ngoai")])
+
+    def consent(self, schema):
+        return scanner.find_consent({}, scanner.parse_schema_line(schema))
+
+    def test_agreed_at_policy_version_on_users(self):
+        r = self.consent("users(id, email, marketing_consent, agreed_at, policy_version)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("users", True))
+
+    def test_agreement_table_name(self):
+        r = self.consent("user_agreements(id, user_id, accepted_at, terms_version)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("user_agreements", True))
+
+    def test_opt_in_without_version_found_but_not_full(self):
+        r = self.consent("profiles(id, marketing_opt_in, opt_in_at)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("profiles", False))
+
+    def test_consent_flag_without_time_version_found_but_not_full(self):
+        r = self.consent("subscribers(id, ho_ten, email, sdt, marketing_consent, created_at)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("subscribers", False))
+
+    def test_ambiguous_columns_on_unrelated_tables_are_not_consent(self):
+        """Âm tính: accepted_at / agreed_at / policy_version ở bảng không liên quan tới đồng ý."""
+        for schema in ("email_queue(id, to_email, status, accepted_at, created_at)",
+                       "match_results(id, match_id, winner_id, agreed_at)",
+                       "workflow_templates(id, name, policy_version, updated_at)"):
+            self.assertIsNone(self.consent(schema)["bang_consent"], schema)
+
+    def test_ambiguous_columns_with_user_time_version_count(self):
+        r = self.consent("users(id, email, policy_version, agreed_at)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("users", True))
+
+    def test_consent_table_keyed_by_email_or_phone_is_full(self):
+        """Email/SĐT định danh được chủ thể đồng ý, kể cả khi bảng không có user_id."""
+        r = self.consent("dong_y(id, email, created_at, phien_ban, noi_dung)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("dong_y", True))
+        r = self.consent("dong_y(id, sdt, thoi_gian, phien_ban)")
+        self.assertTrue(r["du_3_truong"])
+
+    def test_plain_table_not_consent(self):
+        self.assertIsNone(self.consent("orders(id, user_id, total, created_at)")["bang_consent"])
+
+
 if __name__ == "__main__":
     unittest.main()

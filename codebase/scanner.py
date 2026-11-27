@@ -147,6 +147,21 @@ _NOT_FOREIGN = (".vn", "localhost", "127.0.0.1", "0.0.0.0")
 _SKIP_HTTP_HOSTS = ("supabase.co", "supabase.in")  # kho dữ liệu chính của app, không tính là sink ở lát cắt này
 
 CONTEXT = 5
+_STRING_LIT = re.compile(r"""("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)""")
+_TRAILING_COMMENT = re.compile(r"(^|\s)//.*$")
+
+
+_IMPORT_LINE = re.compile(r"""(\brequire\s*\(|^\s*import\b|\bfrom\s+['"])""")
+
+
+def _code_only(line):
+    """Bỏ chuỗi chữ và comment cuối dòng. Dùng cho mẫu nhận diện theo TÊN dịch vụ (analytics, email): tên dịch vụ
+    nằm trong chuỗi chữ (vd script sinh tài liệu liệt kê "Mailchimp.com") hay comment không phải lời gọi API.
+    Mẫu URL (_AI_URL, _HTTP_CALL) vẫn chạy trên dòng gốc vì URL luôn nằm trong chuỗi.
+    Dòng import/require giữ nguyên: chuỗi ở đó là tên gói thật (require("sendgrid"), from "mailgun.js")."""
+    if _IMPORT_LINE.search(line):
+        return line
+    return _TRAILING_COMMENT.sub("", _STRING_LIT.sub('""', line))
 
 
 def _snippet(lines, idx, ctx=CONTEXT):
@@ -181,11 +196,12 @@ def find_sinks(files: dict) -> list:
                 if not host.endswith(_NOT_FOREIGN) and not host.endswith(_SKIP_HTTP_HOSTS):
                     hits.append((i, "http_ngoai", host))
                 continue
-            m = _ANALYTICS.search(line)
+            code = _code_only(line)
+            m = _ANALYTICS.search(code)
             if m:
                 hits.append((i, "analytics", m.group(1).lower()))
                 continue
-            m = _EMAIL.search(line)
+            m = _EMAIL.search(code)
             if m:
                 hits.append((i, "email", m.group(1).lower()))
         if ai_import and not any(k == "ai_nuoc_ngoai" for _, k, _ in hits):
@@ -212,10 +228,21 @@ _SILENCE = re.compile(r"(tiếp tục\s+(?:sử dụng|dùng|truy cập)|tiep tu
                       r"by\s+continuing|continued\s+use)[^\n]{0,120}?(đồng ý|dong y|chấp nhận|chap nhan|agree|accept|consent)",
                       re.IGNORECASE)
 _USER_COL = re.compile(r"(^|_)(user|nguoi_dung|khach_hang|khach|customer|profile|account|subject|member|hoc_vien)(_id|id)?($|_)"
-                       r"|^uid$|^owner_id$")
+                       r"|^uid$|^owner_id$"
+                       # Email, SĐT định danh được chủ thể đã đồng ý ("ai"): ND356 Điều 6 yêu cầu kiểm chứng được
+                       # chủ thể, thời điểm, nội dung đồng ý, không bắt buộc khoá là user_id.
+                       r"|(^|_)(email|e_mail|phone|sdt|so_dt|so_dien_thoai|dien_thoai)($|_)")
 _TIME_COL = re.compile(r"(_at$|^thoi_gian|^ngay_|_time$|timestamp|_date$)")
 _VERSION_COL = re.compile(r"(version|phien_ban|policy_hash|terms_rev)")
-_EMBEDDED_CONSENT = re.compile(r"(terms|consent|dong_y|dongy|dieu_khoan|privacy|chinh_sach|policy)")
+# Cột đồng ý gắn trên bảng khác (vd users.terms_accepted_at). Hai mức:
+# - chắc chắn: tên cột tự nói là đồng ý/điều khoản (marketing_consent, terms_version, opt_in…) → nhận bảng.
+# - mơ hồ: accepted_at, agreed_at, policy_version cũng gặp ở bảng không liên quan tới đồng ý (hàng đợi email,
+#   kết quả thi đấu, mẫu quy trình…) → chỉ nhận khi bảng có khoá người dùng VÀ đủ mốc thời gian + phiên bản
+#   trong các cột đồng ý.
+_EMBEDDED_STRONG = re.compile(r"(terms|consent|dong_y|dongy|dieu_khoan|privacy|chinh_sach|opt_?in)")
+_EMBEDDED_WEAK = re.compile(r"(policy|agree|accept)")
+# Tên bảng nhật ký đồng ý: consents, dong_y, user_agreements, terms_acceptances, marketing_opt_ins…
+_CONSENT_TABLE = re.compile(r"(consent|dong_?y|agreement|acceptance|opt_?in)")
 _USER_TABLE = re.compile(r"^(users?|profiles?|accounts?|customers?|members?|khach(_hang)?|nguoi_dung|hoc_vien|tai_khoan)$")
 
 
@@ -231,16 +258,19 @@ def find_consent(files: dict, columns: list) -> dict:
             logged.add(normalize(m.group(1).split(".")[-1]))
     best, full = None, False
     for table, cols in by_table.items():
-        if "consent" in table or "dong_y" in table or "dongy" in table or table in logged:
+        if _CONSENT_TABLE.search(table) or table in logged:
             ok = (any(_USER_COL.search(c) for c in cols) and any(_TIME_COL.search(c) for c in cols)
                   and any(_VERSION_COL.search(c) for c in cols))
         else:
             # Đồng ý lưu bằng cột ngay trên bảng người dùng: users(terms_accepted_at, terms_version)
-            embedded = [c for c in cols if _EMBEDDED_CONSENT.search(c)]
+            strong = [c for c in cols if _EMBEDDED_STRONG.search(c)]
+            embedded = strong + [c for c in cols if c not in strong and _EMBEDDED_WEAK.search(c)]
             if not embedded:
                 continue
             ok = ((_USER_TABLE.search(table) is not None or any(_USER_COL.search(c) for c in cols))
                   and any(_TIME_COL.search(c) for c in embedded) and any(_VERSION_COL.search(c) for c in embedded))
+            if not strong and not ok:
+                continue  # chỉ có cột mơ hồ mà không đủ 3 trường → không coi là nơi lưu đồng ý
         if best is None or (ok and not full):
             best, full = table, ok
     tich_san, im_lang = [], []
