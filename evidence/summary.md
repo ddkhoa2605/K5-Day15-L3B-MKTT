@@ -53,11 +53,11 @@ Các số này cho thấy app dựng nhanh bằng AI thường xử lý dữ li�
 **Nghĩa với pain:** gần như mọi app lưu dữ liệu cá nhân, nhưng hầu như không app nào lưu bằng chứng đồng ý → nghĩa vụ C2 (Luật 91 Điều 9) dễ phát sinh mà người dựng không thấy. Ngược lại, C1 và C3-nhạy cảm chỉ chạm một phần nhỏ app → công cụ phải **phân biệt** được, không báo đỏ mọi app (P-c). Bộ quét tự động gắn nhầm 6/9 cờ "nhạy cảm" (chẩn đoán lỗi thiết bị, vị trí xếp hạng SEO, toạ độ quán cafe…) → tên cột thật khó phân loại đúng (P-a).
 
 Ví dụ ban đầu từ 5 repo chọn tay (mã đã ẩn danh):
-1. repo-01 (quản lý phòng khám): bảng bệnh nhân có `cccd`, `dob`, `gender`, `phone`, `address`; có bảng `diagnostics`.
-2. repo-02 (quản trị nhân sự): `cccd`, `base_salary`, `tax_code`, `personal_income_tax`.
-3. repo-03 (quản lý lớp học): `parent_links`, `parent_invitations` gắn học sinh với phụ huynh.
-4. repo-04 (bán hàng + VNPay): `phone`, `address` giao hàng.
-5. repo-05 (POS bán lẻ + VietQR): khách hàng có `phone`, `address`, công nợ.
+1. repo-01 (quản lý phòng khám): bảng bệnh nhân có số CCCD, ngày sinh, giới tính, SĐT, địa chỉ; có bảng chẩn đoán riêng.
+2. repo-02 (quản trị nhân sự): số CCCD, lương cơ bản, mã số thuế, thuế thu nhập cá nhân của nhân viên.
+3. repo-03 (quản lý lớp học): bảng liên kết và lời mời gắn học sinh với phụ huynh.
+4. repo-04 (bán hàng + VNPay): SĐT, địa chỉ giao hàng.
+5. repo-05 (POS bán lẻ + VietQR): khách hàng có SĐT, địa chỉ, công nợ.
 
 ### 2.3 Phỏng vấn
 

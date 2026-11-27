@@ -43,8 +43,8 @@ Quét 27/11/2026, **N = 35 repo**, quét được 35/35 (0 lỗi). Số "máy đ
 | Có lời gọi ra dịch vụ ngoài (AI, email, analytics, HTTP) | 17/35 (49%) | — | Chưa kiểm tay từng lời gọi |
 | … trong đó gọi AI nước ngoài | 11/35 (31%) | — | |
 | **X** — gửi dữ liệu cá nhân ra nước ngoài (C1 = `KICH_HOAT`) | 3/35 (9%) | **1/35** chắc chắn, +1 chưa rõ | 1 repo là chuỗi chữ trong script tạo tài liệu (báo nhầm); 1 repo gửi qua SMTP, không biết máy chủ đặt ở đâu |
-| **Y** — không có nhật ký đồng ý đủ 3 trường (người dùng + thời điểm + phiên bản) | 34/35 (97%) | **33/35 (94%)** | Kiểm tay: 2 repo có nhật ký gần đủ — repo-17 (bảng `consents`) và repo-02 (bảng `dong_y_du_lieu` có email/SĐT, thời điểm, phiên bản; máy chấm thiếu vì định danh bằng email/SĐT thay vì `user_id`) |
-| … không có chỗ nào lưu sự đồng ý (bảng hay cột) | 33/35 (94%) | **32/35 (91%)** | Kiểm chéo bằng tìm tên cột (`consent*`, `agreed_at`, `accepted_at`, `policy_version`…) trong mọi file `.sql` rồi đọc từng kết quả: 6 repo khớp, nhưng 3 là trùng tên (thời điểm dịch vụ email nhận thư, thời điểm chốt kết quả giải đấu, phiên bản quy trình khám). Chỉ 3 repo thật sự có: repo-02, repo-17, repo-44 (`leads.consent_marketing` — chỉ cờ đúng/sai, không có thời điểm, phiên bản) |
+| **Y** — không có nhật ký đồng ý đủ 3 trường (người dùng + thời điểm + phiên bản) | 34/35 (97%) | **33/35 (94%)** | Kiểm tay: 2 repo có nhật ký gần đủ — repo-17 (bảng consents có khoá người dùng, thời điểm, phiên bản) và repo-02 (bảng nhật ký đồng ý định danh bằng email/SĐT, có thời điểm và phiên bản; máy chấm thiếu vì định danh bằng email/SĐT thay vì `user_id`) |
+| … không có chỗ nào lưu sự đồng ý (bảng hay cột) | 33/35 (94%) | **32/35 (91%)** | Kiểm chéo bằng tìm tên cột (`consent*`, `agreed_at`, `accepted_at`, `policy_version`…) trong mọi file `.sql` rồi đọc từng kết quả: 6 repo khớp, nhưng 3 là trùng tên (thời điểm dịch vụ email nhận thư, thời điểm chốt kết quả giải đấu, phiên bản quy trình khám). Chỉ 3 repo thật sự có: repo-02, repo-17, repo-44 (một cột cờ đồng ý marketing trên bảng khách tiềm năng — chỉ đúng/sai, không có thời điểm, phiên bản) |
 | **Z** — chạm dữ liệu nhạy cảm (ND356 Điều 4) | 9/35 (26%) | **2/35 (6%)** chắc chắn, +1 cần người xem | 6/9 là báo nhầm (xem mục 4) |
 
 **Đọc số này thế nào:**
@@ -57,9 +57,9 @@ Quét 27/11/2026, **N = 35 repo**, quét được 35/35 (0 lỗi). Số "máy đ
 
 **Đúng (kiểm tay xác nhận):**
 1. repo-01 (quản lý phòng khám): bảng phiếu khám có cột `diagnosis` → tình trạng sức khoẻ (ND356 Điều 4.1 điểm d).
-2. repo-45 (phòng khám nhiều bác sĩ): `prescriptions.diagnosis`, `visits.diagnosis_code`, `visits.diagnosis_name` → tình trạng sức khoẻ.
-3. repo-14 (nền tảng gia sư): route gửi email tư vấn `fetch('https://api.resend.com/emails', …)` kèm email của gia sư (`tutors.email`) → dữ liệu cá nhân đi tới dịch vụ email nước ngoài (C1).
-4. repo-17: có bảng `consents` (`user_id`, `granted_at`, `policy_version`, `purpose`, `withdrawn_at`…) — một trong **2/35** repo có nhật ký đồng ý gần đủ (repo kia: repo-02, bảng `dong_y_du_lieu`).
+2. repo-45 (phòng khám nhiều bác sĩ): cột chẩn đoán trên bảng đơn thuốc và lượt khám → tình trạng sức khoẻ.
+3. repo-14 (nền tảng gia sư): route gửi email tư vấn, email của gia sư được gửi qua API Resend → dữ liệu cá nhân đi tới dịch vụ email nước ngoài (C1).
+4. repo-17: bảng consents có khoá người dùng, thời điểm, phiên bản, mục đích, thời điểm rút — một trong **2/35** repo có nhật ký đồng ý gần đủ (repo kia: repo-02, bảng nhật ký đồng ý định danh bằng email/SĐT).
 
 **Cần người xem:**
 
@@ -67,10 +67,10 @@ Quét 27/11/2026, **N = 35 repo**, quét được 35/35 (0 lỗi). Số "máy đ
 
 **Báo nhầm (bộ quét gắn cờ, kiểm tay thấy sai):**
 
-6. repo-24 `repair_orders.diagnosis` và repo-51 `quotes.diagnosis`: chẩn đoán lỗi **thiết bị** trong đơn sửa chữa / báo giá, không phải sức khoẻ.
-7. repo-02 `seo_*.vi_tri`: **vị trí xếp hạng SEO**, không phải vị trí của người.
-8. repo-20 `vitricongviec`: **vị trí công việc** (chức danh).
-9. repo-10 `clubs.latitude`, repo-27 `cafes.latitude`: toạ độ của **câu lạc bộ, quán cafe**, không phải của cá nhân.
+6. repo-24 và repo-51: cột `diagnosis` trên bảng đơn sửa chữa / báo giá — chẩn đoán lỗi **thiết bị**, không phải sức khoẻ.
+7. repo-02: cột `vi_tri` trên các bảng SEO — **vị trí xếp hạng SEO**, không phải vị trí của người.
+8. repo-20: cột vị trí công việc (tên viết liền không dấu) — **chức danh**, không phải vị trí của người.
+9. repo-10 và repo-27: cột `latitude` trên bảng câu lạc bộ / quán cafe — toạ độ của **địa điểm kinh doanh**, không phải của cá nhân.
 10. repo-22: chuỗi chữ nhắc tới Mailchimp trong script sinh tài liệu bán hàng, không phải lời gọi API.
 
 ## 5. Giới hạn của data
