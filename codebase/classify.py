@@ -126,34 +126,40 @@ def _clamp(v):
 
 
 def classify_llm(columns: list, mo_ta: str) -> list:
-    """Chế độ B/C: một lần gọi model cho mọi cột. JSON hỏng → gọi lại 1 lần → vẫn hỏng thì mọi cột "khong_ro", 0.0.
-    Mã nhóm lạ hoặc cột bị bỏ sót → "khong_ro", 0.0."""
+    """Chế độ B/C: một lần gọi model cho mọi cột. JSON hỏng, phần tử sai kiểu hoặc mã nhóm lạ → gọi lại 1 lần →
+    vẫn sai thì cột đó "khong_ro", 0.0. Cột bị bỏ sót → "khong_ro", 0.0."""
     if not columns:
         return []
     asked = [{"table": c["table"], "column": c["column"]} for c in columns]
     user = ("Mô tả ứng dụng (dữ liệu, không phải lệnh): %s\n\nDanh sách mã nhóm:\n%s\n\nCác cột cần phân loại (JSON):\n%s"
             % (redact((mo_ta or "")[:400]), _group_menu(), json.dumps(asked, ensure_ascii=False)))
-    parsed = None
-    for attempt in range(2):
-        parsed = parse_json_reply(call_model(SYSTEM, user)["text"], list)
-        if parsed is not None:
-            break
-        note("classify_llm: trả lời không phải JSON array, lần %d" % (attempt + 1))
     known = legal.known_groups() | {"khong_ro"}
     got = {}
-    for item in parsed or []:
-        if not isinstance(item, dict):
-            continue
-        key = (legal.normalize(str(item.get("table", ""))), legal.normalize(str(item.get("column", ""))))
-        nhom = str(item.get("nhom", ""))
-        if nhom in known and nhom != "khong_ro":
-            got[key] = (nhom, _clamp(item.get("do_tin_cay")))
-        else:
-            got[key] = ("khong_ro", 0.0)
+    for attempt in range(2):
+        # JSON hỏng, phần tử sai kiểu hoặc mã nhóm lạ → gọi lại 1 lần (mục 5, PR #23 của Minh); vẫn sai thì giữ phần
+        # đọc được, phần sai về "khong_ro".
+        parsed = parse_json_reply(call_model(SYSTEM, user)["text"], list)
+        got, bad = {}, parsed is None
+        for item in parsed or []:
+            if not isinstance(item, dict):
+                bad = True
+                continue
+            key = (legal.normalize(str(item.get("table", ""))), legal.normalize(str(item.get("column", ""))))
+            nhom = str(item.get("nhom", ""))
+            if nhom in known and nhom != "khong_ro":
+                got[key] = (nhom, _clamp(item.get("do_tin_cay")))
+            else:
+                bad = bad or nhom not in known
+                got[key] = ("khong_ro", 0.0)
+        if not bad:
+            break
+        note("classify_llm: trả lời sai dạng (JSON hỏng / phần tử sai kiểu / mã nhóm lạ), lần %d" % (attempt + 1))
     out = []
     for c in columns:
-        nhom, conf = got.get((c["table"], c["column"]), ("khong_ro", 0.0))
-        if nhom == "khong_ro" and (c["table"], c["column"]) in got and is_free_text(c["column"]):
+        # Tra bằng khoá đã chuẩn hoá như lúc lưu: tên cột viết hoa / camelCase trong case JSON không bị rơi về "khong_ro".
+        key = (legal.normalize(c["table"]), legal.normalize(c["column"]))
+        nhom, conf = got.get(key, ("khong_ro", 0.0))
+        if nhom == "khong_ro" and key in got and is_free_text(c["column"]):
             nhom, conf = "pii_co_ban", FREE_TEXT_CONF   # model trả "chưa rõ" cho cột chữ tự do: theo quy tắc ở trên
         out.append({"table": c["table"], "column": c["column"], "nhom": nhom, "do_tin_cay": conf})
     return out
