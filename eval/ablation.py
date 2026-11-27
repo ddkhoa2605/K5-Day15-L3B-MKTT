@@ -7,7 +7,7 @@
 
 Chạy:
     python eval/ablation.py                          # tập dev (50 case), cả 3 chế độ
-    python eval/ablation.py --tap data_that          # 7 case từ repo công khai (tập chưa ai nhìn)
+    python eval/ablation.py --tap data_that          # 7 case từ repo công khai (KHÔNG còn độc lập, chỉ tham khảo)
     python eval/ablation.py --modes rule --limit 5   # chạy thử nhanh → file *-thu, không phải số báo cáo
     python eval/ablation.py --tap holdout            # 10 case holdout — ĐÚNG MỘT LẦN, cần model thật
 
@@ -17,9 +17,11 @@ Ghi ra:
                                      % đạt theo tag, chi phí token, cảnh báo
 
 Quy tắc:
-- Holdout chỉ chạy một lần: script ghi eval/holdout.lock TRƯỚC khi chạy và từ chối lần sau.
+- Holdout chỉ chạy một lần: script ghi eval/holdout.lock TRƯỚC khi chạy và từ chối lần sau; từ chối cả khi khoá
+  đã từng được commit (lịch sử git). Người chạy commit holdout.lock cùng kết quả ngay trong lượt đó.
   Holdout phải chạy đủ 3 chế độ, không --limit, và không được chạy bằng model giả. Trước khi ghi khoá,
-  script gọi thử model một lần (cần API_KEY và ai.py gọi được model thật); lỗi thì dừng, chưa ghi khoá.
+  script gọi thử model mặc định và model kiểm chứng (MODEL_NAME_VERIFY); một lời gọi lỗi thì dừng, chưa ghi khoá.
+- Báo cáo .md đặt tên theo chế độ khi chạy tập con (vd ablation-dev-rule.md), không ghi đè bảng đủ 3 chế độ.
 - Chế độ llm/hybrid chạy bằng model giả (MODEL_PROVIDER=fake) bị đánh dấu "không dùng được" trong báo cáo.
 - Chấm bằng chính eval/grade.py (cùng định nghĩa metric với run.py eval → grade → score).
 """
@@ -205,8 +207,12 @@ def render_md(tap, sums, meta):
             if gap < VT_GAP_ALERT and "hybrid" not in fake:
                 out.append("- ⚠️ Khoảng cách C − A trên `vt` < %d điểm %% → **báo Khoa ngay** để đổi trọng tâm demo sang phần kiểm chứng đường đi (plan T4)." % VT_GAP_ALERT)
     out.append("- Chi tiết từng case: `eval/ablation-%s-<mode>.csv`." % tap)
+    if tap == "dev":
+        out.append("- Số trên `dev` là số **sau khi chỉnh** code theo dev (người viết code đã chạy và sửa theo các case này). "
+                   "Số chưa bị chỉnh chỉ có ở `holdout`.")
     if tap == "data_that":
-        out.append("- Tập `data_that` là tập chưa ai nhìn: **không** gửi chi tiết từng case trượt cho người viết code, chỉ báo số tổng.")
+        out.append("- Tập `data_that` **không còn là tập độc lập**: case đã được nhiều người xem và scanner đã được chỉnh sau khi "
+                   "xem corpus (PR #11). Số chỉ để tham khảo, không dùng làm bằng chứng tổng quát hoá.")
     return "\n".join(out) + "\n"
 
 
@@ -223,6 +229,14 @@ def write_csv(rows, path):
 
 
 # ---------------------------------------------------------------- an toàn holdout
+def report_name(tap, modes, limit):
+    """Tên báo cáo .md: chạy đủ 3 chế độ → ablation-<tap>.md (bảng so sánh A/B/C). Chạy tập con → thêm tên chế độ,
+    để KHÔNG ghi đè bảng so sánh đủ 3 cột (review của Khoa trên PR #9). --limit → thêm hậu tố -thu."""
+    picked = [m for m in MODES if m in modes]
+    name = "ablation-%s" % tap + ("" if tuple(picked) == MODES else "-" + "-".join(m for m in modes if m in MODES))
+    return name + ("-thu" if limit else "") + ".md"
+
+
 def check_can_run(tap, modes, provider, limit):
     if tap != "holdout":
         return
@@ -234,24 +248,52 @@ def check_can_run(tap, modes, provider, limit):
         sys.exit("DỪNG: MODEL_PROVIDER=%s là model giả. Holdout chỉ chạy một lần — nối model thật trước." % provider)
 
 
-def preflight_model(call_model, api_key):
-    """Gọi thử model MỘT lần trước khi đụng tới holdout. Tên provider "thật" chưa đủ: thiếu key, hoặc
-    ai.py chưa viết phần gọi model (NotImplementedError), thì mọi case llm/hybrid sẽ lỗi và mất lượt duy nhất.
-    → tên model đã gọi được; lỗi thì dừng (SystemExit) và KHÔNG ghi khoá."""
+def preflight_model(call_model, api_key, verify_model=None):
+    """Gọi thử model trước khi đụng tới holdout. Tên provider "thật" chưa đủ: thiếu key, hoặc ai.py chưa viết
+    phần gọi model (NotImplementedError), thì mọi case llm/hybrid sẽ lỗi và mất lượt duy nhất.
+    Gọi thử CẢ model mặc định (MODEL_NAME: phân loại, llm) LẪN model kiểm chứng của hybrid (ai.verify_model(),
+    MODEL_NAME_VERIFY) nếu khác nhau — review của Khoa trên PR #9.
+    → danh sách tên model đã gọi được; một lời gọi lỗi hoặc trả model giả thì dừng (SystemExit), KHÔNG ghi khoá."""
     if not (api_key or "").strip():
         sys.exit("DỪNG: chưa có API_KEY trong .env — chưa gọi được model thật, không chạy holdout.")
+    targets = [None] + ([verify_model] if verify_model else [])
+    seen = []
+    for target in targets:
+        label = target or "MODEL_NAME (mặc định)"
+        try:
+            r = call_model("Trả lời đúng một chữ: ok", "ok") if target is None else \
+                call_model("Trả lời đúng một chữ: ok", "ok", model=target)
+        except Exception as e:
+            sys.exit("DỪNG: gọi thử %s thất bại (%s: %s). Chưa chạy holdout, chưa ghi khoá." % (label, type(e).__name__, e))
+        model = (r or {}).get("model") or ""
+        if model in ("", "fake", "mock"):
+            sys.exit("DỪNG: gọi thử %s trả về model giả (%r). Chưa chạy holdout, chưa ghi khoá." % (label, model))
+        if model not in seen:
+            seen.append(model)
+        if target is None and verify_model and verify_model == model:
+            break  # model kiểm chứng trùng model mặc định: không gọi lần hai
+    return seen
+
+
+def holdout_lock_history(lock=HOLDOUT_LOCK):
+    """Các commit (mọi nhánh) đã từng chứa file khoá holdout. Khoá chỉ trên máy có thể bị xoá hoặc chạy ở máy
+    khác; khoá đã commit thì lịch sử git là bằng chứng — review của Khoa trên PR #9."""
     try:
-        r = call_model("Trả lời đúng một chữ: ok", "ok")
-    except Exception as e:
-        sys.exit("DỪNG: gọi thử model thất bại (%s: %s). Chưa chạy holdout, chưa ghi khoá." % (type(e).__name__, e))
-    model = (r or {}).get("model") or ""
-    if model in ("", "fake", "mock"):
-        sys.exit("DỪNG: gọi thử trả về model giả (%r). Chưa chạy holdout, chưa ghi khoá." % model)
-    return model
+        rel = os.path.relpath(lock, ROOT).replace(os.sep, "/")
+        out = subprocess.run(["git", "log", "--all", "--format=%h %s", "--", rel], cwd=ROOT,
+                             capture_output=True, text=True, check=True).stdout
+        return [l for l in out.splitlines() if l.strip()]
+    except Exception:
+        return []
 
 
-def claim_holdout(lock, meta):
-    """Ghi khoá TRƯỚC khi chạy holdout: chạy hỏng giữa chừng vẫn tính là đã dùng lần duy nhất."""
+def claim_holdout(lock, meta, history=None):
+    """Ghi khoá TRƯỚC khi chạy holdout: chạy hỏng giữa chừng vẫn tính là đã dùng lần duy nhất.
+    Từ chối nếu khoá đã có trên máy HOẶC đã từng được commit (history: danh sách commit chứa file khoá)."""
+    history = holdout_lock_history(lock) if history is None else history
+    if history:
+        sys.exit("DỪNG: holdout đã chạy rồi — eval/holdout.lock có trong lịch sử git (%s). Không chạy lại."
+                 % "; ".join(history[:3]))
     if os.path.exists(lock):
         with open(lock, encoding="utf-8") as f:
             prev = f.read().strip()
@@ -294,7 +336,9 @@ def main(argv):
     meta = {"ngay": datetime.datetime.now().strftime("%d/%m/%Y %H:%M"), "commit": _commit(), "provider": provider,
             "lenh": "python eval/ablation.py " + " ".join(argv), "tap": tap, "n": len(cases), "thu": bool(limit)}
     if tap == "holdout":
-        meta["model_thu"] = preflight_model(ai.call_model, ai.API_KEY)  # dừng ở đây nếu chưa gọi được model thật
+        # dừng ở đây nếu chưa gọi được model thật — gọi thử cả model kiểm chứng của hybrid
+        verify = ai.verify_model() if hasattr(ai, "verify_model") else None  # có từ PR #8 (MODEL_NAME_VERIFY)
+        meta["model_thu"] = preflight_model(ai.call_model, ai.API_KEY, verify_model=verify)
         claim_holdout(HOLDOUT_LOCK, meta)
     print("Ablation tập %s · %d case · chế độ %s · MODEL_PROVIDER=%s" % (tap, len(cases), ", ".join(modes), provider))
 
@@ -308,7 +352,7 @@ def main(argv):
             LABEL[m], _cell(s["passed"], s["n"], ci=False), _cell(*s["metrics"]["phan_loai_viet_tat"], ci=False),
             _cell(*s["metrics"]["bao_dong_gia"], ci=False), s["tokens_in"] + s["tokens_out"],
             "  ⚠️ model giả" if is_fake(s, m) else ""))
-    md_path = os.path.join(HERE, "ablation-%s%s.md" % (tap, suffix))
+    md_path = os.path.join(HERE, report_name(tap, modes, limit))
     with open(md_path, "w", encoding="utf-8") as f:
         f.write(render_md(tap, sums, meta))
     print("Đã ghi", md_path)

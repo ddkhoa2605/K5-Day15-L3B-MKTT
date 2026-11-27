@@ -149,18 +149,66 @@ class TestReportAndHoldoutLock(unittest.TestCase):
     def test_holdout_preflight_blocks_before_lock(self):
         # Có provider thật nhưng thiếu key hoặc ai.py chưa gọi được model → dừng TRƯỚC khi ghi khoá holdout
         lock = os.path.join(self.dir, "holdout.lock")
+        ok = lambda s, u, model=None: {"text": "ok", "model": model or "gpt-6-luna"}  # noqa: E731
 
-        def broken(system, user):
+        def broken(system, user, model=None):
             raise NotImplementedError("chưa viết phần gọi model thật cho MODEL_PROVIDER=openai")
         with self.assertRaises(SystemExit):
             ablation.preflight_model(broken, api_key="sk-x")
         with self.assertRaises(SystemExit):
-            ablation.preflight_model(lambda s, u: {"text": "ok", "model": "gpt-6-luna"}, api_key="")
+            ablation.preflight_model(ok, api_key="")
         with self.assertRaises(SystemExit):  # gọi "thành công" nhưng là model giả
-            ablation.preflight_model(lambda s, u: {"text": "x", "model": "fake"}, api_key="sk-x")
+            ablation.preflight_model(lambda s, u, model=None: {"text": "x", "model": "fake"}, api_key="sk-x")
         self.assertFalse(os.path.exists(lock))
-        self.assertEqual(ablation.preflight_model(lambda s, u: {"text": "ok", "model": "gpt-6-luna"}, api_key="sk-x"),
-                         "gpt-6-luna")
+        self.assertEqual(ablation.preflight_model(ok, api_key="sk-x"), ["gpt-6-luna"])
+
+    def test_preflight_also_checks_verify_model(self):
+        # Review của Khoa (PR #9): hybrid dùng model kiểm chứng riêng — phải gọi thử cả model đó
+        calls = []
+
+        def verify_broken(system, user, model=None):
+            calls.append(model)
+            if model == "gpt-6.1-terra":
+                raise RuntimeError("model không tồn tại hoặc không có quyền")
+            return {"text": "ok", "model": model or "gpt-6-luna"}
+        with self.assertRaises(SystemExit):
+            ablation.preflight_model(verify_broken, api_key="sk-x", verify_model="gpt-6.1-terra")
+        self.assertIn("gpt-6.1-terra", calls)
+        with self.assertRaises(SystemExit):  # model kiểm chứng trả model giả
+            ablation.preflight_model(lambda s, u, model=None: {"text": "ok", "model": "fake" if model else "gpt-6-luna"},
+                                     api_key="sk-x", verify_model="gpt-6.1-terra")
+        ok = lambda s, u, model=None: {"text": "ok", "model": model or "gpt-6-luna"}  # noqa: E731
+        self.assertEqual(ablation.preflight_model(ok, api_key="sk-x", verify_model="gpt-6.1-terra"),
+                         ["gpt-6-luna", "gpt-6.1-terra"])
+        self.assertEqual(ablation.preflight_model(ok, api_key="sk-x", verify_model="gpt-6-luna"), ["gpt-6-luna"])
+
+    def test_holdout_lock_in_git_history_blocks(self):
+        # Review của Khoa: khoá trên máy có thể bị xoá; khoá đã từng commit thì cũng không cho chạy lại
+        lock = os.path.join(self.dir, "holdout.lock")
+        with self.assertRaises(SystemExit):
+            ablation.claim_holdout(lock, {"commit": "abc1234"}, history=["9f8e7d6 Holdout: chạy một lần"])
+        self.assertFalse(os.path.exists(lock))
+        ablation.claim_holdout(lock, {"commit": "abc1234"}, history=[])
+        self.assertTrue(os.path.exists(lock))
+
+    def test_report_name_depends_on_modes(self):
+        # Review của Khoa: chạy tập con không được ghi đè bảng so sánh đủ 3 chế độ
+        self.assertEqual(ablation.report_name("dev", list(ablation.MODES), None), "ablation-dev.md")
+        self.assertEqual(ablation.report_name("dev", ["hybrid", "rule", "llm"], None), "ablation-dev.md")
+        self.assertEqual(ablation.report_name("dev", ["rule"], None), "ablation-dev-rule.md")
+        self.assertEqual(ablation.report_name("dev", ["rule", "hybrid"], None), "ablation-dev-rule-hybrid.md")
+        self.assertEqual(ablation.report_name("dev", list(ablation.MODES), 5), "ablation-dev-thu.md")
+        self.assertEqual(ablation.report_name("data_that", ["llm"], 3), "ablation-data_that-llm-thu.md")
+
+    def test_report_notes_on_tuning_and_independence(self):
+        cases = ablation.load_cases("dev")[:3]
+        sums = {m: ablation.summarize(ablation.run_mode(cases, m, answer=fake_answer_factory(set()))) for m in ablation.MODES}
+        dev = ablation.render_md("dev", sums, meta={})
+        self.assertIn("sau khi chỉnh", dev)
+        dt = ablation.render_md("data_that", sums, meta={})
+        self.assertIn("không còn là tập độc lập", dt)
+        self.assertNotIn("chưa ai nhìn", dt)
+        self.assertNotIn("không** gửi chi tiết", dt)
 
     def test_holdout_refuses_fake_model(self):
         with self.assertRaises(SystemExit):
