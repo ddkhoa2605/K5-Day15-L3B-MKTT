@@ -43,7 +43,7 @@ Data BTC cấp đã dùng (nếu có — không commit nguyên file): không dù
   2. Không cấp chứng nhận tuân thủ, không kết luận "app này vi phạm" — chỉ nói nghĩa vụ nào đã phát sinh.
   3. Không quét hay dò ứng dụng đang chạy của người khác; chỉ đọc source công khai và phân tích tĩnh.
   4. Không thêm nhóm kiểm tra thứ tư ngoài C1, C2, C3.
-  5. Không xuất `.docx` và không làm giao diện web trong 48 giờ; hồ sơ là bản nháp markdown, demo bằng dòng lệnh.
+  5. Không xuất `.docx`; hồ sơ là bản nháp markdown. Giao diện web chỉ là một trang mỏng gọi `answer()`: không tài khoản, không lưu dữ liệu người dùng, không thêm nghiệp vụ ngoài C1–C3.
 - **Sơ đồ:**
 
 ```mermaid
@@ -73,7 +73,7 @@ flowchart LR
 
     UNSURE["Tự từ chối kết luận<br/>CAN_LUAT_SU hoặc CAN_NGUOI_XAC_NHAN"]
 
-    HUMAN{"Người chịu trách nhiệm<br/>xem bằng chứng,<br/>gõ xac_nhan để sinh bản nháp"}
+    HUMAN{"Người chịu trách nhiệm<br/>xem bằng chứng,<br/>bấm xác nhận (dòng lệnh: gõ xac_nhan)<br/>để sinh bản nháp"}
     DRAFT["Bản nháp hồ sơ đánh giá tác động<br/>(markdown, nhãn BẢN NHÁP, không tự gửi đi đâu)"]
 
     IN --> GUARD
@@ -119,9 +119,9 @@ flowchart LR
   | Danh mục đóng thì thành rule, văn xuôi mới vào AI | Bảng luật JSON đi thẳng vào rule engine; các nhóm nhạy cảm (Điều 4 Nghị định 356, điểm a–m), ngưỡng 100 nghìn, bảng trích dẫn không đi qua LLM |
   | Có bằng chứng kiểm được | Mỗi kết luận kèm file và số dòng, người dùng kiểm trong vài giây |
   | Minh bạch dữ liệu gửi ra ngoài | Màn hình "gửi gì ra ngoài" trước khi gọi AI; chỉ tên cột và đoạn code đã lọc secret |
-  | Con người giữ thẩm quyền | Cổng xác nhận bắt buộc: chưa gõ `xac_nhan` thì không có bản nháp; bản nháp mang nhãn BẢN NHÁP và không tự gửi đi |
+  | Con người giữ thẩm quyền | Cổng xác nhận bắt buộc: chưa xác nhận (nút trên web, hoặc gõ `xac_nhan` ở dòng lệnh) thì không có bản nháp; bản nháp mang nhãn BẢN NHÁP và không tự gửi đi |
 
-- Phần nào còn giả — ghi rõ, không giả làm thật: tầng quét mã nguồn, phân loại bằng từ điển, rule engine và bảng luật JSON chạy thật bằng code (chế độ rule trên 50 case dev đạt 36/50). **Đã nối model thật** qua `codebase/ai.py`: `gpt-6-luna` phân loại cột và chạy chế độ `llm` (cấu hình B của ablation), `gpt-6.1-terra` kiểm chứng đường đi dữ liệu; mới thử nối 3 câu đầu của benchmark, **chưa có lượt đánh giá nào** nên chưa có số của chế độ `hybrid` và `llm`. Bộ chấm tự động và ablation chưa nằm trên nhánh chính. Chế độ `llm` đọc kho luật `data/legal/chunks.jsonl`; phần Nghị định 330 trong đó chỉ là bản tin của EY, không phải toàn văn. Repo demo (`data/demo_repos/`) chưa có. Bảng luật đã đối chiếu Luật 91 và Nghị định 356 với văn bản gốc. Các mã điều khoản của Nghị định 330 (Điều 7, 43, 55, 56) đã đối chiếu với hai bản tái bản toàn văn giống hệt nhau, nhưng **chưa đối chiếu Công báo hay bản có dấu đỏ**; mức phạt trong bảng luật là mức của tổ chức (cá nhân bằng một nửa) và chỉ là khung tối đa.
+- Phần nào còn giả — ghi rõ, không giả làm thật: tầng quét mã nguồn, phân loại bằng từ điển, rule engine và bảng luật JSON chạy thật bằng code (chế độ rule trên 50 case dev đạt 36/50). **Đã nối model thật** qua `codebase/ai.py`: `gpt-6-luna` phân loại cột và chạy chế độ `llm` (cấu hình B của ablation), `gpt-6.1-terra` kiểm chứng đường đi dữ liệu; mới thử nối 3 câu đầu của benchmark, **chưa có lượt đánh giá nào** nên chưa có số của chế độ `hybrid` và `llm`. Bộ chấm tự động và ablation chưa nằm trên nhánh chính. Chế độ `llm` đọc kho luật `data/legal/chunks.jsonl`; phần Nghị định 330 trong đó chỉ là bản tin của EY, không phải toàn văn. Repo demo (`data/demo_repos/`) chưa có. **Giao diện web để demo chưa có trên nhánh chính** và chưa có người nhận; sẽ là một trang mỏng gọi `answer()`, chạy bằng `python run.py` (khung cho phép thay `run_app()`), ưu tiên thư viện chuẩn để không thêm phụ thuộc, và phải giữ đủ bốn thứ: bằng chứng file:dòng, danh sách "gửi gì ra ngoài", nhãn BẢN NHÁP và cổng xác nhận. Nếu không kịp thì demo bằng dòng lệnh, kết quả như nhau. Bảng luật đã đối chiếu Luật 91 và Nghị định 356 với văn bản gốc. Các mã điều khoản của Nghị định 330 (Điều 7, 43, 55, 56) đã đối chiếu với hai bản tái bản toàn văn giống hệt nhau, nhưng **chưa đối chiếu Công báo hay bản có dấu đỏ**; mức phạt trong bảng luật là mức của tổ chức (cá nhân bằng một nửa) và chỉ là khung tối đa.
 
 ## §5. Chỗ khó — 4 lớp + ≥6 kịch bản + 2 tấn công *(guide 2.3)*
 
@@ -192,7 +192,7 @@ flowchart LR
 
 | Thời điểm | Đổi gì | Vì sao (trỏ về câu thử / lỗi / bằng chứng nào) |
 |---|---|---|
-|  |  |  |
+| tối 27/11 (sau CP2) | Đổi cách demo: từ dòng lệnh sang giao diện web một trang; bỏ ý "không làm giao diện web" ở §4. Phạm vi C1–C3, bốn metric và chuẩn "đạt" không đổi. | Demo trước giám khảo cần nhìn được bằng chứng file:dòng, danh sách "gửi gì ra ngoài" và cổng xác nhận. Không trỏ về câu thử hay lỗi nào; không ảnh hưởng số liệu đánh giá. |
 
 **Sau CP4 (đến 23:59 Thứ Bảy 28/11)** (sửa theo góp ý — không sửa chuẩn "đạt", câu thử, số bằng chứng, kết quả các lượt đã chạy)
 
