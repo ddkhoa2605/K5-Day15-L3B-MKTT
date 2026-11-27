@@ -145,6 +145,9 @@ _SDK_IMPORT = re.compile(r"""(?:from\s+|require\(\s*|import\s+)['"](@sentry/[\w\
                          r"""@amplitude/[\w\-]+|resend|@sendgrid/mail|logrocket)['"]""")
 _NOT_FOREIGN = (".vn", "localhost", "127.0.0.1", "0.0.0.0")
 _SKIP_HTTP_HOSTS = ("supabase.co", "supabase.in")  # kho dữ liệu chính của app, không tính là sink ở lát cắt này
+# API gửi email gọi thẳng bằng fetch/axios: cùng loại với SDK email (kind "email") để áp quy tắc người nhận email.
+_EMAIL_HOSTS = ("api.resend.com", "api.sendgrid.com", "api.mailgun.net", "api.eu.mailgun.net", "api.postmarkapp.com",
+                "api.brevo.com", "api.sendinblue.com", "mandrillapp.com", "api.mailjet.com", "api.sparkpost.com")
 
 CONTEXT = 5
 _STRING_LIT = re.compile(r"""("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)""")
@@ -167,6 +170,130 @@ def _code_only(line):
 def _snippet(lines, idx, ctx=CONTEXT):
     lo, hi = max(0, idx - ctx), min(len(lines), idx + ctx + 1)
     return redact("\n".join(lines[lo:hi])), lo + 1, hi
+
+
+# ---------------------------------------------------------------- luồng dữ liệu tới lời gọi (C1)
+# Ở code thật, dữ liệu cá nhân hay đi qua biến trung gian (dựng danh sách ở một dòng, ghép prompt ở dòng khác, gửi ở
+# dòng khác nữa) hoặc qua một hàm bọc định nghĩa ở file khác. Cửa sổ ±CONTEXT dòng quanh lời gọi không thấy được.
+# Ba bước, đều là phân tích tĩnh tổng quát, không dựa vào tên biến cụ thể:
+#   1. kéo cửa sổ tới hết khối đối số của lời gọi (ngoặc đóng đủ);
+#   2. lát cắt ngược: dòng GÁN các biến được dùng trong khối lời gọi, lần ngược tối đa SLICE_HOPS bước trong cùng file;
+#   3. hàm bọc: lời gọi nằm trong hàm F có định nghĩa thấy được → mỗi chỗ gọi F( ở file khác cũng là đường ra ngoài.
+CALL_MAX = 30      # số dòng tối đa của khối đối số
+SLICE_BACK = 200   # lần ngược tối đa bao nhiêu dòng
+SLICE_HOPS = 2
+SLICE_MAX = 12     # số dòng liên quan tối đa thêm vào một sink
+_IDENT = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
+_NOT_VAR = frozenset("""await async const let var function return new this true false null undefined if else for while
+    of in typeof instanceof try catch finally throw import export from default class extends super void delete yield
+    JSON Object Array String Number Boolean Math Date Promise console process env fetch window document require
+    method headers body POST GET PUT PATCH DELETE then map join filter slice length push""".split())
+_FUNC_DEF = re.compile(r"(?:\bfunction\s+([A-Za-z_$][\w$]*)\s*\(|"
+                       r"\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*=>|[A-Za-z_$][\w$]*\s*=>))")
+_NOT_WRAPPER = frozenset({"GET", "POST", "PUT", "PATCH", "DELETE", "handler", "main", "default", "middleware"})
+
+
+def _call_end(lines, idx):
+    """Dòng cuối của khối đối số bắt đầu ở dòng idx (ngoặc (), {}, [] cân bằng; bỏ qua chuỗi và comment)."""
+    depth, opened = 0, False
+    for j in range(idx, min(len(lines), idx + CALL_MAX)):
+        code = _TRAILING_COMMENT.sub("", _STRING_LIT.sub('""', lines[j]))
+        for ch in code:
+            if ch in "({[":
+                depth, opened = depth + 1, True
+            elif ch in ")}]":
+                depth -= 1
+        if opened and depth <= 0:
+            return j
+    return idx if not opened else min(len(lines), idx + CALL_MAX) - 1
+
+
+def _assigns(line, name):
+    """Dòng có gán biến name không: const/let/var name =, name =, name +=, hay giải cấu trúc { …name… } = ."""
+    code = _STRING_LIT.sub('""', line)
+    n = re.escape(name)
+    return bool(re.search(r"\b(?:const|let|var)\s+%s\b|(?<![\w$.])%s\s*(?:\+|-)?=(?!=)|"
+                          r"\b(?:const|let|var)\s*[{\[][^=]*(?<![\w$])%s(?![\w$])[^=]*[}\]]\s*=(?!=)" % (n, n, n), code))
+
+
+def _idents(text):
+    return {t for t in _IDENT.findall(_STRING_LIT.sub(lambda m: " ".join(re.findall(r"\$\{([^}]*)\}", m.group(0))), text))
+            if t not in _NOT_VAR and len(t) >= 2}
+
+
+def _backward_slice(lines, lo, hi):
+    """Dòng (0-index, ngoài cửa sổ [lo, hi]) gán các biến được dùng trong cửa sổ, lần ngược SLICE_HOPS bước."""
+    want = set()
+    for j in range(lo, hi + 1):
+        want |= _idents(lines[j])
+    found, start = [], max(0, lo - SLICE_BACK)
+    for _ in range(SLICE_HOPS):
+        new = set()
+        for j in range(lo - 1, start - 1, -1):
+            if j in found or not lines[j].strip() or lines[j].lstrip().startswith(("//", "#", "*")):
+                continue
+            hit = [v for v in want if _assigns(lines[j], v)]
+            if hit:
+                found.append(j)
+                new |= _idents(lines[j]) - set(hit)
+                if len(found) >= SLICE_MAX:
+                    return sorted(found)
+        want = new - want
+        if not want:
+            break
+    return sorted(found)
+
+
+def _with_related(lines, lo, hi, extra):
+    """Đoạn gửi đi: cửa sổ liền mạch + các dòng liên quan (ghi rõ số dòng), đã lọc secret."""
+    text = "\n".join(lines[lo:hi + 1])
+    if extra:
+        text += "\n// … dòng liên quan trong cùng file (gán biến đi vào lời gọi):\n" + "\n".join(
+            "// dòng %d: %s" % (j + 1, lines[j].strip()) for j in extra)
+    return redact(text)
+
+
+def _sink_at(path, lines, i, kind, endpoint):
+    end = _call_end(lines, i)
+    lo, hi = max(0, i - CONTEXT), min(len(lines) - 1, max(i + CONTEXT, end))
+    extra = _backward_slice(lines, lo, hi)
+    return {"file": path, "line": i + 1, "kind": kind, "endpoint": endpoint,
+            "snippet": _with_related(lines, lo, hi, extra), "tu_dong": lo + 1, "den_dong": hi + 1,
+            "dong_lien_quan": [j + 1 for j in extra]}
+
+
+def _enclosing_function(lines, i):
+    """Tên hàm bao quanh dòng i (tìm ngược tối đa SLICE_BACK dòng); None nếu không thấy định nghĩa."""
+    for j in range(i, max(-1, i - SLICE_BACK), -1):
+        m = _FUNC_DEF.search(lines[j])
+        if m:
+            name = m.group(1) or m.group(2)
+            return None if name in _NOT_WRAPPER or len(name) < 4 else name
+    return None
+
+
+def _wrapper_calls(files, sink):
+    """Hàm bọc: sink nằm trong hàm F (định nghĩa thấy được) → các chỗ gọi F( ở file khác."""
+    lines = files[sink["file"]].split("\n")
+    name = _enclosing_function(lines, sink["line"] - 1)
+    if not name:
+        return []
+    call = re.compile(r"(?<![\w$.])%s\s*\(" % re.escape(name))
+    out = []
+    for path in sorted(files):
+        if path == sink["file"]:
+            continue
+        flines = files[path].split("\n")
+        for i, line in enumerate(flines):
+            if line.lstrip().startswith(("//", "#", "*")) or _IMPORT_LINE.search(line) or _FUNC_DEF.search(line):
+                continue
+            if call.search(_STRING_LIT.sub('""', line)):
+                s = _sink_at(path, flines, i, sink["kind"], sink["endpoint"])
+                s["qua_ham"] = {"ten": name, "file": sink["file"], "line": sink["line"]}
+                out.append(s)
+                if len(out) >= 5:
+                    return out
+    return out
 
 
 def find_sinks(files: dict) -> list:
@@ -194,7 +321,7 @@ def find_sinks(files: dict) -> list:
             if m:
                 host = m.group(1).split("://", 1)[1].split(":")[0].lower()
                 if not host.endswith(_NOT_FOREIGN) and not host.endswith(_SKIP_HTTP_HOSTS):
-                    hits.append((i, "http_ngoai", host))
+                    hits.append((i, "email" if host.endswith(_EMAIL_HOSTS) else "http_ngoai", host))
                 continue
             code = _code_only(line)
             m = _ANALYTICS.search(code)
@@ -207,10 +334,16 @@ def find_sinks(files: dict) -> list:
         if ai_import and not any(k == "ai_nuoc_ngoai" for _, k, _ in hits):
             hits.append((ai_import[0], "ai_nuoc_ngoai", ai_import[1]))
         for i, kind, endpoint in sorted(hits):
-            snip, lo, hi = _snippet(lines, i)
-            sinks.append({"file": path, "line": i + 1, "kind": kind, "endpoint": endpoint,
-                          "snippet": snip, "tu_dong": lo, "den_dong": hi})
-    return sinks
+            sinks.append(_sink_at(path, lines, i, kind, endpoint))
+    out, seen = [], set()
+    for s in sinks:   # chỗ gọi qua hàm bọc đứng ngay sau sink gốc, để không bị cắt bởi giới hạn số sink gửi model
+        out.append(s)
+        seen.add((s["file"], s["line"]))
+        for w in _wrapper_calls(files, s):
+            if (w["file"], w["line"]) not in seen:
+                seen.add((w["file"], w["line"]))
+                out.append(w)
+    return out
 
 
 # ---------------------------------------------------------------- consent
@@ -356,6 +489,7 @@ def case_from_repo(path: str) -> dict:
     wanted = {}
     for s in find_sinks(files):
         wanted.setdefault(s["file"], set()).update(range(s["tu_dong"], s["den_dong"] + 1))
+        wanted[s["file"]].update(s.get("dong_lien_quan") or [])
     consent = find_consent(files, columns)
     for loc in consent["tich_san"]:
         wanted.setdefault(loc["file"], set()).update(range(max(1, loc["line"] - 3), loc["line"] + 4))

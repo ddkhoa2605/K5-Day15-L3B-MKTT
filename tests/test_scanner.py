@@ -1,5 +1,7 @@
 import os
 import sys
+import tempfile
+import shutil
 import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "codebase"))
@@ -178,3 +180,81 @@ class TestCorpusFeedback(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestDataflowToSink(unittest.TestCase):
+    """C1 trên code thật: dữ liệu đi qua biến trung gian / hàm bọc rồi mới tới lời gọi (review run-1, PR #17).
+    Code tự viết, tên biến khác hẳn bộ câu thử."""
+
+    def test_window_reaches_end_of_call_arguments(self):
+        lines = ['const r = await fetch("https://api.example-ai.com/v1/run", {', '  method: "POST",'] + \
+                ['  headers: { a: 1 },'] * 8 + ['  body: JSON.stringify({ input: hoSo.dia_chi_nha }),', '});']
+        s = scanner.find_sinks({"x.ts": "\n".join(lines)})[0]
+        self.assertEqual(s["den_dong"], len(lines))
+        self.assertIn("dia_chi_nha", s["snippet"])
+
+    def test_backward_slice_follows_intermediate_variables(self):
+        code = ["const hang = await db.from(\"khach\").select(\"ho_va_ten, so_cmnd\");",
+                "const bang = hang.map((k) => k.ho_va_ten + \" \" + k.so_cmnd).join(\"\\n\");"] + \
+               ["// …"] * 20 + \
+               ["const loiNhac = \"Tóm tắt:\\n\" + bang;",
+                "await openai.chat.completions.create({ messages: [{ role: \"user\", content: loiNhac }] });"]
+        s = scanner.find_sinks({"y.ts": "\n".join(code)})[0]
+        self.assertEqual(s["dong_lien_quan"], [1, 2])   # loiNhac nằm trong cửa sổ; bang (dòng 2) và hang (dòng 1) lần ngược
+        self.assertIn("so_cmnd", s["snippet"])
+        self.assertIn("// dòng 2:", s["snippet"])
+
+    def test_unrelated_personal_column_not_pulled_in(self):
+        code = ["const benhAn = await db.from(\"benh_nhan\").select(\"chan_doan\");", "luuNoiBo(benhAn);"] + \
+               ["// …"] * 20 + \
+               ["const tieuDe = \"Gợi ý tên món\";",
+                "await openai.chat.completions.create({ messages: [{ role: \"user\", content: tieuDe }] });"]
+        s = scanner.find_sinks({"z.ts": "\n".join(code)})[0]
+        self.assertEqual(s["dong_lien_quan"], [])
+        self.assertNotIn("chan_doan", s["snippet"])
+
+    def test_wrapper_function_call_site_is_a_sink(self):
+        files = {
+            "lib/ai-client.ts": "export async function hoiMoHinh(noiDung) {\n"
+                                "  return fetch(\"https://api.openai.com/v1/responses\", { method: \"POST\", body: noiDung });\n}",
+            "app/bao-cao.ts": "const ds = nhanVien.map((n) => n.so_dien_thoai);\n"
+                              "const kq = await hoiMoHinh(ds.join(\",\"));",
+        }
+        sinks = scanner.find_sinks(files)
+        wrapped = [s for s in sinks if s.get("qua_ham")]
+        self.assertEqual(len(wrapped), 1)
+        w = wrapped[0]
+        self.assertEqual((w["file"], w["line"], w["kind"]), ("app/bao-cao.ts", 2, "ai_nuoc_ngoai"))
+        self.assertEqual(w["qua_ham"], {"ten": "hoiMoHinh", "file": "lib/ai-client.ts", "line": 2})
+        self.assertIn("so_dien_thoai", w["snippet"])
+        self.assertEqual(sinks.index(w), 1)   # đứng ngay sau sink gốc
+
+    def test_no_wrapper_without_visible_definition(self):
+        files = {"lib/ai.ts": "\n\nconst URL_AI = \"https://api.anthropic.com/v1/messages\";",
+                 "app/a.ts": "const kq = await goiTroLy(nguoiDung.email);"}
+        self.assertFalse(any(s.get("qua_ham") for s in scanner.find_sinks(files)))
+
+    def test_rule_verify_sees_sliced_column(self):
+        import verify
+        code = ["const hang = await db.from(\"khach\").select(\"so_cmnd\");",
+                "const bang = hang.map((k) => k.so_cmnd);"] + ["// …"] * 20 + \
+               ["await openai.chat.completions.create({ messages: [{ role: \"user\", content: bang }] });"]
+        s = scanner.find_sinks({"y.ts": "\n".join(code)})[0]
+        r = verify.verify_path_rule(s, [{"table": "khach", "column": "so_cmnd"}])
+        self.assertTrue(r["xac_nhan"])
+        self.assertEqual(r["truong_ca_nhan"], ["khach.so_cmnd"])
+
+    def test_case_roundtrip_keeps_related_lines(self):
+        d = tempfile.mkdtemp()
+        try:
+            code = ["const hang = await db.from(\"khach\").select(\"so_cmnd\");",
+                    "const bang = hang.map((k) => k.so_cmnd);"] + ["// …"] * 20 + \
+                   ["await openai.chat.completions.create({ messages: [{ role: \"user\", content: bang }] });"]
+            with open(os.path.join(d, "y.ts"), "w", encoding="utf-8") as f:
+                f.write("\n".join(code))
+            case = scanner.case_from_repo(d)
+            again = scanner.find_sinks(scanner.files_from_case(case))[0]
+            self.assertEqual(again["dong_lien_quan"], [1, 2])
+        finally:
+            shutil.rmtree(d)
+
