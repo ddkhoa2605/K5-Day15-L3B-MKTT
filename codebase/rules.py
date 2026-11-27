@@ -184,5 +184,21 @@ def evaluate_c2(labels, consent):
     return _finding("KHONG_KICH_HOAT", [], why)
 
 
+FREE_TEXT_NOTE = ("Cột chữ tự do (%s) có thể chứa dữ liệu nhạy cảm do người dùng tự nhập; hệ thống không đọc nội dung, "
+                  "nên kết luận trên dựa vào thiết kế của app.")
+
+
+def _free_text_note(c3, labels):
+    """Quyết định của Khoa (28/11): cột chữ tự do không đổi trạng thái C3, nhưng luôn kèm một dòng nhắc."""
+    import classify
+    cols = ["%s.%s" % (l["table"], l["column"]) for l in labels
+            if classify.is_free_text(l["column"]) and l["nhom"] not in legal.sensitive_groups()]
+    if cols:
+        c3["luu_y"] = FREE_TEXT_NOTE % ", ".join(cols[:5])
+        c3["giai_thich"] += " " + c3["luu_y"]
+    return c3
+
+
 def evaluate(case: dict, labels: list, paths: list, consent: dict) -> dict:
-    return {"C1": evaluate_c1(paths), "C2": evaluate_c2(labels, consent), "C3": evaluate_c3(case, labels)}
+    return {"C1": evaluate_c1(paths), "C2": evaluate_c2(labels, consent),
+            "C3": _free_text_note(evaluate_c3(case, labels), labels)}
