@@ -48,9 +48,13 @@ class TestC3(unittest.TestCase):
         r = rules.evaluate(case("khong_ro", None), [EMAIL], [], NO_CONSENT)["C3"]
         self.assertEqual(r["trang_thai"], "CAN_NGUOI_XAC_NHAN")
 
-    def test_unknown_business_with_sensitive_loses_exemption_article_level(self):
+    def test_unknown_business_with_sensitive_needs_human(self):  # LABELING.md C3 bước 2, case c3-vt-007
         r = rules.evaluate(case("khong_ro", None), [VT], [], NO_CONSENT)["C3"]
-        self.assertEqual((r["trang_thai"], r["can_cu"]), ("MAT_MIEN_TRU", ["ND356 D4h", "ND356 D41"]))
+        self.assertEqual((r["trang_thai"], r["can_cu"]), ("CAN_NGUOI_XAC_NHAN", []))
+        self.assertEqual(r["nhom_nhay_cam"], ["vi_tri_dinh_vi"])
+        self.assertIn("KHÔNG còn miễn trừ", r["giai_thich"])
+        r = rules.evaluate(case("doanh_nghiep_nho", None), [VT], [], NO_CONSENT)["C3"]
+        self.assertEqual(r["trang_thai"], "CAN_NGUOI_XAC_NHAN")
 
     def test_large_business_not_exempt_even_with_sensitive(self):
         r = rules.evaluate(case("doanh_nghiep_lon", 500), [VT], [], NO_CONSENT)["C3"]

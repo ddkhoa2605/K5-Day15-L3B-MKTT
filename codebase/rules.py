@@ -19,9 +19,6 @@ C1_CAN_LUAT_SU = ["Luat91 D20.6"]
 C2_KICH_HOAT = ["Luat91 D9.3", "ND356 D6"]
 C2_IM_LANG = "Luat91 D9.4d"
 C2_TICH_SAN = "ND356 D6.3"
-# Loại hình chưa rõ mà đã chạm dữ liệu nhạy cảm: kết luận "mất miễn trừ" đúng với mọi loại hình được miễn,
-# nhưng chưa biết khoản nào của Điều 41 → trích cấp điều. (Phương án a — đổi tại đây nếu nhóm chốt khác.)
-C3_KHONG_RO_FALLBACK = "mat_mien_tru"   # dùng exemption.json["mat_mien_tru"][lý do]
 
 HAN_CHOT_C1 = "60 ngày kể từ lần chuyển dữ liệu đầu tiên"
 PHAT_PREFIX = "Khung tham khảo, mức tối đa theo bản tin pháp lý thứ cấp (chưa đối chiếu Công báo): "
@@ -81,33 +78,30 @@ def evaluate_c3(case, labels):
         return _finding("KHONG_THUOC_DIEN_MIEN", [],
                         "Doanh nghiệp lớn không thuộc diện được miễn Điều 21, 22, khoản 2 Điều 33 Luật 91.",
                         _col_evidence(sure), nhom_nhay_cam=groups)
+    # Thứ tự theo data/cases/LABELING.md §C3: chưa rõ loại hình / quy mô đứng TRƯỚC dữ liệu nhạy cảm (XN8).
+    if loai_hinh == "khong_ro" or luy_ke is None:
+        if sure:
+            why = ("Đã thấy dữ liệu nhạy cảm (%s) nhưng chưa biết loại hình doanh nghiệp / số chủ thể lũy kế. "
+                   "Dù loại hình nào, kết luận đều là KHÔNG còn miễn trừ (mất miễn trừ, hoặc không thuộc diện được miễn); "
+                   "cần xác nhận loại hình để chốt căn cứ." % ", ".join(groups))
+        else:
+            why = "Chưa có loại hình doanh nghiệp hoặc số chủ thể lũy kế; cần người xác nhận để biết còn miễn trừ không."
+        return _finding("CAN_NGUOI_XAC_NHAN", [], why, _col_evidence(sure), nhom_nhay_cam=groups)
+    lh = ex["loai_hinh"][loai_hinh]
     if sure or over:
         reasons = []
         if sure:
             reasons.append("trực tiếp xử lý dữ liệu nhạy cảm (%s)" % ", ".join(groups))
         if over:
             reasons.append("quy mô lũy kế %s chủ thể ≥ ngưỡng %s" % (luy_ke, ex["nguong_luy_ke"]))
-        if loai_hinh == "khong_ro":
-            key = "du_lieu_nhay_cam" if sure else "nguong_luy_ke"
-            codes = group_codes + [ex[C3_KHONG_RO_FALLBACK][key]]
-            note = " Loại hình doanh nghiệp chưa rõ: kết luận này đúng với mọi loại hình được miễn; cần xác nhận loại hình để chốt khoản."
-        else:
-            lh = ex["loai_hinh"][loai_hinh]
-            codes = group_codes + [lh["can_cu"], lh["can_cu_nd"]]
-            note = ""
-        return _finding("MAT_MIEN_TRU", codes,
-                        "Mất miễn trừ vì " + " và ".join(reasons) + ". Nghĩa vụ Điều 21, 22, khoản 2 Điều 33 Luật 91 đã phát sinh." + note,
+        return _finding("MAT_MIEN_TRU", group_codes + [lh["can_cu"], lh["can_cu_nd"]],
+                        "Mất miễn trừ vì " + " và ".join(reasons) + ". Nghĩa vụ Điều 21, 22, khoản 2 Điều 33 Luật 91 đã phát sinh.",
                         _col_evidence(sure), nhom_nhay_cam=groups)
     if unsure:
         return _finding("CAN_NGUOI_XAC_NHAN", [],
                         "Có cột chưa xác định được nhóm dữ liệu (%s); cần người xác nhận trước khi kết luận miễn trừ."
                         % ", ".join("%s.%s" % (l["table"], l["column"]) for l in unsure[:8]),
                         _col_evidence(unsure), nhom_nhay_cam=groups)
-    if loai_hinh == "khong_ro" or luy_ke is None:
-        return _finding("CAN_NGUOI_XAC_NHAN", [],
-                        "Chưa có loại hình doanh nghiệp hoặc số chủ thể lũy kế; cần người xác nhận để biết còn miễn trừ không.",
-                        nhom_nhay_cam=groups)
-    lh = ex["loai_hinh"][loai_hinh]
     return _finding("CON_MIEN_TRU", [lh["can_cu"], lh["can_cu_nd"]],
                     "Không thấy dữ liệu nhạy cảm, quy mô dưới ngưỡng: còn miễn trừ theo loại hình %s." % loai_hinh,
                     nhom_nhay_cam=groups)
