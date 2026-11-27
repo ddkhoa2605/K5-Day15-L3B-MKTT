@@ -386,7 +386,8 @@ class TestBlindTap(unittest.TestCase):
                     dict(modes=list(ablation.MODES), provider="openai", limit=3)):
             with self.assertRaises(SystemExit):
                 ablation.check_can_run("blind", bad["modes"], provider=bad["provider"], limit=bad["limit"])
-        ablation.check_can_run("blind", list(ablation.MODES), provider="openai", limit=None)  # không ném
+        with mock.patch.dict(os.environ, {"SHP_LLM_CODES": "closed"}):
+            ablation.check_can_run("blind", list(ablation.MODES), provider="openai", limit=None)  # không ném
         lock = os.path.join(self.dir, "blind.lock")
         ablation.claim_holdout(lock, {"tap": "blind"}, history=[], ten="bộ mù")
         with self.assertRaises(SystemExit) as cm:
@@ -395,6 +396,29 @@ class TestBlindTap(unittest.TestCase):
         with self.assertRaises(SystemExit) as cm:
             ablation.claim_holdout(os.path.join(self.dir, "x.lock"), {}, history=["abc Bộ mù"], ten="bộ mù")
         self.assertIn("bộ mù", str(cm.exception.code))
+
+    def test_blind_requires_closed_llm_codes(self):
+        # Khoa (28/11): bộ mù chạy B với danh sách mã đóng (SHP_LLM_CODES=closed); thiếu thì dừng trước khi ghi khoá
+        full = dict(modes=list(ablation.MODES), provider="openai", limit=None)
+        for val in (None, "", "open"):
+            env = {k: v for k, v in os.environ.items() if k != "SHP_LLM_CODES"}
+            if val is not None:
+                env["SHP_LLM_CODES"] = val
+            with mock.patch.dict(os.environ, env, clear=True):
+                with self.assertRaises(SystemExit) as cm:
+                    ablation.check_can_run("blind", **full)
+                self.assertIn("SHP_LLM_CODES", str(cm.exception.code))
+        with mock.patch.dict(os.environ, {"SHP_LLM_CODES": "closed"}):
+            ablation.check_can_run("blind", **full)  # không ném
+        env = {k: v for k, v in os.environ.items() if k != "SHP_LLM_CODES"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            ablation.check_can_run("holdout", **full)  # holdout giữ nguyên luật cũ
+
+    def test_report_shows_llm_codes(self):
+        cases = ablation.load_cases("dev")[:2]
+        sums = {m: ablation.summarize(ablation.run_mode(cases, m, answer=fake_answer_factory(set()))) for m in ablation.MODES}
+        md = ablation.render_md("blind", sums, meta={"SHP_LLM_CODES": "closed"})
+        self.assertIn("SHP_LLM_CODES=`closed`", md)
 
 
 if __name__ == "__main__":

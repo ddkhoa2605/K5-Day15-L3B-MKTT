@@ -11,7 +11,7 @@ Chạy:
     python eval/ablation.py --modes rule --limit 5   # chạy thử nhanh → file *-thu, không phải số báo cáo
     python eval/ablation.py --tap holdout            # 10 case holdout — ĐÚNG MỘT LẦN, cần model thật
     python eval/ablation.py --tao-manifest --khoa-duyet="<giờ> (Khoa)"   # in eval/blind.manifest (chỉ mã băm)
-    python eval/ablation.py --tap blind              # bộ mù (issue #20) — ĐÚNG MỘT LẦN, file phải khớp manifest
+    SHP_LLM_CODES=closed python eval/ablation.py --tap blind   # bộ mù (issue #20) — ĐÚNG MỘT LẦN, khớp manifest
 
 Ghi ra:
     eval/ablation-<tap>-<mode>.csv   mỗi case một dòng: id, tag, pass, 4 metric, token, ghi_chu
@@ -246,8 +246,9 @@ def render_md(tap, sums, meta):
     n = max(s["n"] for s in sums.values())
     out = ["# Ablation — tập `%s` · n=%d%s" % (tap, n, " · CHẠY THỬ (--limit, không dùng để báo cáo)" if meta.get("thu") else ""),
            "",
-           "Chạy %s · commit `%s` · lệnh `%s` · MODEL_PROVIDER=`%s`" % (
-               meta.get("ngay", "—"), meta.get("commit", "—"), meta.get("lenh", "—"), meta.get("provider", "—")),
+           "Chạy %s · commit `%s` · lệnh `%s` · MODEL_PROVIDER=`%s`%s" % (
+               meta.get("ngay", "—"), meta.get("commit", "—"), meta.get("lenh", "—"), meta.get("provider", "—"),
+               " · SHP_LLM_CODES=`%s`" % (meta["SHP_LLM_CODES"] or "trống: B nguyên bản") if "SHP_LLM_CODES" in meta else ""),
            "", "Model thực tế: " + " · ".join("%s: %s" % (LABEL[m], ", ".join(sums[m]["models"]) or "không gọi model") for m in modes)]
     fake = [m for m in modes if is_fake(sums[m], m)]
     if fake:
@@ -329,6 +330,10 @@ def check_can_run(tap, modes, provider, limit):
         sys.exit("DỪNG: %s phải chạy đủ 3 chế độ %s trong cùng một lần." % (ten, ", ".join(MODES)))
     if (provider or "fake") in ("fake", "mock"):
         sys.exit("DỪNG: MODEL_PROVIDER=%s là model giả. %s chỉ chạy một lần — nối model thật trước." % (provider, ten))
+    if tap == "blind" and (os.environ.get("SHP_LLM_CODES") or "").strip().lower() != "closed":
+        # Khoa (28/11): bộ mù chạy B với danh sách mã đóng (B công bằng, #24 mục 9)
+        sys.exit("DỪNG: bộ mù phải chạy với SHP_LLM_CODES=closed (B có danh sách mã đóng). Đặt biến này rồi chạy lại; "
+                 "chưa ghi khoá.")
 
 
 def preflight_model(call_model, api_key, verify_model=None):
@@ -439,7 +444,8 @@ def main(argv):
     cases = load_cases(tap)[:limit] if limit else load_cases(tap)
     suffix = "-thu" if limit else ""
     meta = {"ngay": datetime.datetime.now().strftime("%d/%m/%Y %H:%M"), "commit": _commit(), "provider": provider,
-            "lenh": "python eval/ablation.py " + " ".join(argv), "tap": tap, "n": len(cases), "thu": bool(limit)}
+            "lenh": "python eval/ablation.py " + " ".join(argv), "tap": tap, "n": len(cases), "thu": bool(limit),
+            "SHP_LLM_CODES": os.environ.get("SHP_LLM_CODES") or ""}
     if tap in LOCKS:  # holdout, bộ mù: đúng một lần. Bộ mù đã qua kiểm manifest ở load_cases (trước khi ghi khoá)
         # dừng ở đây nếu chưa gọi được model thật — gọi thử cả model kiểm chứng của hybrid
         verify = ai.verify_model() if hasattr(ai, "verify_model") else None  # có từ PR #8 (MODEL_NAME_VERIFY)
