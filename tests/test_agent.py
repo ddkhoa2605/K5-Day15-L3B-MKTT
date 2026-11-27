@@ -92,7 +92,7 @@ class TestHybridMode(unittest.TestCase):
               '{"table":"bookings","column":"id","nhom":"khong_ca_nhan","do_tin_cay":0.9},' \
               '{"table":"bookings","column":"user_id","nhom":"khong_ca_nhan","do_tin_cay":0.9},' \
               '{"table":"bookings","column":"vi_tri_gan_nhat","nhom":"vi_tri_dinh_vi","do_tin_cay":0.95}]'
-        ver = '{"xac_nhan": true, "truong_ca_nhan": [], "nguon": "he_thong"}'
+        ver = '{"xac_nhan": true, "truong_ca_nhan": [], "nguon": "he_thong", "bang_chung": "content: user.email + msg"}'
         rep = lambda t: {"text": t, "model": "mock", "tokens_in": 1, "tokens_out": 1}  # noqa: E731
         with mock.patch("classify.call_model", return_value=rep(cls)), mock.patch("verify.call_model", return_value=rep(ver)):
             j = report_json(run(json.dumps(CASE_C, ensure_ascii=False), mode="hybrid"))

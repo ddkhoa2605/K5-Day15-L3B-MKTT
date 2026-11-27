@@ -121,7 +121,8 @@ class TestVerify(unittest.TestCase):
 
     def test_llm_path_snippet_redacted(self):
         with mock.patch("verify.call_model", return_value=reply(
-                '{"xac_nhan": true, "truong_ca_nhan": ["users.email"], "nguon": "he_thong"}')) as m:
+                '{"xac_nhan": true, "truong_ca_nhan": ["users.email"], "nguon": "he_thong", '
+                '"bang_chung": "content:  user.email"}')) as m:   # khác khoảng trắng vẫn khớp
             p = verify.verify_path_llm(self.SINK, self.PII)
         self.assertEqual(p["nguon"], "he_thong")
         self.assertNotIn("sk-abc", m.call_args[0][1])
@@ -245,4 +246,33 @@ class TestEmailRecipientRule(unittest.TestCase):
         import scanner
         s = scanner.find_sinks({"t.ts": 'await fetch("https://api.mailjet.com/v3.1/send", { method: "POST" })'})
         self.assertEqual(s[0]["kind"], "email")
+
+
+class TestVerifyQuotedEvidence(unittest.TestCase):
+    """Mục 7, 8 của Khoa: "không thấy" ≠ "không có"; khi nói có gửi thì phải trích đoạn code có thật. Ví dụ tự dựng."""
+    SINK = {"file": "b.ts", "line": 2, "kind": "ai_nuoc_ngoai", "endpoint": "responses.create",
+            "snippet": "const goi = hoiVien.map((h) => h.so_ho_chieu);\nawait client.responses.create({ input: goi })"}
+    PII = [{"table": "hoi_vien", "column": "so_ho_chieu", "nhom": "pii_co_ban", "do_tin_cay": 1.0}]
+
+    def _ask(self, text):
+        with mock.patch.object(verify, "call_model", lambda *a, **k: reply(text)):
+            return verify.verify_path_llm(self.SINK, self.PII)
+
+    def test_real_quote_kept(self):
+        r = self._ask('{"xac_nhan": true, "truong_ca_nhan": ["hoi_vien.so_ho_chieu"], "nguon": "he_thong", '
+                      '"bang_chung": "h.so_ho_chieu"}')
+        self.assertEqual((r["xac_nhan"], r["nguon"]), (True, "he_thong"))
+
+    def test_invented_or_missing_quote_is_unsure(self):
+        for q in ('"bang_chung": "body: JSON.stringify(user)"', '"bang_chung": ""'):
+            r = self._ask('{"xac_nhan": true, "truong_ca_nhan": ["hoi_vien.so_ho_chieu"], "nguon": "he_thong", %s}' % q)
+            self.assertEqual(r, verify.UNSURE)
+
+    def test_false_needs_no_quote(self):
+        r = self._ask('{"xac_nhan": false, "truong_ca_nhan": [], "nguon": "khong_ro"}')
+        self.assertFalse(r["xac_nhan"])
+
+    def test_prompt_states_rules(self):
+        for must in ("không có", "không thấy", "bang_chung", "CHÉP NGUYÊN VĂN"):
+            self.assertIn(must, verify.SYSTEM)
 
