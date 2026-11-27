@@ -9,7 +9,7 @@ Gửi ra model: đoạn code quanh sink ĐÃ LỌC SECRET + tên các cột cá 
 import json
 import re
 
-from ai import call_model
+from ai import call_model, verify_model
 from classify import parse_json_reply
 from scanner import redact  # noqa: F401  (hàm lọc secret dùng chung: verify.redact)
 from tracing import note
@@ -77,7 +77,7 @@ def verify_path_llm(sink: dict, pii_columns: list) -> dict:
                json.dumps(cols, ensure_ascii=False), redact(sink.get("snippet", ""))))
     parsed = None
     for attempt in range(2):
-        parsed = parse_json_reply(call_model(SYSTEM, user)["text"], dict)
+        parsed = parse_json_reply(call_model(SYSTEM, user, model=verify_model())["text"], dict)
         if parsed is not None:
             break
         note("verify_path_llm: trả lời không phải JSON object, lần %d" % (attempt + 1))
