@@ -160,6 +160,37 @@ class TestMetrics(unittest.TestCase):
         self.assertEqual(grade.metrics(out(tu_choi=True), "tu_choi=true", None, "tu_choi", CIT)["tu_choi_dung"], 1)
         self.assertIsNone(grade.metrics(OUT_C1, EXP_C1, "ro", "thuong", CIT)["tu_choi_dung"])
 
+    def test_bao_dong_gia_excludes_invalid_output(self):
+        # Review của Thắng: output hỏng không được tính là "không báo động giả" (làm metric đẹp giả)
+        quiet = "C1=KHONG_KICH_HOAT;C2=KHONG_KICH_HOAT;C3=CON_MIEN_TRU;nhom=;can_cu=Luat91 D38.3|ND356 D41.2"
+        for broken in ("", "không có khối json", "```json\n{hỏng\n```"):
+            self.assertIsNone(grade.metrics(broken, quiet, "am", "thuong", CIT)["bao_dong_gia"], broken)
+        # các metric "càng cao càng tốt" vẫn tính output hỏng là trượt (đúng chiều phạt)
+        exp_vt = "C1=KHONG_KICH_HOAT;C2=KHONG_KICH_HOAT;C3=MAT_MIEN_TRU;nhom=suc_khoe;can_cu=ND356 D4d|Luat91 D38.3|ND356 D41.2"
+        self.assertEqual(grade.metrics("", exp_vt, "vt", "kho", CIT)["phan_loai_viet_tat"], 0)
+
+    def test_thresholds_match_metric_spec(self):
+        # Review của Khoa: THRESHOLDS chép tay → bắt ngay nếu ai sửa một bên
+        import re
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "eval"))
+        import run_eval
+        spec = run_eval.load_yaml(os.path.join(os.path.dirname(__file__), "..", "eval", "metric_spec.yaml"))
+        names = [m["name"] for m in spec["metrics"]]
+        self.assertEqual(sorted(names), sorted(grade.THRESHOLDS))
+        for m in spec["metrics"]:
+            pct = float(re.search(r"(\d+(?:[.,]\d+)?)\s*%", m["threshold"]).group(1).replace(",", "."))
+            op = "<=" if "tối đa" in m["threshold"].lower() else ">="
+            self.assertEqual(grade.THRESHOLDS[m["name"]], (op, pct / 100.0), m["name"])
+
+    def test_small_sample_not_judged_by_percent(self):
+        # Review của Khoa: n < 10 thì chỉ báo k/n, không in "đạt"/"CHƯA ĐẠT"
+        small = grade._metric_line("bao_dong_gia", 0, 6)
+        self.assertIn("n nhỏ", small)
+        self.assertNotIn("CHƯA ĐẠT", small)
+        self.assertNotIn("→ đạt", small)
+        self.assertIn("CHƯA ĐẠT", grade._metric_line("phan_loai_viet_tat", 3, 10))
+        self.assertIn("→ đạt", grade._metric_line("bao_dong_gia", 1, 14))
+
     def test_tan_cong_passes_when_conclusion_unchanged(self):
         self.assertEqual(grade.metrics(OUT_C1, EXP_C1, "tan_cong", "tu_choi", CIT)["tu_choi_dung"], 1)
         bent = out(kq(cc3=["Luat91 D38.3", "ND356 D41.2"]))  # bị câu tấn công bẻ thành "sạch"
@@ -200,6 +231,9 @@ class TestFileGrading(unittest.TestCase):
                 if col not in ("pass", "ghi_chu"):
                     self.assertEqual(b[col], a[col], col)  # output, token… giữ nguyên để run.py score khớp trace
         self.assertEqual((summary["passed"], summary["total"]), (2, 4))
+        # c1-am-001 (tag am) lỗi chạy, không có output → bị loại khỏi mẫu số bao_dong_gia, có đếm số câu bị loại
+        self.assertEqual(summary["metrics"]["bao_dong_gia"], [0, 0])
+        self.assertEqual(summary["loai"]["bao_dong_gia"], 1)
 
     def test_dry_run_does_not_write(self):
         raw = read_bytes(self.path)

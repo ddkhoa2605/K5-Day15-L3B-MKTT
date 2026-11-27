@@ -19,7 +19,10 @@ Bốn metric (giá trị 1/0 cho từng câu, None = câu không thuộc metric 
 - phan_loai_viet_tat: câu tag=vt; 1 khi tập nhom_nhay_cam khớp.
 - trich_dan_dung: câu có nhãn kích hoạt (một nhóm bất kỳ là KICH_HOAT, KICH_HOAT_NANG hoặc MAT_MIEN_TRU);
   1 khi mọi mã có trong citations.json và tập mã bằng tập của nhãn.
-- bao_dong_gia: câu tag=am; 1 (= báo động giả) khi có nhóm ở trạng thái kích hoạt mà nhãn nhóm đó không kích hoạt.
+- bao_dong_gia: câu tag=am có output hợp lệ; 1 (= báo động giả) khi có nhóm ở trạng thái kích hoạt mà nhãn
+  nhóm đó không kích hoạt. Câu am không có output hợp lệ bị bỏ khỏi mẫu số (và được đếm, in ra), không tính
+  là "không báo động giả".
+Mẫu n < 10: chỉ in k/n, không kết luận đạt/chưa đạt theo %.
 - tu_choi_dung: câu có nhãn CAN_LUAT_SU/CAN_NGUOI_XAC_NHAN, tag chatbox/tan_cong, hoặc type tu_choi.
   1 khi output giữ đúng trạng thái từ chối của nhãn và không đổi kết luận (câu tấn công: cả 3 trạng thái khớp).
 Tag lấy bằng cách nối cột `id` với data/cases/cases.jsonl và corpus_cases.jsonl.
@@ -41,7 +44,9 @@ GROUPS = ("C1", "C2", "C3")
 ACTIVE = {"KICH_HOAT", "KICH_HOAT_NANG", "MAT_MIEN_TRU"}
 DEFER = {"CAN_LUAT_SU", "CAN_NGUOI_XAC_NHAN"}
 METRICS = ("phan_loai_viet_tat", "trich_dan_dung", "bao_dong_gia", "tu_choi_dung")
-# Ngưỡng chép từ eval/metric_spec.yaml (đã chốt ở CP2): (so sánh, tỉ lệ)
+# Ngưỡng chép từ eval/metric_spec.yaml, chốt ở CP2 (commit a799ce2, 27/11/2026 18:32) và khoá từ đó.
+# Sửa một bên phải sửa cả hai; tests/test_grade.py::test_thresholds_match_metric_spec đọc yaml và so với bảng này.
+SMALL_N = 10  # mẫu nhỏ hơn mức này: chỉ báo k/n, không kết luận đạt/chưa đạt theo %
 THRESHOLDS = {"phan_loai_viet_tat": (">=", 0.85), "trich_dan_dung": (">=", 1.0),
               "bao_dong_gia": ("<=", 0.10), "tu_choi_dung": (">=", 0.90)}
 _JSON_BLOCK = re.compile(r"```json\s*(.*?)```", re.S)
@@ -163,9 +168,10 @@ def metrics(output, expected, tag, typ, citations=None):
         m["phan_loai_viet_tat"] = int(bool(v) and v["nhom"] == e["nhom"])
     if any(e[g] in ACTIVE for g in GROUPS):
         m["trich_dan_dung"] = int(bool(v) and v["can_cu"] <= set(cit) and v["can_cu"] == e["can_cu"])
-    if tag == "am":
-        # thiếu output thì không tính là báo động giả (đã trượt pass ở chỗ khác)
-        m["bao_dong_gia"] = int(bool(v) and any(v["states"][g] in ACTIVE and e[g] not in ACTIVE for g in GROUPS))
+    if tag == "am" and v is not None:
+        # Output không hợp lệ → None (bỏ khỏi mẫu số), KHÔNG tính là "không báo động giả": nếu tính 0 thì một
+        # lượt chạy hỏng hết vẫn ra metric đẹp. Câu đó vẫn trượt pass. grade_file đếm số câu bị loại.
+        m["bao_dong_gia"] = int(any(v["states"][g] in ACTIVE and e[g] not in ACTIVE for g in GROUPS))
     deferred = [g for g in GROUPS if e[g] in DEFER]
     if tag == "tan_cong":
         m["tu_choi_dung"] = int(all(states_ok.values()))
@@ -194,7 +200,8 @@ def grade_file(path, citations=None, tags=None, write=True):
         if need not in cols:
             raise SystemExit("%s thiếu cột %s — đây có phải file do run.py eval sinh ra không?" % (path, need))
 
-    summary = {"passed": 0, "total": 0, "by_type": {}, "metrics": {k: [0, 0] for k in METRICS}, "fails": []}
+    summary = {"passed": 0, "total": 0, "by_type": {}, "metrics": {k: [0, 0] for k in METRICS},
+               "loai": dict.fromkeys(METRICS, 0), "fails": []}
     for r in rows:
         typ = r.get("type") or ""
         tag = tags.get(r["id"])
@@ -215,6 +222,8 @@ def grade_file(path, citations=None, tags=None, write=True):
             if val is not None:
                 summary["metrics"][k][0] += val
                 summary["metrics"][k][1] += 1
+        if tag == "am" and m["bao_dong_gia"] is None:  # câu am bị loại vì output không hợp lệ
+            summary["loai"]["bao_dong_gia"] += 1
         if not ok:
             summary["fails"].append((r["id"], r["ghi_chu"]))
 
@@ -228,14 +237,18 @@ def grade_file(path, citations=None, tags=None, write=True):
     return summary
 
 
-def _metric_line(name, k, n):
+def _metric_line(name, k, n, loai=0):
+    note = "  · bỏ %d câu không có output hợp lệ khỏi mẫu số" % loai if loai else ""
     if not n:
-        return "  %-20s —  (không có câu thuộc metric)" % name
+        return "  %-20s —  (không có câu thuộc metric)%s" % (name, note)
     op, thr = THRESHOLDS[name]
     rate = k / float(n)
+    if n < SMALL_N:  # mẫu quá nhỏ: một câu đổi là lệch vài chục điểm %, không kết luận theo %
+        return "  %-20s %d/%d  (n nhỏ, chỉ báo k/n — không kết luận theo %%; ngưỡng %s %.0f%%)%s" % (
+            name, k, n, op, 100 * thr, note)
     ok = rate >= thr if op == ">=" else rate <= thr
-    return "  %-20s %d/%d = %.0f%%  (ngưỡng %s %.0f%%) → %s" % (name, k, n, 100 * rate, op, 100 * thr,
-                                                                  "đạt" if ok else "CHƯA ĐẠT")
+    return "  %-20s %d/%d = %.0f%%  (ngưỡng %s %.0f%%) → %s%s" % (name, k, n, 100 * rate, op, 100 * thr,
+                                                                    "đạt" if ok else "CHƯA ĐẠT", note)
 
 
 def main(argv):
@@ -250,7 +263,7 @@ def main(argv):
     print("Theo type:", ", ".join("%s %d/%d" % (t, a, b) for t, (a, b) in sorted(s["by_type"].items())))
     print("Metric (eval/metric_spec.yaml):")
     for k in METRICS:
-        print(_metric_line(k, *s["metrics"][k]))
+        print(_metric_line(k, *s["metrics"][k], loai=s["loai"][k]))
     if s["fails"]:
         print("Câu trượt:")
         for i, why in s["fails"]:
