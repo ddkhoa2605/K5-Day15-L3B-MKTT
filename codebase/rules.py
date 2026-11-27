@@ -21,7 +21,7 @@ C2_IM_LANG = "Luat91 D9.4d"
 C2_TICH_SAN = "ND356 D6.3"
 
 HAN_CHOT_C1 = "60 ngày kể từ lần chuyển dữ liệu đầu tiên"
-PHAT_PREFIX = "Khung tham khảo, mức tối đa theo bản tin pháp lý thứ cấp (chưa đối chiếu Công báo): "
+PHAT_PREFIX = "Mức phạt tham khảo (khung tối đa theo Nghị định 330, không phải mức chắc chắn bị áp): "
 
 
 def _checked(codes):
@@ -40,9 +40,24 @@ def _finding(trang_thai, can_cu, giai_thich, bang_chung=None, han_chot=None, muc
     return f
 
 
-def _penalty(key):
-    p = legal.load()["penalties"].get(key)
-    return PHAT_PREFIX + p["muc"] if p else None
+def _penalty(*keys):
+    """Mức phạt tham khảo của một hoặc nhiều mục trong penalties.json. Ghi rõ mức của tổ chức, mức cá nhân
+    bằng một nửa. Mã Nghị định 330 chỉ nằm trong câu chữ, KHÔNG đưa vào can_cu (LABELING.md §6.3)."""
+    parts = []
+    for key in keys:
+        p = legal.load()["penalties"].get(key)
+        if not p:
+            continue
+        codes = [c for c in p.get("can_cu") or [] if c]
+        for c in codes:
+            legal.cite(c)
+        s = "tổ chức " + p["muc"]
+        if codes:
+            s += " (%s)" % ", ".join(codes)
+        if p.get("muc_ca_nhan"):
+            s += "; cá nhân bằng một nửa: " + p["muc_ca_nhan"]
+        parts.append(s)
+    return PHAT_PREFIX + " · ".join(parts) if parts else None
 
 
 def _col_evidence(labels):
@@ -96,7 +111,7 @@ def evaluate_c3(case, labels):
             reasons.append("quy mô lũy kế %s chủ thể ≥ ngưỡng %s" % (luy_ke, ex["nguong_luy_ke"]))
         return _finding("MAT_MIEN_TRU", group_codes + [lh["can_cu"], lh["can_cu_nd"]],
                         "Mất miễn trừ vì " + " và ".join(reasons) + ". Nghĩa vụ Điều 21, 22, khoản 2 Điều 33 Luật 91 đã phát sinh.",
-                        _col_evidence(sure), nhom_nhay_cam=groups)
+                        _col_evidence(sure), muc_phat=_penalty("C3"), nhom_nhay_cam=groups)
     if unsure:
         return _finding("CAN_NGUOI_XAC_NHAN", [],
                         "Có cột chưa xác định được nhóm dữ liệu (%s); cần người xác nhận trước khi kết luận miễn trừ."
@@ -152,7 +167,7 @@ def evaluate_c2(labels, consent):
         return _finding("KICH_HOAT_NANG", codes,
                         "Cách xin đồng ý không hợp lệ: " + " và ".join(why) + ".",
                         [{"file": l["file"], "line": l["line"], "snippet": l["snippet"]} for l in silence + prechecked],
-                        muc_phat=_penalty("C2_NANG"))
+                        muc_phat=_penalty(*((["C2_NANG"] if silence else []) + (["C2_NANG_TICH_SAN"] if prechecked else []))))
     if personal and not consent.get("du_3_truong"):
         table = consent.get("bang_consent")
         why = ("Bảng %s thiếu trường để chứng minh sự đồng ý (người dùng · thời điểm · phiên bản chính sách)." % table
