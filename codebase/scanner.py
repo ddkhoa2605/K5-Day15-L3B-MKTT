@@ -215,6 +215,8 @@ _USER_COL = re.compile(r"(^|_)(user|nguoi_dung|khach_hang|khach|customer|profile
                        r"|^uid$|^owner_id$")
 _TIME_COL = re.compile(r"(_at$|^thoi_gian|^ngay_|_time$|timestamp|_date$)")
 _VERSION_COL = re.compile(r"(version|phien_ban|policy_hash|terms_rev)")
+_EMBEDDED_CONSENT = re.compile(r"(terms|consent|dong_y|dongy|dieu_khoan|privacy|chinh_sach|policy)")
+_USER_TABLE = re.compile(r"^(users?|profiles?|accounts?|customers?|members?|khach(_hang)?|nguoi_dung|hoc_vien|tai_khoan)$")
 
 
 def find_consent(files: dict, columns: list) -> dict:
@@ -232,8 +234,15 @@ def find_consent(files: dict, columns: list) -> dict:
         if "consent" in table or "dong_y" in table or "dongy" in table or table in logged:
             ok = (any(_USER_COL.search(c) for c in cols) and any(_TIME_COL.search(c) for c in cols)
                   and any(_VERSION_COL.search(c) for c in cols))
-            if best is None or (ok and not full):
-                best, full = table, ok
+        else:
+            # Đồng ý lưu bằng cột ngay trên bảng người dùng: users(terms_accepted_at, terms_version)
+            embedded = [c for c in cols if _EMBEDDED_CONSENT.search(c)]
+            if not embedded:
+                continue
+            ok = ((_USER_TABLE.search(table) is not None or any(_USER_COL.search(c) for c in cols))
+                  and any(_TIME_COL.search(c) for c in embedded) and any(_VERSION_COL.search(c) for c in embedded))
+        if best is None or (ok and not full):
+            best, full = table, ok
     tich_san, im_lang = [], []
     for path in sorted(files):
         lines = files[path].split("\n")
@@ -322,6 +331,9 @@ def case_from_repo(path: str) -> dict:
         wanted.setdefault(loc["file"], set()).update(range(max(1, loc["line"] - 3), loc["line"] + 4))
     for loc in consent["im_lang_dong_y"]:
         wanted.setdefault(loc["file"], set()).add(loc["line"])
+    for p, text in files.items():  # dòng ghi bản ghi đồng ý: giữ để Case đọc lại vẫn nhận ra bảng consent
+        for m in _CONSENT_INSERT.finditer(text):
+            wanted.setdefault(p, set()).add(text.count("\n", 0, m.start()) + 1)
     code = []
     for p in sorted(wanted):
         lines = files[p].split("\n")

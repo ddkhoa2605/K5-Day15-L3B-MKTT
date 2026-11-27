@@ -64,7 +64,7 @@ def verify_paths(sinks: list, pii_columns: list, mode: str) -> list:
     rule: sink nhắc tên cột cá nhân → hệ thống gửi. hybrid: hỏi model từng sink (tối đa MAX_STEPS), đoạn code đã lọc secret.
     Không ghi dữ liệu."""
     out = []
-    for s in sinks[:MAX_STEPS]:
+    for s in (sinks if mode == "rule" else sinks[:MAX_STEPS]):  # rule không gọi model → kiểm mọi sink
         if mode == "rule":
             res = verify.verify_path_rule(s, pii_columns)
         else:

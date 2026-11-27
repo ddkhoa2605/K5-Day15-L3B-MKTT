@@ -29,7 +29,7 @@ def _cite_short(code):
 
 
 def render(findings: dict, sent: list, refused: bool = False, message: str = "", mo_ta: str = "",
-           extra: str = "", mode: str = "") -> str:
+           extra: str = "", mode: str = "", extra_json: dict = None) -> str:
     out = []
     if refused:
         out.append("Không kiểm được yêu cầu này. " + (message or ""))
@@ -64,6 +64,8 @@ def render(findings: dict, sent: list, refused: bool = False, message: str = "",
     block = {"tu_choi": bool(refused), "ket_qua": {} if refused else findings, "da_gui_ra_ngoai": sent}
     if mode:
         block["che_do"] = mode
+    if extra_json:
+        block.update(extra_json)
     out.append("")
     out.append("```json")
     out.append(json.dumps(block, ensure_ascii=False))
