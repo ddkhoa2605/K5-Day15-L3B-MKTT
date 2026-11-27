@@ -47,6 +47,10 @@ Dataset nào, xử lý gì: tóm 2–3 dòng từ `data/DATA_CARD.md`.
 
 Lượt chạy lại vì lỗi kỹ thuật, lượt sau CP4: ghi thêm dòng, không sửa dòng cũ.
 
+**Xác nhận code lúc chạy** (trace của khung không ghi commit):
+- **Lượt 1:** chạy trên nhánh `T2-run-1` vừa tách từ `main` `9d8f13f`, chưa sửa file code nào. Kiểm lại: `git log -1 --format=%p 0127469` ra `9d8f13f` (cha của commit kết quả), và `git show --stat 0127469` chỉ có `eval/run-1.csv`, `traces/run-1.jsonl`, `eval/README.md`.
+- **Lượt sau làm giống:** ngay trước `python run.py eval`, ghi `git rev-parse --short HEAD`, và `git status --short` không có file code nào bị sửa. Chạy xong commit kết quả ngay, không kèm thay đổi code.
+
 ## 6. Lỗi chính
 
 Tóm 2–3 dòng từ `eval/report.md`: nhóm lỗi lớn nhất · đã sửa gì · còn lại gì.
