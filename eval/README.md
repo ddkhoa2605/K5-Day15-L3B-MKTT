@@ -43,12 +43,14 @@ Dataset nào, xử lý gì: tóm 2–3 dòng từ `data/DATA_CARD.md`.
 | Lượt | Run ID | Model | Cấu hình (prompt / công cụ / thay đổi) | Đạt / tổng | % | Đạt chuẩn? |
 |---|---|---|---|---|---|---|
 | 1 | `run-1@20261128-005902` | `gpt-6-luna` (chính) · `gpt-6.1-terra` (kiểm chứng) | `SHP_MODE=hybrid` (mặc định) · code `main` `9d8f13f` · benchmark 30 câu | 21/30 | 70% | **Không** — cần ≥ 80% và `trich_dan_dung` 100%; lượt này `trich_dan_dung` 15/21 = 71% |
-| 2 | | | | __/__ | | |
+| 2 | `run-2@20261128-023825` | `gpt-6-luna` (chính) · `gpt-6.1-terra` (kiểm chứng) | `SHP_MODE=hybrid` · code `main` `e33792d` (sau PR #15): prompt phân loại (cột mốc thời gian, `*_at`, định danh kỹ thuật, ngoại lệ bảng hành vi); C1 lần theo dữ liệu (khối đối số, lát cắt ngược, hàm bọc); kiểm chứng phân biệt chữ người dùng cuối với nội dung nghiệp vụ; quy tắc người nhận email và cột chữ tự do (Khoa chốt sau lượt 1, `spec.md` §7, §10) · benchmark giống hệt lượt 1 | 24/30 | 80% | **Không**: đạt ngưỡng 80% câu qua, nhưng `trich_dan_dung` 17/21 = 81% (cần 100%) |
 
 Lượt chạy lại vì lỗi kỹ thuật, lượt sau CP4: ghi thêm dòng, không sửa dòng cũ.
 
 **Xác nhận code lúc chạy** (trace của khung không ghi commit):
 - **Lượt 1:** chạy trên nhánh `T2-run-1` vừa tách từ `main` `9d8f13f`, chưa sửa file code nào. Kiểm lại: `git log -1 --format=%p 0127469` ra `9d8f13f` (cha của commit kết quả), và `git show --stat 0127469` chỉ có `eval/run-1.csv`, `traces/run-1.jsonl`, `eval/README.md`.
+- **Lượt 2:** chạy trên nhánh `T2-run-2` vừa tách từ `main` `e33792d`. Trước khi chạy đã ghi `git rev-parse --short HEAD` = `e33792d`; `git status --short` không có file code nào bị sửa; `eval/benchmark.csv` và `eval/metric_spec.yaml` giống hệt lúc lượt 1 (`git diff --quiet 0127469 HEAD -- …`).
+- **Lượt 2 có phần lạc quan:** các thay đổi của PR #15 được làm **sau khi xem lỗi lượt 1**, và Minh đã đo nháp trên benchmark trong lúc sửa (không ghi vào `eval/`, `traces/`). Vì vậy số lượt 2 không phải số kiểm tra độc lập; holdout mới là số đó. Cải thiện nằm hết ở câu tự viết (15/18 → 18/18); câu `data_that` giữ nguyên 6/12 (`dt-r02-006` trượt → đạt, `dt-r01-001` đạt → trượt), và cả 6 câu còn trượt đều là câu `data_that`.
 - **Lượt sau làm giống:** ngay trước `python run.py eval`, ghi `git rev-parse --short HEAD`, và `git status --short` không có file code nào bị sửa. Chạy xong commit kết quả ngay, không kèm thay đổi code.
 
 ## 6. Lỗi chính
