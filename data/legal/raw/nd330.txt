@@ -1,0 +1,438 @@
+Tháng 10 năm 2026 Tin nhanh Pháp lý | Trang 1
+Tin nhanh Pháp lý
+Tháng 10 năm 2026
+Visit other Alerts here.
+Xem thêm các Tin nhanh khác tại đây.
+Nghị định 330/2026/NĐ-CP quy định xử
+phạt vi phạm Luật Bảo vệ dữ liệu cá nhân
+Tin nhanh Pháp lý này nêu bật các rủi ro thực thi và tác động tuân thủ chính phát
+sinh từ Nghị định 330/2026/NĐ-CP, văn bản đầu tiên của Việt Nam thiết lập cơ chế
+xử phạt vi phạm hành chính riêng trong lĩnh vực bảo vệ dữ liệu cá nhân, bao gồm
+phạm vi áp dụng, cơ chế xử phạt và các vấn đề trọng tâm mà doanh nghiệp cần lưu
+ý trong thực tiễn.
+Ngày 19 tháng 8 năm 2026, Chính phủ ban hành Nghị định số 330/2026/NĐ-CP quy định xử phạt vi
+phạm hành chính trong lĩnh vực an ninh mạng và bảo vệ dữ liệu cá nhân (Nghị định 330), có hiệu
+lực kể từ ngày ban hành. Với việc Nghị định 330 được ban hành, Việt Nam hiện đã có khung pháp
+lý chuyên biệt và toàn diện về bảo vệ dữ liệu cá nhân, bao gồm các nghĩa vụ về nội dung, yêu cầu
+triển khai và cơ chế thực thi.
+Đối với doanh nghiệp, Nghị định 330 đánh dấu sự chuyển dịch đáng kể từ một khung tuân thủ chủ
+yếu tập trung vào nghĩa vụ sang một khung pháp lý có cơ chế xử phạt riêng. Khung pháp lý mới
+quy định hình thức phạt tiền, hình thức xử phạt bổ sung và biện pháp khắc phục hậu quả đối với
+nhiều hành vi vi phạm quy định về bảo vệ dữ liệu cá nhân, có thể tác động đến cả tổ chức Việt
+Nam và tổ chức nước ngoài tham gia xử lý dữ liệu cá nhân có liên quan đến Việt Nam.
+Tin nhanh Pháp lý này tập trung làm rõ:
+￭ Phạm vi chủ thể và hoạt động thuộc phạm vi áp dụng của Nghị định 330
+￭ Các hành vi vi phạm chính có khả năng được cơ quan quản lý chú trọng xem xét
+￭ Cơ chế xử phạt áp dụng, bao gồm mức phạt tiền cố định, mức phạt tính theo khoản thu từ hành
+vi vi phạm và mức phạt tính theo doanh thu
+￭ Các rủi ro chính về thực thi và tuân thủ phát sinh từ cơ chế mới
+￭ Các bước thực tiễn doanh nghiệp nên cân nhắc để chuẩn bị cho hoạt động thanh tra và thực thi
+pháp luật
+Tháng 10 năm 2026 Tin nhanh Pháp lý | Trang 2
+1. Tổng quan
+Trong ba năm qua, Nghị định số 13/2023/NĐ-CP ngày 17 tháng 4 năm 2023 và, gần đây hơn,
+Luật số 91/2025/QH15 về bảo vệ dữ liệu cá nhân (Luật BVDLCN) chủ yếu tập trung quy định các
+nghĩa vụ nhưng chưa thiết lập đầy đủ cơ chế xử phạt. Doanh nghiệp đã có cơ sở xác định các
+nghĩa vụ tuân thủ theo pháp luật, nhưng chế tài áp dụng trong trường hợp không tuân thủ vẫn
+chưa rõ ràng.
+Trong bối cảnh đó, cơ quan quản lý đã áp dụng các công cụ pháp lý hiện có. Một số doanh nghiệp
+lớn đã bị xử phạt do không bảo đảm khách hàng có sự lựa chọn thực chất đối với việc sử dụng dữ
+liệu cá nhân cho mục đích tiếp thị, hoặc cung cấp thông tin không đầy đủ và có khả năng gây
+nhầm lẫn về cách thức thu thập và sử dụng dữ liệu. Về bản chất, đây là các vi phạm liên quan đến
+dữ liệu cá nhân, nhưng được xử lý dưới góc độ bảo vệ quyền lợi người tiêu dùng do pháp luật về
+bảo vệ dữ liệu cá nhân khi đó chưa có cơ chế xử phạt riêng.
+Nghị định 330 có hiệu lực từ ngày 19 tháng 8 năm 2026 và không quy định thời gian chuyển tiếp.
+Với Nghị định 330, khung pháp lý về bảo vệ dữ liệu cá nhân của Việt Nam lần đầu tiên được hoàn
+thiện đồng bộ: Luật BVDLCN quy định các quyền và nghĩa vụ; Nghị định số 356/2025/NĐ-CP ngày
+31 tháng 12 năm 2025 (Nghị định 356) hướng dẫn việc tuân thủ, và Nghị định 330 quy định chế tài
+áp dụng khi doanh nghiệp không tuân thủ.
+Mặc dù Nghị định 330 điều chỉnh cả lĩnh vực an ninh mạng và bảo vệ dữ liệu cá nhân, Tin nhanh
+Pháp lý này chỉ tập trung vào các quy định xử phạt liên quan đến bảo vệ dữ liệu cá nhân, từ Điều
+39 đến Điều 71.
+2. Đối tượng áp dụng rộng
+Nghị định 330 có phạm vi áp dụng rộng đối với cá nhân, tổ chức Việt Nam và nước ngoài. Cụ thể,
+Nghị định áp dụng đối với tổ chức nước ngoài trực tiếp tham gia hoặc có liên quan đến hoạt động
+xử lý dữ liệu cá nhân của công dân Việt Nam và người gốc Việt Nam chưa xác định được quốc
+tịch đang sinh sống tại Việt Nam đã được cấp giấy chứng nhận căn cước.1
+3. Thời hiệu xử phạt
+Thời hiệu xử phạt vi phạm hành chính trong lĩnh vực này là một năm.2 Đối với hành vi vi phạm đã
+kết thúc, thời hiệu được tính từ ngày cá nhân, tổ chức thực hiện xong nghĩa vụ theo quy định hoặc
+ngày hành vi thực tế kết thúc được cơ quan có thẩm quyền xác nhận.3
+4. Nhóm hành vi vi phạm
+Nghị định 330 thiết lập cơ chế xử phạt hành chính toàn diện đối với các vi phạm về bảo vệ dữ liệu
+cá nhân, bao gồm các vi phạm về hồ sơ và thủ tục tuân thủ, quản trị và chính sách nội bộ, nguồn
+lực và nhân sự phụ trách bảo vệ dữ liệu cá nhân, cũng như các biện pháp kỹ thuật và an ninh dữ
+liệu. Điều này cho thấy rủi ro tuân thủ không chỉ nằm ở các yêu cầu về hồ sơ, báo cáo mà còn bao
+trùm toàn bộ khung quản trị, nhân sự và các biện pháp bảo vệ dữ liệu của tổ chức.
+Trên thực tế, nhiều hành vi vi phạm có thể phát sinh trong hoạt động thường nhật và khá phổ biến
+trong quá trình vận hành của doanh nghiệp, bao gồm:
+￭ Không bảo đảm chủ thể dữ liệu đồng ý riêng cho từng mục đích xử lý
+￭ Không lưu trữ bằng chứng hoặc nhật ký chứng minh việc lấy sự đồng ý
+￭ Không xây dựng quy trình và biểu mẫu để tiếp nhận, xử lý yêu cầu thực hiện quyền của chủ
+thể dữ liệu
+1 Điều 2 Nghị định 330
+2 Khoản 1 Điều 3 Nghị định 330
+3 Khoản 2 Điều 3 Nghị định 330
+Tháng 10 năm 2026 Tin nhanh Pháp lý | Trang 3
+￭ Không thiết lập cơ chế kiểm soát việc truy cập, sử dụng hoặc chia sẻ dữ liệu giữa các bộ phận
+nội bộ
+￭ Không lập, cập nhật hoặc nộp định kỳ hồ sơ đánh giá tác động xử lý dữ liệu cá nhân
+￭ Không xóa hoặc hủy dữ liệu cá nhân của ứng viên không được tuyển dụng
+￭ Không cung cấp cơ chế để chủ thể dữ liệu từ chối nhận nội dung quảng cáo
+￭ Bố trí nhân sự phụ trách bảo vệ dữ liệu cá nhân không đáp ứng yêu cầu về chuyên môn, kinh
+nghiệm hoặc chưa được đào tạo phù hợp về bảo vệ dữ liệu cá nhân
+5. Các vấn đề cần lưu ý
+Mặc dù Nghị định 330 chủ yếu quy định về xử phạt vi phạm hành chính, Nghị định này cũng có
+một số quy định làm rõ thêm, siết chặt hoặc mở rộng các yêu cầu theo Luật BVDLCN và Nghị định
+356.
+Vấn đề Luật BVDLCN và Nghị định 356 Nghị định 330 Ý nghĩa
+Xử lý dữ
+liệu cá
+nhân của
+trẻ em từ
+đủ 7 tuổi
+trở lên
+Luật BVDLCN quy định việc
+xử lý dữ liệu cá nhân của trẻ
+em nhằm công khai thông tin
+về đời sống riêng tư hoặc bí
+mật cá nhân của trẻ em từ đủ
+7 tuổi trở lên phải có sự đồng
+ý của trẻ em và người đại
+diện theo pháp luật của trẻ
+em.4
+Xử phạt hành vi xử lý
+dữ liệu cá nhân của trẻ
+em từ đủ 7 tuổi trở lên
+mà không có sự đồng ý
+của cả trẻ em và người
+đại diện theo pháp luật
+của trẻ em.5
+Không giống như Luật
+BVDLCN, quy định xử
+phạt tại Nghị định 330
+không giới hạn rõ ràng ở
+hoạt động xử lý nhằm
+công khai hoặc tiết lộ đời
+sống riêng tư hay bí mật
+cá nhân của trẻ em, có
+thể cho thấy yêu cầu về
+sự đồng ý kép được áp
+dụng rộng hơn.
+Yêu cầu
+xác minh
+độ tuổi khi
+xử lý dữ
+liệu cá
+nhân của
+trẻ em
+Luật BVDLCN không quy định
+rõ nghĩa vụ xác minh độ tuổi
+trước khi xử lý dữ liệu cá
+nhân của trẻ em. Tuy nhiên,
+Điều 24.2 Luật BVDLCN yêu
+cầu sự đồng ý của cả trẻ em
+và người đại diện theo pháp
+luật trong trường hợp công
+khai thông tin về đời sống
+riêng tư hoặc bí mật cá nhân
+của trẻ em.
+Xử phạt hành vi không
+thực hiện quy trình xác
+minh độ tuổi trước khi
+xử lý dữ liệu cá nhân
+của trẻ em.6
+Nghị định 330 đặt ra
+thêm yêu cầu xác minh
+độ tuổi trước khi xử lý dữ
+liệu cá nhân của trẻ em.
+Thời hạn
+lưu trữ
+Luật BVDLCN yêu cầu dữ liệu
+cá nhân được lưu trữ trong
+thời hạn phù hợp với mục
+đích xử lý.7
+Nghị định 356 yêu cầu tổ
+chức, cá nhân chuyển dữ liệu
+cá nhân theo điểm a, c và d
+khoản 1 Điều 17 Luật
+BVDLCN phải ký kết thỏa
+thuận chuyển giao dữ liệu cá
+Xử phạt hành vi chuyển
+dữ liệu cá nhân theo
+điểm a và d khoản 1
+Điều 17 Luật BVDLCN
+có thu phí nhằm mục
+đích cung cấp dịch vụ
+cho chủ thể dữ liệu
+hoặc phục vụ lợi ích
+chính đáng của chủ thể
+dữ liệu mà không quy
+định thời hạn lưu trữ dữ
+Doanh nghiệp nên quy
+định đầy đủ trong thỏa
+thuận chuyển giao dữ
+liệu cá nhân thời hạn lưu
+trữ phù hợp với mục đích
+chuyển giao dữ liệu.
+4 Khoản 2 Điều 24 Luật BVDLCN
+5 Điểm c khoản 1 Điều 60 Nghị định 330
+6 Điểm a khoản 1 Điều 60 Nghị định 330
+7 Khoản 3 Điều 3 Luật BVDLCN
+Tháng 10 năm 2026 Tin nhanh Pháp lý | Trang 4
+nhân với bên nhận dữ liệu cá
+nhân, trong đó phải quy định
+thời hạn xử lý dữ liệu cá
+nhân.8
+liệu cá nhân phù hợp
+với mục đích chuyển
+giao dữ liệu.9
+Quảng cáo
+liên kết
+Luật BVDLCN yêu cầu tổ
+chức, cá nhân sử dụng dữ
+liệu cá nhân cho mục đích
+quảng cáo theo hành vi,
+quảng cáo có mục tiêu cụ thể
+hoặc quảng cáo cá nhân hóa
+phải có phương thức cho
+phép chủ thể dữ liệu cá nhân
+từ chối chia sẻ dữ liệu.10
+Nghị định 356 hướng dẫn
+thêm về vấn đề này thông qua
+việc cấm thiết lập cơ chế
+đồng ý mặc định hoặc đưa ra
+hướng dẫn không rõ ràng,
+gây nhầm lẫn giữa việc đồng
+ý và không đồng ý của chủ
+thể dữ liệu cá nhân.11
+Xử phạt hành vi thiết lập
+cơ chế mặc định đồng ý
+cung cấp dữ liệu cá
+nhân cho mạng lưới
+quảng cáo liên kết.12
+Mặc dù Luật BVDLCN và
+Nghị định 356 không đề
+cập cụ thể đến mạng
+lưới quảng cáo liên kết,
+Nghị định 330 quy định
+rõ chế tài đối với việc sử
+dụng cơ chế đồng ý mặc
+định trong trường hợp
+này. Doanh nghiệp nên
+lấy sự đồng ý của chủ
+thể dữ liệu khi cung cấp
+dữ liệu cá nhân cho
+mạng lưới quảng cáo
+liên kết, đồng thời thiết
+lập rõ phương thức cho
+phép chủ thể dữ liệu từ
+chối việc chia sẻ dữ liệu
+cá nhân của mình.
+Dữ liệu thu
+được từ hệ
+thống
+camera
+giám sát
+công cộng
+Luật BVDLCN cho phép thu
+thập, xử lý dữ liệu cá nhân từ
+ghi âm, ghi hình tại nơi công
+cộng hoặc trong hoạt động
+công cộng mà không cần sự
+đồng ý trong một số trường
+hợp.13
+Xử phạt việc sử dụng
+dữ liệu cá nhân, hình
+ảnh hoặc bản ghi âm từ
+hệ thống camera giám
+sát công cộng cho mục
+đích thương mại, phân
+tích hành vi hoặc nhận
+dạng khuôn mặt tự
+động để lập hồ sơ cá
+nhân mà không có sự
+đồng ý hợp pháp.14
+Nghị định 330 điều chỉnh
+trường hợp chưa được
+Luật BVDLCN quy định
+rõ bằng cách áp dụng
+chế tài đối với việc sử
+dụng dữ liệu cá nhân thu
+được từ hệ thống
+camera giám sát công
+cộng cho mục đích
+thương mại, phân tích
+hành vi hoặc nhận dạng
+khuôn mặt tự động để
+lập hồ sơ cá nhân mà
+không có sự đồng ý hợp
+pháp.
+Doanh nghiệp nên rà
+soát mục đích sử dụng
+dữ liệu thu được từ hệ
+thống camera giám sát
+công cộng và có được
+sự đồng ý hợp pháp
+trước khi sử dụng dữ liệu
+cho các mục đích nêu
+trên.
+8 Điểm c khoản 1 Điều 7 Nghị định 356
+9 Điểm c khoản 2 Điều 52 Nghị định 330
+10 Điểm b khoản 8 Điều 28 Luật BVDLCN
+11 Khoản 3 Điều 6 Nghị định 356
+12 Điểm c khoản 1 Điều 63 Nghị định 330
+13 Khoản 1 Điều 32 Luật BVDLCN
+14 Điểm a khoản 2 Điều 71 Nghị định 330
+Tháng 10 năm 2026 Tin nhanh Pháp lý | Trang 5
+6. Các hình thức xử phạt
+6.1. Hình thức phạt chính:
+￭ Khung phạt tiền cố định: Phần lớn hành vi vi phạm được áp dụng mức phạt tiền cụ thể bằng
+đồng Việt Nam. Ví dụ, hành vi xử lý dữ liệu cá nhân mà không có sự đồng ý hợp lệ có thể bị
+phạt tiền đến 50 triệu VND;15 hành vi tiếp tục xử lý dữ liệu sau khi có yêu cầu hợp lệ về việc rút
+lại sự đồng ý hoặc hạn chế xử lý dữ liệu, hoặc coi sự im lặng là sự đồng ý, có thể bị phạt tiền
+từ 50 triệu VND đến 70 triệu VND.16
+￭ Mức phạt gấp từ hai đến 10 lần khoản thu từ hành vi vi phạm: Mức phạt này được áp dụng đối
+với hành vi mua bán dữ liệu cá nhân trái phép (bán dữ liệu khi chưa được phép hoặc chia sẻ
+dữ liệu có thu phí không phù hợp thỏa thuận chuyển giao hoặc sự đồng ý của chủ thể dữ
+liệu).17
+￭ Mức phạt tính theo tỷ lệ doanh thu, từ 1% đến 5%: Mức phạt này được áp dụng đối với một số
+ít hành vi vi phạm nghiêm trọng, chủ yếu là hành vi chuyển dữ liệu cá nhân xuyên biên giới
+dẫn đến mất hoặc lộ dữ liệu cá nhân của từ 10.000 công dân Việt Nam trở lên.18 Mức phạt tối
+đa là 5% doanh thu của năm liền trước tại thị trường Việt Nam. Trường hợp không có doanh
+thu của năm liền trước, mức phạt tối đa là 3 tỷ VND.19
+Hành vi Mức phạt tối đa đối với tổ
+chức
+Không xóa hoặc hủy dữ liệu cá nhân của trẻ em được
+xử lý không đúng mục đích
+Đến 200 triệu VND
+Không thực hiện biện pháp ngăn chặn hành vi vi phạm
+quy định về bảo vệ dữ liệu cá nhân
+Đến 80 triệu VND
+Không thực hiện yêu cầu của chủ thể dữ liệu trong thời
+hạn luật định
+Đến 40 triệu VND
+Mua bán dữ liệu cá nhân trái phép Đến 3 tỷ VND
+Chuyển dữ liệu cá nhân xuyên biên giới dẫn đến mất
+hoặc lộ dữ liệu của từ 1.000.000 công dân Việt Nam
+trở lên
+Đến 5% doanh thu của năm liền
+trước tại thị trường Việt Nam
+hoặc 3 tỷ VND
+5.2 Hình thức xử phạt bổ sung: Ngoài phạt tiền, Nghị định 330 cho phép đình chỉ có thời hạn
+hoạt động vận hành hệ thống thông tin, nền tảng ứng dụng hoặc hoạt động xử lý dữ liệu cá
+nhân; tước giấy phép hoặc chứng nhận có liên quan; và tịch thu tang vật, phương tiện
+được sử dụng để vi phạm.20
+15 Khoản 1 Điều 43 Nghị định 330
+16 Khoản 2 Điều 43 Nghị định 330
+17 Khoản 1 Điều 53 Nghị định 330
+18 Khoản 3 Điều 56 Nghị định 330
+19 Khoản 4 Điều 7 Nghị định 330
+20 Khoản 2 Điều 4 Nghị định 330
+Tháng 10 năm 2026 Tin nhanh Pháp lý | Trang 6
+Biện pháp khắc phục hậu quả: Buộc thực hiện quyền của chủ thể dữ liệu; buộc chỉnh sửa
+hoặc xóa dữ liệu cá nhân được xử lý trái pháp luật; buộc nộp lại khoản thu bất hợp pháp;
+buộc thông báo hoặc xin lỗi công khai đối với cá nhân bị ảnh hưởng; buộc cải chính thông
+tin sai sự thật hoặc gây nhầm lẫn.21
+Đáng lưu ý, mức phạt tính theo khoản thu từ hành vi vi phạm không nên bị nhầm lẫn với
+biện pháp buộc nộp lại khoản thu bất hợp pháp, vì hai cơ chế áp dụng trong các trường
+hợp khác nhau và được tính trên các cơ sở khác nhau. Mức phạt tiền từ hai đến 10 lần
+được áp dụng riêng đối với hành vi mua bán dữ liệu cá nhân trái phép và được tính trên
+tổng giá trị giao dịch thể hiện tại hợp đồng, hóa đơn, chứng từ thanh toán, lịch sử tin nhắn,
+giao dịch điện tử, sao kê tài khoản ngân hàng, ví điện tử hoặc cách thức tương tự khác
+liên quan trực tiếp đến giao dịch đó, không khấu trừ bất kỳ khoản chi phí nào phát sinh
+trong quá trình vi phạm. Ngược lại, biện pháp buộc nộp lại khoản thu bất hợp pháp có thể
+áp dụng đối với hành vi thu thập, xử lý, sử dụng hoặc chuyển giao trái phép dữ liệu cá
+nhân mà không thông qua hành vi mua bán trái phép dữ liệu cá nhân. Khi đó, khoản thu
+được xác định dựa là toàn bộ doanh thu thực tế mà tổ chức, cá nhân vi phạm thu được từ
+hoạt động kinh doanh có sử dụng dữ liệu cá nhân được thu thập, xử lý, sử dụng, chuyển
+giao trái phép, không khấu trừ bất kỳ khoản chi phí nào phát sinh trong quá trình vi phạm.22
+7. Doanh nghiệp nên làm gì
+Kể từ ngày 19 tháng 8 năm 2026, rủi ro bị xử phạt vi phạm hành chính đã chính thức hiện hữu đối
+với hành vi không tuân thủ Luật BVDLCN và Nghị định 356. Trong bối cảnh cơ quan quản lý đã có
+đầy đủ cơ sở pháp lý để thanh tra, kiểm tra và xử phạt vi phạm hành chính, việc chậm triển khai
+các biện pháp tuân thủ có thể khiến doanh nghiệp đối mặt với rủi ro đáng kể về pháp lý, tài chính,
+vận hành, kinh doanh và uy tín.
+Đây là thời điểm doanh nghiệp cần hành động. Các bước ưu tiên nên bao gồm rà soát hiện trạng
+tuân thủ; xác định khoảng trống trong quản trị dữ liệu, hồ sơ đánh giá tác động, quản lý sự đồng ý
+của chủ thể dữ liệu, quy trình thực hiện quyền của chủ thể dữ liệu và yêu cầu về chuyển dữ liệu
+xuyên biên giới; đồng thời củng cố cơ cấu quản trị, nhân sự phụ trách bảo vệ dữ liệu cá nhân,
+cũng như các biện pháp kỹ thuật và an ninh dữ liệu. Việc chủ động khắc phục ngay từ bây giờ có
+thể giúp doanh nghiệp giảm đáng kể rủi ro xử phạt và nâng cao khả năng chứng minh nỗ lực tuân
+thủ khi cơ quan có thẩm quyền tiến hành thanh tra, kiểm tra.
+Trong bối cảnh cơ chế xử phạt đã chính thức có hiệu lực, Công ty Luật Trách nhiệm hữu hạn EY
+Việt Nam sẵn sàng hỗ trợ doanh nghiệp đánh giá rủi ro tuân thủ, khắc phục các khoảng trống tuân
+thủ và xây dựng lộ trình thiết thực, hiệu quả nhằm đáp ứng các yêu cầu của Luật BVDLCN, Nghị
+định 356 và Nghị định 330 phù hợp với hoạt động kinh doanh của doanh nghiệp.
+21 Điều 5 Nghị định 330
+22 Khoản 2 Điều 6 và khoản 1 Điều 53 Nghị định 330
+Tháng 10 năm 2026 Tin nhanh Pháp lý | Trang 7
+Liên hệ
+Nguyễn Hoàng Anh Linh | Giám đốc
+linh.hoang.anh.nguyen@vn.ey.com
+Robert King | Lãnh đạo Dịch vụ Thuế, EY Việt Nam, Lào, Campuchia
+robert.m.king@vn.ey.com
+Văn phòng Hà Nội
+Văn phòng Tp. Hồ Chí Minh
+Trần Thị Cẩm Thạch | Giám đốc
+thach.cam.tran@vn.ey.com
+Nguyễn Duy Hiếu | Giám đốc điều hành
+hieu.d.nguyen@vn.ey.com
+Phạm Thụy Anh | Phó Giám đốc điều hành
+anh.thuy.pham1@vn.ey.com
+Robert Trần | Phó Tổng Giám đốc
+Công ty TNHH EY Digital & Cyber
+robert.tran@vn.ey.com
+Tháng 10 năm 2026 Tin nhanh Pháp lý | Trang 8
+Takahisa Onose | Lãnh đạo JBS, EY Việt Nam, Lào, Campuchia
+takahisa.onose@vn.ey.com
+Takaaki Nishikawa | Giám đốc Cấp cao
+takaaki.nishikawa@parthenon.ey.com
+Khối Doanh nghiệp Nhật Bản (JBS)
+Phan Thanh Bình | Lãnh đạo KBS, EY Việt Nam, Lào, Campuchia
+binh.thanh.phan@parthenon.ey.com
+Kyung Hoon Han | Giám đốc Cấp cao
+kyung.hoon.han@vn.ey.com
+Khối Doanh nghiệp Hàn Quốc (KBS)
+Lê Đức Trường | Lãnh đạo CBS, EY Việt Nam, Lào, Campuchia
+truong.duc.le@vn.ey.com
+Lương Kiết Trinh | Chủ nhiệm
+trinh.kiet.luong@vn.ey.com
+Khối Doanh nghiệp nói tiếng Trung (CBS)
+Owen Tsao | Giám đốc
+owen.tsao @vn.ey.com
+EY | Xây dựng một thế giới làm việc tốt đẹp hơn
+EY đang xây dựng một thế giới làm việc tốt đẹp hơn bằng
+cách tạo ra giá trị mới cho khách hàng, con người, xã hội và
+hành tinh, đồng thời tạo dựng sự tín nhiệm trên các thị
+trường vốn.
+Đội ngũ chuyên gia của EY, được hỗ trợ bởi dữ liệu, AI và
+công nghệ tiên tiến, giúp khách hàng tự tin kiến tạo tương
+lai và tìm ra câu trả lời cho các vấn đề cấp bách nhất của
+hôm nay và ngày mai.
+Đội ngũ chuyên gia EY cung cấp đầy đủ các dịch vụ đảm
+bảo, tư vấn, thuế, chiến lược và giao dịch tài chính. Với hiểu
+biết sâu sắc về từng khu vực kinh tế, mạng lưới chuyên gia
+đa ngành được kết nối toàn cầu và các lãnh đạo đa năng
+trong hệ sinh thái, đội ngũ của EY có thể cung cấp dịch vụ
+tại hơn 150 quốc gia và các vùng lãnh thổ.
+Toàn lực để tự tin kiến tạo tương lai.
+EY là một tổ chức toàn cầu bao gồm các thành viên của Ernst & Young
+Global Limited, hoặc một hay nhiều thành viên của tổ chức toàn cầu này,
+trong đó mỗi thành viên là một pháp nhân riêng biệt. Ernst & Young Global
+Limited là một công ty trách nhiệm hữu hạn được thành lập tại Vương
+Quốc Anh và không cung cấp dịch vụ cho khách hàng. Thông tin về cách
+EY thu thập và sử dụng dữ liệu cá nhân cùng mô tả về các quyền của cá
+nhân theo luật bảo vệ dữ liệu có thể được tìm thấy tại ey.com/privacy. Các
+công ty thành viên EY không cung cấp dịch vụ pháp lý nếu không được luật
+pháp nước sở tại cho phép. Ðể biết thêm thông tin về tổ chức của chúng
+tôi, vui lòng truy cập ey.com.
+© Bản quyền thuộc về Công ty Luật Trách nhiệm hữu hạn EY Việt Nam
+năm 2026. Tất cả các quyền được bảo lưu.
+APAC No. 16011001
+ED None
+Ấn phẩm này chỉ chứa những nội dung mang tính thông tin chung, không
+nhằm đưa ra những hướng dẫn và tư vấn cụ thể về kế toán, thuế, pháp lý
+hay những tư vấn chuyên môn khác. Độc giả cần tham khảo ý kiến của
+các chuyên gia tư vấn đối với bất kỳ vấn đề cụ thể nào.
+ey.com/vi_vn
