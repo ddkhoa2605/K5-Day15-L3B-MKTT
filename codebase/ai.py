@@ -17,7 +17,10 @@ Chế độ giả (mặc định khi .env chưa có MODEL_PROVIDER, hoặc MODEL
 Nối model thật: điền .env (chép từ .env.example), rồi viết nhánh gọi API ở dưới theo docs/connect-model.md
 (có ví dụ OpenAI, Claude, model chạy trên máy, và cách nối nhà cung cấp khác). Không dán API key vào file này.
 """
+import json
 import os
+import urllib.error
+import urllib.request
 
 from tracing import model_call
 
@@ -41,16 +44,68 @@ load_env()
 MODEL_PROVIDER = (os.environ.get("MODEL_PROVIDER") or "fake").strip().lower()
 MODEL_NAME = (os.environ.get("MODEL_NAME") or "").strip()
 API_KEY = (os.environ.get("API_KEY") or "").strip()
+# Model thứ hai (spec §4): MODEL_NAME = model nhỏ phân loại cột · MODEL_NAME_VERIFY = model mạnh kiểm đường đi.
+# Để trống MODEL_NAME_VERIFY thì kiểm đường đi cũng dùng MODEL_NAME.
+MODEL_NAME_VERIFY = (os.environ.get("MODEL_NAME_VERIFY") or "").strip()
+SHOW_RAW = False   # đổi thành True để in nguyên phản hồi của API khi cần tìm tên trường
+URL_OPENAI = "https://api.openai.com/v1/chat/completions"
+URL_CLAUDE = "https://api.anthropic.com/v1/messages"
+
+
+def verify_model() -> str:
+    """Tên model dùng cho bước kiểm chứng đường đi (verify_path_llm)."""
+    return MODEL_NAME_VERIFY or MODEL_NAME
+
+
+def post_json(url, headers, body, timeout=60):
+    """Gửi POST JSON, trả về JSON phản hồi. Chỉ dùng thư viện chuẩn (urllib) — theo docs/connect-model.md."""
+    req = urllib.request.Request(
+        url, data=json.dumps(body).encode("utf-8"), method="POST",
+        headers=dict({"Content-Type": "application/json"}, **headers))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            data = json.loads(r.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        raise RuntimeError("HTTP %d: %s" % (e.code, e.read().decode("utf-8", "replace")[:300]))
+    if SHOW_RAW:
+        print(json.dumps(data, ensure_ascii=False, indent=2)[:3000])
+    return data
+
+
+def call_openai(system, user, model):
+    messages = ([{"role": "system", "content": system}] if system else []) + [{"role": "user", "content": user}]
+    data = post_json(URL_OPENAI, {"Authorization": "Bearer " + API_KEY}, {"model": model, "messages": messages})
+    u = data["usage"]
+    return {"text": data["choices"][0]["message"].get("content") or "",
+            "tokens_in": u["prompt_tokens"], "tokens_out": u["completion_tokens"]}
+
+
+def call_claude(system, user, model):
+    data = post_json(URL_CLAUDE, {"x-api-key": API_KEY, "anthropic-version": "2023-06-01"},
+                     {"model": model, "max_tokens": 1024, "system": system or "",
+                      "messages": [{"role": "user", "content": user}]})
+    text = "".join(b.get("text", "") for b in data.get("content", []) if b.get("type") == "text")
+    u = data["usage"]
+    return {"text": text, "tokens_in": u["input_tokens"], "tokens_out": u["output_tokens"]}
+
+
+PROVIDERS = {"openai": call_openai, "anthropic": call_claude}
 
 
 @model_call
-def call_model(system: str, user: str) -> dict:
+def call_model(system: str, user: str, model: str = None) -> dict:
+    """model=None → MODEL_NAME. Trả đúng tên model đã gọi ở khoá "model" để simulate tính giá từng model."""
     if MODEL_PROVIDER == "fake":
         last = (user.strip().splitlines() or [""])[-1]
         return {"text": "[câu trả lời giả — chưa nối model] " + last[:60], "model": "fake", "tokens_in": 0, "tokens_out": 0}
-
-    # NHÓM VIẾT: gọi model thật ở đây (theo MODEL_PROVIDER, MODEL_NAME, API_KEY) rồi trả đúng 4 khoá.
-    # Ví dụ chép được cho từng nhà cung cấp: docs/connect-model.md mục 2.
-    raise NotImplementedError(
-        "chưa viết phần gọi model thật cho MODEL_PROVIDER=%s trong codebase/ai.py — xem docs/connect-model.md"
-        % MODEL_PROVIDER)
+    fn = PROVIDERS.get(MODEL_PROVIDER)
+    if fn is None:
+        raise NotImplementedError("MODEL_PROVIDER=%s chưa hỗ trợ trong codebase/ai.py (có: %s) — xem docs/connect-model.md"
+                                  % (MODEL_PROVIDER, ", ".join(sorted(PROVIDERS))))
+    model = model or MODEL_NAME
+    if not model:
+        raise RuntimeError("chưa điền MODEL_NAME trong .env")
+    if not API_KEY:
+        raise RuntimeError("chưa điền API_KEY trong .env")
+    r = fn(system, user, model)
+    return {"text": r["text"], "model": model, "tokens_in": int(r["tokens_in"]), "tokens_out": int(r["tokens_out"])}

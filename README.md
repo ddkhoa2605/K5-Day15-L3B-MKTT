@@ -83,7 +83,7 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 
 | Thành phần | Thật / Giả | Ghi chú |
 |---|---|---|
-| Lời gọi AI ở quyết định trung tâm | **Thật** (bắt buộc từ CP3); hiện **chưa nối**, `ai.py` đang ở chế độ giả | Model: Claude Haiku 5.5 (`claude-haiku-5-5`), dự kiến cho phân loại cột và chế độ `llm`; model kiểm chứng đường đi chưa chốt |
+| Lời gọi AI ở quyết định trung tâm | **Thật**: đã nối OpenAI qua `codebase/ai.py`, token lấy từ `usage` của API | Phân loại cột và chế độ `llm`: `gpt-6-luna` (`MODEL_NAME`). Kiểm chứng đường đi dữ liệu: `gpt-6.1-terra` (`MODEL_NAME_VERIFY`). `ai.py` cũng hỗ trợ `MODEL_PROVIDER=anthropic`. Lượt thử 27/11: 3/3 câu khớp `expected` |
 | Quét mã nguồn, rule engine, bảng luật (`data/legal/`) | **Thật** | Chạy bằng code Python, không gọi model; mọi mã điều khoản lấy từ `citations.json` |
 | Repo demo, corpus repo công khai | **Chưa có** | Làm ở CP3 (xem `data/DATA_CARD.md`) |
 
