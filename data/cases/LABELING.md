@@ -310,7 +310,7 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
 ## 12. Case dựng từ repo công khai (`corpus_cases.jsonl`, nguồn `data_that`)
 
 - **File riêng**, không thêm vào `cases.jsonl`. Bộ 60 case đã được commit trước `rules.py` làm bằng chứng nhãn không bị chỉnh theo kết quả. Vì vậy **không sửa nhãn** của bộ 60 case. Input (ví dụ `mo_ta`) chỉ được sửa khi có lý do rõ, ví dụ lộ đáp án, và phải ghi vào nhật ký §13. File corpus không tính vào 60 case, vào bảng phân bổ hay vào 50/10.
-- **7 case** từ 3 repo Next.js + Supabase công khai, ghi ẩn danh `repo-01..03`. Mọi case đều là `split=dev` và đều nằm trong `DOT_2` của `eval/build_benchmark.py`.
+- **10 case** từ 3 repo Next.js + Supabase công khai, ghi ẩn danh `repo-01..03`: 7 case đợt 1 (27/11) và 3 case đợt 2 (28/11). Mọi case đều là `split=dev` và đều nằm trong `DOT_2` của `eval/build_benchmark.py`.
 
   | Case | Trọng tâm |
   |---|---|
@@ -321,6 +321,9 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
   | `dt-r02-004` | C1, bẫy chatbox: hệ thống tự gắn họ tên vào prompt |
   | `dt-r03-001` | C3, bẫy: toạ độ là của trường, chưa dùng |
   | `dt-r03-002` | C1 âm tính: email mời gửi qua Supabase Auth, không tính theo XN6 đã chốt |
+  | `dt-r01-002` (đợt 2) | C3: đơn thuốc + ảnh siêu âm, **giả định** hộ kinh doanh, 2.000 bệnh nhân → `MAT_MIEN_TRU` trên code thật |
+  | `dt-r02-005` (đợt 2) | C3 bẫy, tag `vt`: cột `vi_tri` là thứ hạng Google (SEO), số liệu tổng hợp, không có dữ liệu cá nhân |
+  | `dt-r02-006` (đợt 2) | C1 bẫy chatbox: nhân viên gõ đơn của khách vào Telegram rồi gửi sang Anthropic → `KICH_HOAT`, không phải `CAN_LUAT_SU` |
 
 - **Quy tắc riêng:**
   - Ghi `nhan.nguon = "data_that: corpus/repo-NN"`.
@@ -330,6 +333,8 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
   - Schema và code là trích đoạn thật, ghi đúng số dòng. Không thêm bảng hay cột không có trong repo.
   - Danh sách URL chỉ để trên máy, không commit. Code của repo không commit.
 - **Loại hình:** repo công khai không cho biết loại hình hay số chủ thể, nên mọi case ghi `loai_hinh=khong_ro`, `so_chu_the_luy_ke=null`, và C3 là `CAN_NGUOI_XAC_NHAN`. Đây là đúng thực tế khi quét `repo:`.
+- **Ngoại lệ có giả định (`dt-r01-002`):** để thử `MAT_MIEN_TRU` trên code thật (góp ý CP3 của Khoa), nhóm **giả định** loại hình và quy mô: hộ kinh doanh, 2.000 chủ thể. Giả định được ghi nguyên văn trong `mo_ta` ("Giả định của nhóm để thử C3 (repo không ghi)…") và trong `ly_do`, không lấy từ repo. Script dựng corpus chặn mọi case có kết luận C3 khác `CAN_NGUOI_XAC_NHAN` mà không có câu giả định này.
+- **Ẩn danh đợt 2:** tên file migration của repo-01 có tên repo, nên được bỏ khỏi đường dẫn (giữ số dòng thật). Không lấy dòng prompt có tên nhân viên bán hàng của repo-02.
 - **Thứ tự làm:** dán nhãn tay và **commit nhãn trước**, sau đó mới chạy hệ thống trên các case này.
 - **Giới hạn:** repo-03 xử lý dữ liệu trẻ em (Luật 91 Điều 24), nằm ngoài phạm vi C1–C3.
 
