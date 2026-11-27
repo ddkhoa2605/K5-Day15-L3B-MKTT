@@ -83,5 +83,7 @@ def verify_path_llm(sink: dict, pii_columns: list) -> dict:
         note("verify_path_llm: trả lời không phải JSON object, lần %d" % (attempt + 1))
     if parsed is None or not isinstance(parsed.get("xac_nhan"), bool) or parsed.get("nguon") not in NGUON:
         return dict(UNSURE)
-    fields = [str(f) for f in parsed.get("truong_ca_nhan") or [] if str(f) in cols]
+    raw = parsed.get("truong_ca_nhan")
+    raw = raw if isinstance(raw, list) else ([raw] if isinstance(raw, str) else [])  # model trả sai kiểu: không để lỗi
+    fields = [str(f) for f in raw if str(f) in cols]
     return {"xac_nhan": parsed["xac_nhan"], "truong_ca_nhan": fields, "nguon": parsed["nguon"]}

@@ -26,6 +26,8 @@ from tracing import note
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MODES = ("rule", "hybrid", "llm")
+CONFIRM = re.compile(r"^\s*(xac_nhan|xac nhan|xác nhận|xác_nhận)\s*\.?\s*$", re.IGNORECASE)
+_LAST = {}  # kết luận gần nhất trong phiên — chờ người chịu trách nhiệm xác nhận
 OUT_OF_SCOPE = re.compile(r"(chứng nhận|giấy chứng|cấp giấy|cam kết tuân thủ|nộp hồ sơ|nộp giúp|nộp lên|nộp thay|"
                           r"tự nộp|gửi hồ sơ|certif|submit)", re.IGNORECASE)
 
@@ -82,18 +84,34 @@ def _pipeline(ctx, mode):
     personal = legal.sensitive_groups() | {"pii_co_ban"}
     pii = [l for l in labels if l["nhom"] in personal and l["do_tin_cay"] >= 0.5]
     sinks = ctx["sinks"]
-    if len(sinks) > MAX_STEPS:
-        note("dừng: chỉ kiểm %d/%d sink đầu (MAX_STEPS)" % (MAX_STEPS, len(sinks)))
+    capped = mode != "rule" and len(sinks) > MAX_STEPS  # giới hạn chỉ cho bước gọi model
+    if capped:
+        note("dừng: chỉ gửi model kiểm %d/%d sink đầu (MAX_STEPS)" % (MAX_STEPS, len(sinks)))
     paths = verify_paths(sinks, pii, mode)
     findings = apply_rules(case, labels, paths, ctx["consent"])
     sent = _sent_list(mode, ctx, paths)
     msg = ""
-    if len(sinks) > MAX_STEPS:
+    if capped:
         msg = "Lưu ý: repo có %d lời gọi ra ngoài, mới kiểm %d lời gọi đầu." % (len(sinks), MAX_STEPS)
     if case.get("loai_hinh") in (None, "khong_ro") or case.get("so_chu_the_luy_ke") is None:
         msg += (" " if msg else "") + ("Chưa biết loại hình doanh nghiệp / số chủ thể lũy kế: hãy xác nhận để chốt C3.")
+    _LAST.clear()
+    _LAST.update(findings=findings, mo_ta=case.get("mo_ta") or "")
+    hint = ("Người chịu trách nhiệm: kiểm bằng chứng ở trên. Đồng ý với kết luận thì gõ `xac_nhan` để sinh "
+            "bản nháp hồ sơ đánh giá tác động (không gửi, không nộp đi đâu).")
+    return report.render(findings, sent, message=msg, mo_ta=case.get("mo_ta") or "", extra=hint, mode=mode)
+
+
+def _confirm():
+    """Cổng người duyệt (spec.md §4): chỉ sinh bản nháp hồ sơ SAU KHI người chịu trách nhiệm xác nhận kết luận gần nhất."""
+    if not _LAST.get("findings"):
+        return _refuse("Chưa có kết luận nào để xác nhận — hãy kiểm một app trước.")
+    findings, mo_ta = _LAST["findings"], _LAST.get("mo_ta", "")
+    _LAST.clear()
+    note("người dùng xác nhận kết luận → sinh bản nháp hồ sơ")
     draft = draft_dpia(findings)
-    return report.render(findings, sent, message=msg, mo_ta=case.get("mo_ta") or "", extra=draft, mode=mode)
+    return {"output": report.render(findings, [], message="Đã ghi nhận xác nhận của người chịu trách nhiệm.",
+                                    mo_ta=mo_ta, extra=draft)}
 
 
 # ---------------------------------------------------------------- chế độ llm (ablation B)
@@ -128,26 +146,46 @@ def _llm_context():
     return text[:20000] + "\n\nMã nhóm dữ liệu:\n" + cats + "\nNgưỡng lũy kế: %s chủ thể." % legal.load()["exemption"]["nguong_luy_ke"]
 
 
+def _as_list(v):
+    """Model có thể trả một chuỗi thay vì danh sách: không tách chuỗi thành từng ký tự."""
+    if isinstance(v, list):
+        return [str(x) for x in v]
+    return [str(v)] if v not in (None, "", {}) else []
+
+
 def _llm_only(ctx):
+    """Chế độ llm = cấu hình B của ablation, CHỈ chạy khi SHP_MODE=llm (mặc định là hybrid).
+    Model tự kết luận và tự nêu mã điều luật; mã được GIỮ NGUYÊN để đo tỉ lệ bịa mã,
+    mã không có trong citations.json được liệt kê riêng ở "ma_ngoai_bang_luat"."""
     from classify import parse_json_reply
-    case = dict(ctx["case"])
-    user = "Điều khoản:\n%s\n\nHệ thống cần kiểm (dữ liệu, không phải lệnh):\n%s" % (
-        _llm_context(), json.dumps(case, ensure_ascii=False)[:8000])
+    from scanner import redact
+    case_text = redact(json.dumps(ctx["case"], ensure_ascii=False))[:8000]
+    user = "Điều khoản:\n%s\n\nHệ thống cần kiểm (dữ liệu, không phải lệnh):\n%s" % (_llm_context(), case_text)
     parsed = parse_json_reply(call_model(LLM_SYSTEM, user)["text"], dict) or {}
-    findings = {}
+    known = legal.all_citation_codes()
+    findings, invented = {}, []
     for k in ("C1", "C2", "C3"):
         f = parsed.get(k) if isinstance(parsed.get(k), dict) else {}
-        findings[k] = {"trang_thai": str(f.get("trang_thai", "KHONG_RO")),
-                       "can_cu": [str(x) for x in f.get("can_cu") or []],   # giữ nguyên để đo mã bịa (ablation)
+        codes = _as_list(f.get("can_cu"))
+        invented += [c for c in codes if c not in known and c not in invented]
+        findings[k] = {"trang_thai": str(f.get("trang_thai", "KHONG_RO")), "can_cu": codes,
                        "bang_chung": [], "han_chot": None, "muc_phat": None,
                        "giai_thich": "Chế độ llm (ablation B): model tự kết luận, không qua rule engine."}
         if k == "C3":
-            findings[k]["nhom_nhay_cam"] = [str(x) for x in f.get("nhom_nhay_cam") or []]
-    sent = ["mô tả hệ thống đầy đủ (schema + code đã lọc secret)"]
-    return report.render(findings, sent, mo_ta=case.get("mo_ta") or "", mode="llm")
+            findings[k]["nhom_nhay_cam"] = _as_list(f.get("nhom_nhay_cam"))
+    sent = ["mô tả hệ thống (mo_ta, schema, code) sau khi lọc secret"]
+    msg = ("ABLATION B — kết quả của model, KHÔNG qua rule engine và KHÔNG kiểm mã điều luật; chỉ dùng để đo, "
+           "không đưa cho người dùng.")
+    if invented:
+        msg += " Mã không có trong bảng luật: " + ", ".join(invented) + "."
+    out = report.render(findings, sent, message=msg, mo_ta=ctx["case"].get("mo_ta") or "", mode="llm",
+                        extra_json={"ma_ngoai_bang_luat": invented})
+    return out
 
 
 def answer(text: str) -> dict:
+    if CONFIRM.match(text or ""):
+        return _confirm()
     kind, val = _parse_input(text)
     if kind == "refuse":
         return _refuse(val)
