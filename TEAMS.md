@@ -11,10 +11,10 @@
 
 | STT | Họ và tên | Mã học viên | Vai trò | Phần việc chính |
 |---|---|---|---|---|
-| 1 | Đoàn Đăng Khoa | 2A202603766 | Đội trưởng | ____ |
-| 2 | Vũ Đình Thắng | 2A202603753 | Thành viên | ____ |
-| 3 | Nguyễn Văn Minh | 2A202603771 | Thành viên | ____ |
-| 4 | Nguyễn Hữu Thịnh | 2A202603726 | Thành viên | ____ |
+| 1 | Đoàn Đăng Khoa | 2A202603766 | Đội trưởng | Điều phối nhóm, viết spec.md và canvas.md, thuyết trình, nộp checkpoint |
+| 2 | Vũ Đình Thắng | 2A202603753 | Thành viên | Mô phỏng chi phí (cost/), viết reflection, làm slide và bằng chứng (evidence/) |
+| 3 | Nguyễn Văn Minh | 2A202603771 | Thành viên | Dev: xây prototype trong codebase/, kết nối model |
+| 4 | Nguyễn Hữu Thịnh | 2A202603726 | Thành viên | Dev: chạy eval benchmark (eval/), chấm điểm và kiểm thử (validation/) |
 
 **Quy tắc điền**
 - **Lớp:** `L3A` hoặc `L3B`. **Track:** một chữ `A` (EdTech), `B` (Y tế), `C` (Du lịch), `D` (Thương mại điện tử), `E` (Tài chính) hoặc `F` (Làn khác). **Link repo:** link GitHub công khai của nhóm.
