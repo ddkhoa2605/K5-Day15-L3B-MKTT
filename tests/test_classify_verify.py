@@ -298,10 +298,18 @@ class TestVerifyQuotedEvidence(unittest.TestCase):
                       '"bang_chung": "h.so_ho_chieu"}')
         self.assertEqual((r["xac_nhan"], r["nguon"]), (True, "he_thong"))
 
-    def test_invented_or_missing_quote_is_unsure(self):
+    def test_bad_quote_but_code_shows_column_keeps_that_column(self):
+        # đoạn code có h.so_ho_chieu: trích bịa / trống vẫn giữ "có gửi", với cột do code tìm thấy
         for q in ('"bang_chung": "body: JSON.stringify(user)"', '"bang_chung": ""'):
-            r = self._ask('{"xac_nhan": true, "truong_ca_nhan": ["hoi_vien.so_ho_chieu"], "nguon": "he_thong", %s}' % q)
-            self.assertEqual(r, verify.UNSURE)
+            r = self._ask('{"xac_nhan": true, "truong_ca_nhan": [], "nguon": "he_thong", %s}' % q)
+            self.assertEqual(r, {"xac_nhan": True, "truong_ca_nhan": ["hoi_vien.so_ho_chieu"], "nguon": "he_thong"})
+
+    def test_bad_quote_and_no_column_in_code_is_unsure(self):
+        sink = dict(self.SINK, snippet="const goi = taoCauHoi(chuDe);\nawait client.responses.create({ input: goi })")
+        for q in ('"bang_chung": "h.so_ho_chieu"', '"bang_chung": ""'):
+            text = '{"xac_nhan": true, "truong_ca_nhan": ["hoi_vien.so_ho_chieu"], "nguon": "he_thong", %s}' % q
+            with mock.patch.object(verify, "call_model", lambda *a, **k: reply(text)):
+                self.assertEqual(verify.verify_path_llm(sink, self.PII), verify.UNSURE)
 
     def test_false_needs_no_quote(self):
         r = self._ask('{"xac_nhan": false, "truong_ca_nhan": [], "nguon": "khong_ro"}')

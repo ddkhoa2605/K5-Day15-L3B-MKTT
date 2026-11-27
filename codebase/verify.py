@@ -137,8 +137,12 @@ def verify_path_llm(sink: dict, pii_columns: list) -> dict:
     raw = raw if isinstance(raw, list) else ([raw] if isinstance(raw, str) else [])  # model trả sai kiểu: không để lỗi
     fields = [str(f) for f in raw if str(f) in cols]
     res = {"xac_nhan": parsed["xac_nhan"], "truong_ca_nhan": fields, "nguon": parsed["nguon"]}
-    if res["xac_nhan"] and res["nguon"] != "khong_ro" and not _quote_ok(parsed.get("bang_chung"), redact(sink.get("snippet", ""))):
-        note("verify_path_llm: %s:%s — bằng chứng model trích không có trong đoạn code, coi như không chắc"
-             % (sink.get("file"), sink.get("line")))
-        res = dict(UNSURE)
+    snippet = redact(sink.get("snippet", ""))
+    if res["xac_nhan"] and res["nguon"] != "khong_ro" and not _quote_ok(parsed.get("bang_chung"), snippet):
+        # Mục 8 + góp ý Khoa: trích không khớp thì chưa vội bỏ — code tự tìm cột cá nhân trong đoạn code.
+        # Tìm thấy → giữ "có gửi" với đúng các cột code thấy; không thấy → cần người xem.
+        found = pii_in_snippet(snippet, pii_columns)
+        note("verify_path_llm: %s:%s — bằng chứng model trích không có trong đoạn code; code %s"
+             % (sink.get("file"), sink.get("line"), "thấy cột " + ", ".join(found) if found else "không thấy cột cá nhân → không chắc"))
+        res = {"xac_nhan": True, "truong_ca_nhan": found, "nguon": "he_thong"} if found else dict(UNSURE)
     return apply_email_rule(sink, res, pii_columns)
