@@ -146,6 +146,22 @@ class TestReportAndHoldoutLock(unittest.TestCase):
         with self.assertRaises(SystemExit):
             ablation.claim_holdout(lock, {"commit": "def5678"})
 
+    def test_holdout_preflight_blocks_before_lock(self):
+        # Có provider thật nhưng thiếu key hoặc ai.py chưa gọi được model → dừng TRƯỚC khi ghi khoá holdout
+        lock = os.path.join(self.dir, "holdout.lock")
+
+        def broken(system, user):
+            raise NotImplementedError("chưa viết phần gọi model thật cho MODEL_PROVIDER=openai")
+        with self.assertRaises(SystemExit):
+            ablation.preflight_model(broken, api_key="sk-x")
+        with self.assertRaises(SystemExit):
+            ablation.preflight_model(lambda s, u: {"text": "ok", "model": "gpt-6-luna"}, api_key="")
+        with self.assertRaises(SystemExit):  # gọi "thành công" nhưng là model giả
+            ablation.preflight_model(lambda s, u: {"text": "x", "model": "fake"}, api_key="sk-x")
+        self.assertFalse(os.path.exists(lock))
+        self.assertEqual(ablation.preflight_model(lambda s, u: {"text": "ok", "model": "gpt-6-luna"}, api_key="sk-x"),
+                         "gpt-6-luna")
+
     def test_holdout_refuses_fake_model(self):
         with self.assertRaises(SystemExit):
             ablation.check_can_run("holdout", ["rule", "llm", "hybrid"], provider="fake", limit=None)

@@ -18,7 +18,8 @@ Ghi ra:
 
 Quy tắc:
 - Holdout chỉ chạy một lần: script ghi eval/holdout.lock TRƯỚC khi chạy và từ chối lần sau.
-  Holdout phải chạy đủ 3 chế độ, không --limit, và không được chạy bằng model giả.
+  Holdout phải chạy đủ 3 chế độ, không --limit, và không được chạy bằng model giả. Trước khi ghi khoá,
+  script gọi thử model một lần (cần API_KEY và ai.py gọi được model thật); lỗi thì dừng, chưa ghi khoá.
 - Chế độ llm/hybrid chạy bằng model giả (MODEL_PROVIDER=fake) bị đánh dấu "không dùng được" trong báo cáo.
 - Chấm bằng chính eval/grade.py (cùng định nghĩa metric với run.py eval → grade → score).
 """
@@ -233,6 +234,22 @@ def check_can_run(tap, modes, provider, limit):
         sys.exit("DỪNG: MODEL_PROVIDER=%s là model giả. Holdout chỉ chạy một lần — nối model thật trước." % provider)
 
 
+def preflight_model(call_model, api_key):
+    """Gọi thử model MỘT lần trước khi đụng tới holdout. Tên provider "thật" chưa đủ: thiếu key, hoặc
+    ai.py chưa viết phần gọi model (NotImplementedError), thì mọi case llm/hybrid sẽ lỗi và mất lượt duy nhất.
+    → tên model đã gọi được; lỗi thì dừng (SystemExit) và KHÔNG ghi khoá."""
+    if not (api_key or "").strip():
+        sys.exit("DỪNG: chưa có API_KEY trong .env — chưa gọi được model thật, không chạy holdout.")
+    try:
+        r = call_model("Trả lời đúng một chữ: ok", "ok")
+    except Exception as e:
+        sys.exit("DỪNG: gọi thử model thất bại (%s: %s). Chưa chạy holdout, chưa ghi khoá." % (type(e).__name__, e))
+    model = (r or {}).get("model") or ""
+    if model in ("", "fake", "mock"):
+        sys.exit("DỪNG: gọi thử trả về model giả (%r). Chưa chạy holdout, chưa ghi khoá." % model)
+    return model
+
+
 def claim_holdout(lock, meta):
     """Ghi khoá TRƯỚC khi chạy holdout: chạy hỏng giữa chừng vẫn tính là đã dùng lần duy nhất."""
     if os.path.exists(lock):
@@ -277,6 +294,7 @@ def main(argv):
     meta = {"ngay": datetime.datetime.now().strftime("%d/%m/%Y %H:%M"), "commit": _commit(), "provider": provider,
             "lenh": "python eval/ablation.py " + " ".join(argv), "tap": tap, "n": len(cases), "thu": bool(limit)}
     if tap == "holdout":
+        meta["model_thu"] = preflight_model(ai.call_model, ai.API_KEY)  # dừng ở đây nếu chưa gọi được model thật
         claim_holdout(HOLDOUT_LOCK, meta)
     print("Ablation tập %s · %d case · chế độ %s · MODEL_PROVIDER=%s" % (tap, len(cases), ", ".join(modes), provider))
 
