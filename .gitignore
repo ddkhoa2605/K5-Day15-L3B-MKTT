@@ -39,3 +39,6 @@ data-btc/
 # Tài liệu nguồn tải về và tài liệu kế hoạch nội bộ, không commit
 data/legal/*.pdf
 docs/superpowers/
+
+# Repo công khai tải về để dựng case data_that (code của người khác): không commit
+data/corpus/

@@ -89,7 +89,7 @@ Riêng 3 case có câu tấn công mang tag `tan_cong`, nhưng vẫn giữ `nhom
 
 | Nhãn | Khi nào dùng |
 |---|---|
-| `KHONG_KICH_HOAT` | Không có dữ liệu cá nhân; hoặc có bản ghi đồng ý gắn với người dùng, có thời điểm và phiên bản điều khoản, ở **bất kỳ** bảng nào (bảng `consents`, cột trong `users`, `audit_logs`…), và không có đồng ý đặt sẵn. |
+| `KHONG_KICH_HOAT` | Không có dữ liệu cá nhân; hoặc có bản ghi đồng ý gắn với người dùng, có thời điểm và phiên bản điều khoản, ở **bất kỳ** bảng nào (bảng `consents`, cột trong `users`, `audit_logs`…), và không có đồng ý đặt sẵn. Bản ghi phải thuộc **đúng chủ thể và đúng luồng thu thập** đang xét. Ví dụ: repo có bảng đồng ý nhưng chỉ form lead ghi vào đó, thì không tính cho khách bị ghi âm cuộc gọi (`dt-r02-001`). |
 | `KICH_HOAT` | Có dữ liệu cá nhân nhưng không lưu được bằng chứng đồng ý đủ để chứng minh: không có bản ghi, thiếu thời điểm hoặc phiên bản, chỉ có cờ boolean, chỉ lưu ở `localStorage`. |
 | `KICH_HOAT_NANG` | Coi im lặng hoặc tiếp tục sử dụng là đồng ý, **hoặc** ô đồng ý được tích sẵn (`defaultChecked`, `checked={true}`). Mức này có ưu tiên cao hơn `KICH_HOAT`. |
 
@@ -206,7 +206,7 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
 | XN3 | `Luat91 D20.2`, `Luat91 D20.6` | ✅ Có trong `citations.json`. Khoản 6 điểm c là "chủ thể tự chuyển dữ liệu của mình". |
 | XN4 | Mã C2 | ✅ Dùng `ND356 D6` (cấp điều) + `ND356 D6.3`. Không dùng `ND356 D6.2` (không có trong `citations.json`). |
 | XN5 | `CON_MIEN_TRU` có kèm `ND356 D41.x` | ✅ Khoa: C3 miễn trừ trích cả `Luat91 D38.x` và `ND356 D41.x` |
-| XN6 | **Giả định bộ dữ liệu:** C1 chỉ xét lời gọi tới dịch vụ bên thứ ba trong code, không xét nơi đặt máy chủ Supabase. Nếu CSDL đặt ở nước ngoài cũng tính là chuyển xuyên biên giới thì gần như mọi case đều C1. Cần ý kiến luật sư. | ⏳ Còn mở — Khoa |
+| XN6 | Phạm vi C1: có tính nơi đặt hạ tầng nền (CSDL, Auth của Supabase) không | ✅ Khoa chốt 27/11: chỉ tính lời gọi tới dịch vụ bên thứ ba có trong code (API AI, email, analytics đặt ngoài lãnh thổ). **Không** tính nơi đặt hạ tầng nền như CSDL hay Auth của Supabase, vì quét từ mã nguồn không biết vùng đặt máy chủ. Không nhãn nào phải đổi. Đã ghi vào `spec.md` §7. |
 | XN7 | Phạm vi điểm k gắn với "khách hàng tại tổ chức tín dụng, trung gian thanh toán…". Nhãn coi thông tin thẻ, tài khoản ngân hàng do app lưu là thuộc điểm k. | ⏳ Còn mở — Khoa |
 | XN8 | Thứ tự C3: doanh nghiệp lớn → `KHONG_THUOC_DIEN_MIEN`; thiếu loại hình hoặc quy mô → `CAN_NGUOI_XAC_NHAN`. Cả hai đều xét **trước** luật nhạy cảm, khác plan M5. | ⏳ Còn mở — Khoa, Minh |
 | XN9 | Ô tích sẵn → `KICH_HOAT_NANG`. ND356 Điều 6 khoản 3 (cấm mặc định đồng ý) đã kiểm. Việc xếp hành vi này cùng mức phạt với "coi im lặng là đồng ý" của ND330 thì chưa kiểm. | ⏳ Còn mở — Khoa |
@@ -236,10 +236,10 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
 - **Luật chưa rõ cho kịch bản** (chatbox, Điều 20 khoản 6) → C1 `CAN_LUAT_SU`.
 - **Tên cột mập mờ:**
   - Nếu ngữ cảnh trong case đủ để kết luận, dán theo ngữ cảnh.
-  - Nếu một chuyên gia đọc case vẫn không kết luận được, dùng `CAN_NGUOI_XAC_NHAN`. Bộ hiện tại không có case loại này, vì mỗi case đều được viết kèm ngữ cảnh đủ rõ.
+  - Nếu một chuyên gia đọc case vẫn không kết luận được, dùng `CAN_NGUOI_XAC_NHAN`. 60 case tự viết không có case loại này, vì mỗi case đều được viết kèm ngữ cảnh đủ rõ. 7 case corpus (mục 12) có C3 `CAN_NGUOI_XAC_NHAN` vì một lý do khác: **thiếu loại hình và quy mô**, không phải vì tên cột mập mờ.
 - **C2 không có nhãn "cần rà soát"** trong enum của nhóm. Vì vậy bộ dữ liệu tránh dựng case C2 mập mờ. Nếu cần, đề xuất thêm enum (xem báo cáo).
 - **Căn cứ chưa kiểm được:** không bịa số điều. Vẫn dùng mã theo quy ước, gắn cờ `XN…`, và ghi rõ ở mục 6.4.
-- **Sửa nhãn sau khi commit:** chỉ khi phát hiện hiểu sai luật. Ghi vào mục 12 (lý do, người duyệt, ngày) **trước khi** xem lại output. Không sửa nhãn để khớp kết quả hệ thống.
+- **Sửa nhãn sau khi commit:** chỉ khi phát hiện hiểu sai luật. Ghi vào mục 13 (lý do, người duyệt, ngày) **trước khi** xem lại output. Không sửa nhãn để khớp kết quả hệ thống.
 
 ## 9. Chia dev và holdout
 
@@ -302,13 +302,44 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
 - `grade.py` so `can_cu` theo tập, gộp 3 nhóm. `can_cu_theo_nhom` dùng để phân tích lỗi.
 
 **Khoa:**
-- Trả lời các cờ ⏳ còn mở ở mục 6.4 (XN6, XN7, XN8, XN9, XN12).
+- Trả lời các cờ ⏳ còn mở ở mục 6.4 (XN7, XN8, XN9, XN12).
 - Nếu đổi mã trong `citations.json`, báo Thịnh và Minh cùng lúc. Validator sẽ báo lỗi ngay mọi mã không còn trong file.
 
 **Kiểm sau mỗi thay đổi:** chạy `python data/cases/validate_cases.py`. Khi đã có `data/legal/citations.json`, script sẽ tự đối chiếu mã căn cứ với file đó.
 
-## 12. Nhật ký sửa nhãn
+## 12. Case dựng từ repo công khai (`corpus_cases.jsonl`, nguồn `data_that`)
 
-| Ngày | Case | Sửa gì | Lý do (hiểu sai luật nào) | Người duyệt |
+- **File riêng**, không thêm vào `cases.jsonl`. Bộ 60 case đã được commit trước `rules.py` làm bằng chứng nhãn không bị chỉnh theo kết quả. Vì vậy **không sửa nhãn** của bộ 60 case. Input (ví dụ `mo_ta`) chỉ được sửa khi có lý do rõ, ví dụ lộ đáp án, và phải ghi vào nhật ký §13. File corpus không tính vào 60 case, vào bảng phân bổ hay vào 50/10.
+- **7 case** từ 3 repo Next.js + Supabase công khai, ghi ẩn danh `repo-01..03`. Mọi case đều là `split=dev` và đều nằm trong `DOT_2` của `eval/build_benchmark.py`.
+
+  | Case | Trọng tâm |
+  |---|---|
+  | `dt-r01-001` | C3: phiếu khám có chẩn đoán, sinh hiệu |
+  | `dt-r02-001` | C1: ghi âm cuộc gọi gửi Gemini và Anthropic. C2 bẫy: repo có bảng đồng ý, nhưng không phải của khách bị ghi âm |
+  | `dt-r02-002` | C2 đủ bằng chứng: bảng đồng ý tiếng Việt, khoá theo SĐT/email; kèm C1 gửi email qua Resend |
+  | `dt-r02-003` | C3: GPS chấm công nhân viên |
+  | `dt-r02-004` | C1, bẫy chatbox: hệ thống tự gắn họ tên vào prompt |
+  | `dt-r03-001` | C3, bẫy: toạ độ là của trường, chưa dùng |
+  | `dt-r03-002` | C1 âm tính: email mời gửi qua Supabase Auth, không tính theo XN6 đã chốt |
+
+- **Quy tắc riêng:**
+  - Ghi `nhan.nguon = "data_that: corpus/repo-NN"`.
+  - `nhom_con` có dạng `<C1|C2|C3>_corpus`. `nhom_con_goc` là ô tương ứng trong bảng phân bổ (ví dụ `C2_du`), để validator chạy cùng luật kiểm như 60 case.
+  - Validator dò URL repo và danh sách từ cấm trên **toàn bộ dòng**. Danh sách từ cấm để ở `data/corpus/denylist.txt`, mỗi dòng một từ (tên repo, tác giả, thương hiệu). Thư mục `data/corpus/` đã gitignore, **không commit** file này, vì chính nó chứa định danh.
+  - Không ghi tên hay URL repo. Thay tên thương hiệu, tên trường, tên công ty bằng mô tả chung. Bỏ tiền tố schema có mang tên repo.
+  - Schema và code là trích đoạn thật, ghi đúng số dòng. Không thêm bảng hay cột không có trong repo.
+  - Danh sách URL chỉ để trên máy, không commit. Code của repo không commit.
+- **Loại hình:** repo công khai không cho biết loại hình hay số chủ thể, nên mọi case ghi `loai_hinh=khong_ro`, `so_chu_the_luy_ke=null`, và C3 là `CAN_NGUOI_XAC_NHAN`. Đây là đúng thực tế khi quét `repo:`.
+- **Thứ tự làm:** dán nhãn tay và **commit nhãn trước**, sau đó mới chạy hệ thống trên các case này.
+- **Giới hạn:** repo-03 xử lý dữ liệu trẻ em (Luật 91 Điều 24), nằm ngoài phạm vi C1–C3.
+
+## 13. Nhật ký sửa nhãn
+
+Ghi **mọi** lần sửa sau commit đầu tiên: sửa nhãn, và cả sửa input của case đã có trong benchmark. Mỗi lần ghi giờ, đổi gì, vì sao, ai duyệt. Lý do phải có **trước khi** xem output của hệ thống trên case đó.
+
+| Giờ (27/11/2026) | Case | Sửa gì | Lý do | Người duyệt |
 |---|---|---|---|---|
-| — | — | — | — | — |
+| 19:11 (`4f4fe9b`) | `c1-ro-008`, `c1-ro-005` | **Chỉ `mo_ta` (input).** Bỏ câu báo trước đây là câu tấn công. Nhãn, schema, code giữ nguyên. Trong benchmark chỉ ô `input` của `c1-ro-008` đổi, `expected` giữ nguyên. Làm trước CP2. | Input lộ đáp án, chế độ LLM được lợi không công bằng. Không phải sửa vì kết quả hệ thống. | Khoa (review PR #5) |
+| 19:18 | `dt-r02-001` | **Nhãn C2:** `KHONG_KICH_HOAT` → `KICH_HOAT` (căn cứ thêm `Luat91 D9.3`, `ND356 D6`); cập nhật `bang_chung`, `ly_do`; `do_kho` → `hard`. Trong benchmark, ô `expected` đổi theo (chạy `build_benchmark.py --cho-sua-expected=dt-r02-001`, **trước CP2**, câu chưa vào `main`). | Hiểu sai phạm vi bản ghi đồng ý: bảng `dong_y_du_lieu` chỉ được form lead ghi vào, không có bằng chứng khách bị ghi âm đã đồng ý. Sửa **trước khi** ai chạy hệ thống trên case này. | Minh phát hiện (review PR #5); **Khoa duyệt** 27/11, trước khi merge PR #5 (duyệt qua trao đổi nhóm ngoài GitHub, Thịnh xác nhận) |
+| 19:18 | `dt-r01-001`, `dt-r02-003` | Chỉ `ly_do`: gộp 2 câu kết luận C3 bị lặp. Bỏ câu "không còn miễn trừ", vì câu này mâu thuẫn với trường hợp doanh nghiệp lớn (không thuộc diện miễn). Trạng thái giữ nguyên. | Lý do viết chưa chính xác | Minh (review PR #5) |
+| 19:18 | 7 case corpus | Thêm trường `nhom_con_goc` để validator chạy cùng luật kiểm như 60 case. Trạng thái giữ nguyên. | Kiểm nhất quán | Minh (review PR #5) |
