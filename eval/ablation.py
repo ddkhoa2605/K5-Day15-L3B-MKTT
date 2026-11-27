@@ -280,18 +280,26 @@ def holdout_lock_history(lock=HOLDOUT_LOCK, run=None):
     """Các commit (mọi nhánh) đã từng chứa file khoá holdout. Khoá chỉ trên máy có thể bị xoá hoặc chạy ở máy
     khác; khoá đã commit thì lịch sử git là bằng chứng — review của Khoa trên PR #9.
     Review của Khoa trên PR #13: (1) git fetch TRƯỚC khi đọc, để thấy khoá máy khác đã push; (2) đóng khi lỗi —
-    không fetch được hoặc không đọc được lịch sử thì DỪNG, không coi là "chưa chạy"."""
+    không fetch được hoặc không đọc được lịch sử thì DỪNG, không coi là "chưa chạy".
+    Review của Minh trên PR #16: clone nông (--depth) chỉ thấy một phần lịch sử → DỪNG."""
     run = run or subprocess.run
     try:
         rel = os.path.relpath(lock, ROOT).replace(os.sep, "/")
     except ValueError as e:  # khoá khác ổ đĩa với repo (Windows) → git không theo dõi được
         sys.exit("DỪNG: file khoá holdout %s không nằm trong repo (%s). Không chạy." % (lock, e))
-    kw =dict(cwd=ROOT, capture_output=True, text=True, check=True, timeout=120)
+    kw = dict(cwd=ROOT, capture_output=True, text=True, check=True, timeout=120)
     try:
         run(["git", "fetch", "--quiet", "--all"], **kw)
     except Exception as e:
         sys.exit("DỪNG: không git fetch được (%s). Khoá holdout phải kiểm trên lịch sử mới nhất của mọi nhánh, "
                  "kể cả khoá máy khác đã push. Nối mạng / sửa quyền truy cập repo rồi chạy lại." % e)
+    try:
+        shallow = (run(["git", "rev-parse", "--is-shallow-repository"], **kw).stdout or "").strip()
+    except Exception as e:
+        sys.exit("DỪNG: không kiểm được repo có phải clone nông không (%s). Không chạy." % e)
+    if shallow != "false":
+        sys.exit("DỪNG: repo là clone nông (hoặc git không trả lời rõ: %r), lịch sử không đủ để biết holdout đã "
+                 "chạy chưa. Chạy `git fetch --unshallow` rồi chạy lại." % shallow)
     try:
         out = run(["git", "log", "--all", "--format=%h %s", "--", rel], **kw).stdout
     except Exception as e:

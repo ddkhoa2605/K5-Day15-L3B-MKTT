@@ -154,12 +154,26 @@ class TestReportAndHoldoutLock(unittest.TestCase):
 
         def fake_run(cmd, **kw):
             calls.append(cmd)
-            return subprocess.CompletedProcess(cmd, 0, stdout="9f8e7d6 Holdout: chạy một lần\n" if "log" in cmd else "")
+            out = {"log": "9f8e7d6 Holdout: chạy một lần\n", "rev-parse": "false\n"}.get(cmd[1], "")
+            return subprocess.CompletedProcess(cmd, 0, stdout=out)
         hist = ablation.holdout_lock_history(os.path.join(ablation.HERE, "holdout.lock"), run=fake_run)
         self.assertEqual(hist, ["9f8e7d6 Holdout: chạy một lần"])
         self.assertEqual(calls[0][:2], ["git", "fetch"])
-        self.assertEqual(calls[1][:2], ["git", "log"])
-        self.assertIn("--all", calls[1])
+        self.assertEqual(calls[-1][:2], ["git", "log"])  # đọc lịch sử SAU fetch và sau kiểm clone nông
+        self.assertIn("--all", calls[-1])
+
+    def test_shallow_clone_fails_closed(self):
+        # Review của Minh (PR #16): clone nông chỉ thấy một phần lịch sử → có thể bỏ sót khoá cũ → DỪNG
+        calls = []
+
+        def shallow(cmd, **kw):
+            calls.append(cmd)
+            out = "true\n" if "--is-shallow-repository" in cmd else ""
+            return subprocess.CompletedProcess(cmd, 0, stdout=out)
+        with self.assertRaises(SystemExit) as cm:
+            ablation.holdout_lock_history(os.path.join(ablation.HERE, "holdout.lock"), run=shallow)
+        self.assertIn("unshallow", str(cm.exception.code))
+        self.assertFalse(any("log" in c for c in calls))  # không đọc lịch sử khi lịch sử thiếu
 
     def test_lock_history_fails_closed(self):
         # Review của Khoa (PR #13): không fetch được hoặc không đọc được git → DỪNG, không coi là "chưa chạy"
@@ -169,12 +183,13 @@ class TestReportAndHoldoutLock(unittest.TestCase):
             def run(cmd, **kw):
                 if word in cmd:
                     raise exc
-                return subprocess.CompletedProcess(cmd, 0, stdout="")
+                return subprocess.CompletedProcess(cmd, 0, stdout="false\n" if "rev-parse" in cmd else "")
             return run
         for run in (fail_on("fetch", subprocess.CalledProcessError(128, "git fetch")),
                     fail_on("log", subprocess.CalledProcessError(128, "git log")),
                     fail_on("fetch", FileNotFoundError("git")),
-                    fail_on("log", subprocess.TimeoutExpired("git log", 60))):
+                    fail_on("log", subprocess.TimeoutExpired("git log", 60)),
+                    fail_on("rev-parse", subprocess.CalledProcessError(128, "git rev-parse"))):
             with self.assertRaises(SystemExit):
                 ablation.holdout_lock_history(lock, run=run)
 
