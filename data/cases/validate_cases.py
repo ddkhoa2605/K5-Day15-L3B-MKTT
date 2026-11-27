@@ -18,6 +18,13 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 CASES = os.path.join(HERE, "cases.jsonl")
 CORPUS = os.path.join(HERE, "corpus_cases.jsonl")  # tuỳ chọn: case data_that từ repo công khai
 CORPUS_NGUON = re.compile(r"^data_that: corpus/repo-\d{2}$")
+# Denylist ẩn danh (tên repo, tác giả, thương hiệu) — một từ mỗi dòng, để ở data/corpus/ (đã gitignore),
+# KHÔNG commit vì chính danh sách này chứa định danh. Không có file thì bỏ qua bước này.
+DENYLIST_FILE = os.path.join(ROOT, "data", "corpus", "denylist.txt")
+DENYLIST = []
+if os.path.exists(DENYLIST_FILE):
+    with open(DENYLIST_FILE, encoding="utf-8") as _f:
+        DENYLIST = [t.strip().lower() for t in _f if t.strip() and not t.startswith("#")]
 # Tham số tuỳ chọn: đường dẫn citations.json khác (vd bản lấy từ nhánh chưa merge về máy).
 CITATIONS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "data", "legal", "citations.json")
 
@@ -155,8 +162,14 @@ def main():
                 err(cid, "case corpus phải là split dev")
             if not n["nhom_con"].endswith("_corpus"):
                 err(cid, "case corpus cần nhom_con dạng '<C1|C2|C3>_corpus'")
-            if re.search(r"github\.com|gitlab\.com|bitbucket\.org", r["mo_ta"] + json.dumps(r["code"]), re.I):
-                err(cid, "case corpus không được ghi URL repo nguồn")
+            if n.get("nhom_con_goc") not in DISTRIBUTION:
+                err(cid, "case corpus cần nhom_con_goc thuộc bảng phân bổ (để chạy cùng luật kiểm như 60 case)")
+            row_text = json.dumps({k: v for k, v in r.items() if k != "_corpus"}, ensure_ascii=False)
+            if re.search(r"github\.com|gitlab\.com|bitbucket\.org", row_text, re.I):
+                err(cid, "case corpus không được ghi URL repo nguồn (dò trên toàn bộ dòng)")
+            for term in DENYLIST:
+                if term in row_text.lower():
+                    err(cid, "case corpus chứa từ trong denylist cục bộ (tên repo/tác giả/thương hiệu)")
         else:
             dist[n["nhom_con"]] = dist.get(n["nhom_con"], 0) + 1
             splits[n["split"]] = splits.get(n["split"], 0) + 1
@@ -204,6 +217,7 @@ def main():
 
         # ---- nhất quán nhãn ↔ dữ liệu đầu vào ----
         cats = n["nhom_nhay_cam"]
+        goc = n.get("nhom_con_goc") or n["nhom_con"]  # case corpus chạy cùng luật với nhóm con gốc
         if n["C3"] == "MAT_MIEN_TRU" and not cats and not (isinstance(lk, int) and lk >= NGUONG):
             err(cid, "MAT_MIEN_TRU nhưng không có nhóm nhạy cảm và chưa đạt ngưỡng")
         if n["C3"] == "CON_MIEN_TRU" and (cats or (isinstance(lk, int) and lk >= NGUONG)):
@@ -216,23 +230,27 @@ def main():
             err(cid, "doanh_nghiep_lon phải là KHONG_THUOC_DIEN_MIEN")
         if (r["loai_hinh"] == "khong_ro" or lk is None) and n["C3"] in ("MAT_MIEN_TRU", "CON_MIEN_TRU"):
             err(cid, "thiếu loại hình/quy mô nhưng vẫn kết luận %s" % n["C3"])
-        if n["nhom_con"] == "C1_chatbox" and n["C1"] != "CAN_LUAT_SU":
+        if goc == "C1_chatbox" and n["C1"] != "CAN_LUAT_SU":
             err(cid, "case chatbox phải là CAN_LUAT_SU")
         if n["C1"] in ("KICH_HOAT", "CAN_LUAT_SU") and not r["code"]:
             err(cid, "C1 %s cần code làm bằng chứng" % n["C1"])
-        if n["nhom_con"] == "C1_api_khong_pii" and n["C1"] != "KHONG_KICH_HOAT":
+        if goc == "C1_api_khong_pii" and n["C1"] != "KHONG_KICH_HOAT":
             err(cid, "nhóm API không kèm PII phải là KHONG_KICH_HOAT")
-        if n["nhom_con"] == "C2_du" and n["C2"] != "KHONG_KICH_HOAT":
+        if goc == "C2_du" and n["C2"] != "KHONG_KICH_HOAT":
             err(cid, "nhóm C2 đủ bằng chứng phải là KHONG_KICH_HOAT")
-        if n["nhom_con"] == "C2_thieu" and n["C2"] == "KHONG_KICH_HOAT":
+        if goc == "C2_thieu" and n["C2"] == "KHONG_KICH_HOAT":
             err(cid, "nhóm C2 thiếu bằng chứng không được là KHONG_KICH_HOAT")
-        if n["nhom_con"] in ("C3_ro", "C3_vt") and not cats:
+        if goc in ("C3_ro", "C3_vt") and not cats:
             err(cid, "nhóm C3 nhạy cảm phải có nhom_nhay_cam")
-        if n["nhom_con"] == "C3_con_mien" and n["C3"] != "CON_MIEN_TRU":
-            err(cid, "nhóm còn miễn trừ phải là CON_MIEN_TRU")
-        if n["nhom_con"] == "C3_luy_ke" and not (isinstance(lk, int) and lk >= NGUONG):
+        if goc == "C3_con_mien":
+            # không nhạy cảm, dưới ngưỡng → CON_MIEN_TRU; riêng khi thiếu loại hình/quy mô thì CAN_NGUOI_XAC_NHAN
+            unknown = r["loai_hinh"] == "khong_ro" or lk is None
+            if cats or n["C3"] not in (("CAN_NGUOI_XAC_NHAN",) if unknown else ("CON_MIEN_TRU",)):
+                err(cid, "nhóm không nhạy cảm/còn miễn trừ: cần nhom_nhay_cam rỗng và C3 = %s"
+                    % ("CAN_NGUOI_XAC_NHAN" if unknown else "CON_MIEN_TRU"))
+        if goc == "C3_luy_ke" and not (isinstance(lk, int) and lk >= NGUONG):
             err(cid, "nhóm lũy kế cần so_chu_the_luy_ke ≥ 100000")
-        if n["tag"] == "vt" and n["nhom_con"] != "C3_vt":
+        if n["tag"] == "vt" and goc != "C3_vt":
             warn(cid, "tag vt ngoài nhóm C3_vt")
 
         # ---- dữ liệu cá nhân thật / secret ----

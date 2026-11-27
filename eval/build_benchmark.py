@@ -11,7 +11,9 @@ Quy tắc (AGENTS.md, plan T2):
 - `expected` = "C1=…;C2=…;C3=…;nhom=a|b;can_cu=x|y" (nhom, can_cu so theo tập khi chấm),
   hoặc "tu_choi=true" cho yêu cầu ngoài phạm vi.
 - Sau CP2 chỉ được THÊM câu: nếu benchmark.csv đã có một id mà expected khác, hoặc bản mới làm
-  mất một id đã có, script dừng và không ghi gì.
+  mất một id đã có, script dừng và không ghi gì. Đổi ô input của một id đã có cũng dừng, trừ khi
+  gọi rõ --cho-sua-input=<id,...> sau khi đã ghi log ở data/cases/LABELING.md §13. Đổi expected
+  chỉ được làm trước CP2, bằng --cho-sua-expected=<id,...> và cũng phải ghi log §13.
 """
 import csv
 import io
@@ -107,14 +109,37 @@ def main():
     rows = [row_of(cases[i]) for i in SELECTED]
     rows += [dict(r, expected="tu_choi=true", type="tu_choi") for r in TU_DO]
 
-    # ---- chặn sửa expected / xoá câu sau khi đã có benchmark ----
+    # ---- chặn sửa expected / input / xoá câu sau khi đã có benchmark ----
     old = read_existing()
     new = {r["id"]: r for r in rows}
-    changed = [i for i in old if i in new and old[i]["expected"] != new[i]["expected"]]
+    # Sửa expected chỉ được phép TRƯỚC CP2 (hoặc khi câu chưa vào main), gọi rõ --cho-sua-expected=<id,...>
+    # và đã ghi log ở data/cases/LABELING.md §13. Sau CP2: không dùng cờ này (AGENTS.md).
+    allow_exp = set()
+    for a in sys.argv[1:]:
+        if a.startswith("--cho-sua-expected="):
+            allow_exp |= {x.strip() for x in a.split("=", 1)[1].split(",") if x.strip()}
+    changed = [i for i in old if i in new and old[i]["expected"] != new[i]["expected"] and i not in allow_exp]
+    exp_ok = [i for i in old if i in new and old[i]["expected"] != new[i]["expected"] and i in allow_exp]
     dropped = [i for i in old if i not in new and i not in TEMPLATE_IDS]
     if changed or dropped:
         sys.exit("DỪNG, không ghi file. Sửa expected: %s · Mất câu: %s. "
                  "Sau CP2 chỉ được thêm câu (AGENTS.md)." % (changed or "—", dropped or "—"))
+    # Đổi input của câu đã có chỉ được phép khi gọi rõ --cho-sua-input=id1,id2 VÀ đã ghi log ở
+    # data/cases/LABELING.md §13 (giờ · đổi gì · vì sao · ai duyệt).
+    allowed = set()
+    for a in sys.argv[1:]:
+        if a.startswith("--cho-sua-input="):
+            allowed |= {x.strip() for x in a.split("=", 1)[1].split(",") if x.strip()}
+    input_changed = [i for i in old if i in new and old[i]["input"] != new[i]["input"]]
+    blocked = [i for i in input_changed if i not in allowed]
+    if blocked:
+        sys.exit("DỪNG, không ghi file. Ô input của câu đã có bị đổi: %s. Nếu cố ý (ví dụ sửa mo_ta lộ đáp án), "
+                 "ghi log ở data/cases/LABELING.md §13 rồi chạy lại với --cho-sua-input=%s"
+                 % (", ".join(blocked), ",".join(blocked)))
+    if input_changed:
+        print("Cho phép đổi input (đã ghi log §13): %s" % ", ".join(input_changed))
+    if exp_ok:
+        print("Cho phép đổi expected (đã ghi log §13, trước CP2): %s" % ", ".join(exp_ok))
 
     count = {}
     for r in rows:
