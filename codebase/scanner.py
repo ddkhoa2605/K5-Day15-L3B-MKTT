@@ -335,7 +335,7 @@ def _schema_lines(columns: list) -> list:
     return ["%s(%s)" % (t, ", ".join(cs)) for t, cs in tables.items()]
 
 
-def _describe(files: dict, path: str) -> str:
+def _describe(files: dict, name: str) -> str:
     pkg = files.get("package.json")
     if pkg:
         try:
@@ -344,14 +344,18 @@ def _describe(files: dict, path: str) -> str:
                 return str(d["description"])[:200]
         except ValueError:
             pass
-    return "Repo %s" % os.path.basename(os.path.abspath(path))
+    return "Repo %s" % name
 
 
 def case_from_repo(path: str) -> dict:
     """Dựng Case từ repo. code = các đoạn quanh sink và quanh dấu hiệu consent (đã lọc secret),
     để Case đọc lại bằng files_from_case cho cùng kết luận. Loại hình và quy mô không suy được từ code:
     để "khong_ro" / None cho người dùng xác nhận."""
-    files = load_repo(path)
+    return case_from_files(load_repo(path), os.path.basename(os.path.abspath(path)))
+
+
+def case_from_files(files: dict, name: str) -> dict:
+    """Như case_from_repo nhưng nhận file đã đọc sẵn {đường_dẫn: nội_dung} (vd từ file .zip, không ghi đĩa)."""
     columns = repo_columns(files)
     wanted = {}
     for s in find_sinks(files):
@@ -375,7 +379,7 @@ def case_from_repo(path: str) -> dict:
             run.append(n)
         if run:
             code.append({"file": p, "line": run[0], "text": redact("\n".join(lines[run[0] - 1: run[-1]]))})
-    return {"id": "repo:" + os.path.basename(os.path.abspath(path)), "mo_ta": _describe(files, path),
+    return {"id": "repo:" + name, "mo_ta": _describe(files, name),
             "schema": _schema_lines(columns), "code": code,
             "loai_hinh": "khong_ro", "so_chu_the_luy_ke": None}
 
