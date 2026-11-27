@@ -17,7 +17,8 @@ class TestClassifyPrompt(unittest.TestCase):
 
     def test_prompt_keeps_timestamp_rule(self):
         s = classify.SYSTEM
-        for must in ("created_at", "khong_ca_nhan", "hanh_vi_mang", "ngày sinh", "nhật ký truy cập", "mã phiên"):
+        for must in ("created_at", "khong_ca_nhan", "hanh_vi_mang", "ngày sinh", "nhật ký truy cập", "mã phiên",
+                     "bảng ghi thao tác của người dùng"):
             self.assertIn(must, s)
 
     def test_classify_llm_sends_this_prompt(self):

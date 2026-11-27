@@ -28,7 +28,9 @@ SYSTEM = (
     "cột dạng *_at ghi lúc một việc xảy ra (gửi, trả tiền, đồng ý…) vẫn chỉ là mốc thời gian của bản ghi đó, "
     "không phải \"hanh_vi_mang\": nhóm \"hanh_vi_mang\" chỉ dành cho cột ghi lại thao tác hay hoạt động của người dùng "
     "trên dịch vụ (vd lịch sử xem, lượt bấm, nhật ký truy cập). "
-    "Định danh kỹ thuật (mã phiên, mã bản ghi, khoá ngoại) tự nó cũng không phải \"hanh_vi_mang\"."
+    "Định danh kỹ thuật (mã phiên, mã bản ghi, khoá ngoại) tự nó cũng không phải \"hanh_vi_mang\". "
+    "Ngoại lệ: nếu chính bảng đó là bảng ghi thao tác của người dùng (lịch sử xem, nhật ký truy cập, sự kiện bấm), "
+    "thì mốc thời gian của bảng đó là một phần của việc theo dõi hành vi và vẫn là \"hanh_vi_mang\"."
 )
 
 
