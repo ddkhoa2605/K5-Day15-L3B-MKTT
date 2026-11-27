@@ -12,6 +12,25 @@ def reply(text):
     return {"text": text, "model": "mock", "tokens_in": 1, "tokens_out": 1}
 
 
+class TestClassifyPrompt(unittest.TestCase):
+    """Giữ quy tắc chung trong prompt phân loại (PR #15): sửa prompt sau này không được vô tình bỏ mất."""
+
+    def test_prompt_keeps_timestamp_rule(self):
+        s = classify.SYSTEM
+        for must in ("created_at", "khong_ca_nhan", "hanh_vi_mang", "ngày sinh", "nhật ký truy cập", "mã phiên"):
+            self.assertIn(must, s)
+
+    def test_classify_llm_sends_this_prompt(self):
+        seen = []
+
+        def fake(system, user, **kw):
+            seen.append(system)
+            return reply('[{"table": "t", "column": "created_at", "nhom": "khong_ca_nhan", "do_tin_cay": 0.9}]')
+        with mock.patch.object(classify, "call_model", fake):
+            classify.classify_llm([{"table": "t", "column": "created_at"}], "app")
+        self.assertEqual(seen, [classify.SYSTEM])
+
+
 class TestClassifyRule(unittest.TestCase):
     def test_rule_matches_abbrev(self):
         r = classify.classify_rule([{"table": "bookings", "column": "vi_tri_gan_nhat"}])

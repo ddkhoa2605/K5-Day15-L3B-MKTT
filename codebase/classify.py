@@ -24,9 +24,11 @@ SYSTEM = (
     "\"nhom\" phải là một mã trong danh sách, \"do_tin_cay\" là số 0–1. "
     "Không đủ căn cứ để đoán nghĩa tên cột thì dùng \"khong_ro\" với do_tin_cay thấp. "
     "Cột mốc thời gian của một bản ghi hay một lượt đặt (vd created_at, updated_at, gio_bat_dau, ngay_dat) là \"khong_ca_nhan\" "
-    "(ngày sinh thì không phải mốc thời gian của bản ghi), "
+    "(ngày sinh thì không phải mốc thời gian của bản ghi); "
+    "cột dạng *_at ghi lúc một việc xảy ra (gửi, trả tiền, đồng ý…) vẫn chỉ là mốc thời gian của bản ghi đó, "
     "không phải \"hanh_vi_mang\": nhóm \"hanh_vi_mang\" chỉ dành cho cột ghi lại thao tác hay hoạt động của người dùng "
-    "trên dịch vụ (vd lịch sử xem, lượt bấm, nhật ký truy cập)."
+    "trên dịch vụ (vd lịch sử xem, lượt bấm, nhật ký truy cập). "
+    "Định danh kỹ thuật (mã phiên, mã bản ghi, khoá ngoại) tự nó cũng không phải \"hanh_vi_mang\"."
 )
 
 
