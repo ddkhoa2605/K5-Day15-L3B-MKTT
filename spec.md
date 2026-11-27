@@ -73,7 +73,7 @@ flowchart LR
 
     UNSURE["Tự từ chối kết luận<br/>CAN_LUAT_SU hoặc CAN_NGUOI_XAC_NHAN"]
 
-    HUMAN{"Người chịu trách nhiệm<br/>xem bằng chứng, xác nhận<br/>trước khi dùng hoặc nộp"}
+    HUMAN{"Người chịu trách nhiệm<br/>xem bằng chứng,<br/>gõ xac_nhan để sinh bản nháp"}
     DRAFT["Bản nháp hồ sơ đánh giá tác động<br/>(markdown, nhãn BẢN NHÁP, không tự gửi đi đâu)"]
 
     IN --> GUARD
@@ -90,13 +90,12 @@ flowchart LR
     RULE --> OUT
     RULE -. "thiếu căn cứ,<br/>độ tin cậy thấp" .-> UNSURE
     UNSURE --> OUT
-    OUT --> DRAFT
-    DRAFT --> HUMAN
-    HUMAN -- "xác nhận" --> DONE["Dùng hoặc nộp (do người quyết)"]
+    OUT --> HUMAN
+    HUMAN -- "xac_nhan" --> DRAFT
     HUMAN -- "sửa hoặc bác" --> OUT
 ```
 
-  Dữ liệu chỉ chạy một chiều. AI nằm giữa: nhận ứng viên từ tầng tĩnh, trả cột đã phân loại và đường đi đã kiểm chứng cho rule engine. Bảng luật đi thẳng vào rule engine, không đi qua AI. Hệ thống không có đường nào tự gửi hồ sơ đi: bản nháp chỉ hiện ra màn hình với nhãn BẢN NHÁP, việc dùng hay nộp do người xác nhận quyết.
+  Dữ liệu chỉ chạy một chiều. AI nằm giữa: nhận ứng viên từ tầng tĩnh, trả cột đã phân loại và đường đi đã kiểm chứng cho rule engine. Bảng luật đi thẳng vào rule engine, không đi qua AI. Không có đường nào đi vòng qua bước người xác nhận: bản nháp chỉ được sinh sau khi người chịu trách nhiệm gõ `xac_nhan`, chỉ xác nhận được kết luận của lượt ngay trước, và không tự gửi đi đâu.
 - **Hình dạng:** [x] workflow cố định · [ ] một agent · [ ] nhiều agent — Thứ tự các bước đã biết trước (quét, phân loại, kiểm chứng, áp luật, báo cáo) và mỗi bước có đầu vào, đầu ra cố định, nên không cần AI tự chọn bước. Không chọn agent hay nhiều agent vì kết luận pháp lý phải lặp lại được và kiểm được; vòng lặp tự chọn bước làm khó gán lỗi và dễ trích sai điều luật.
 - **AI dựa vào đâu** — mỗi công cụ (khớp `codebase/tools.py`; tên hàm theo plan, code chưa viết xong):
 
@@ -107,9 +106,9 @@ flowchart LR
   | `classify_columns` | danh sách cột, mô tả hệ thống, chế độ | mỗi cột: nhóm dữ liệu, độ tin cậy | Có: gọi model nước ngoài, chỉ gửi tên bảng, tên cột (xem §9) |
   | `verify_paths` | các sink ứng viên, các cột dữ liệu cá nhân, chế độ | mỗi sink: xác nhận hay không, nguồn dữ liệu (hệ thống / người dùng tự nhập / không rõ) | Có: gọi model nước ngoài, chỉ gửi đoạn code ±5 dòng đã lọc secret |
   | `apply_rules` | Case, nhãn cột, đường đi, kết quả consent | C1, C2, C3: trạng thái, căn cứ, hạn chót, mức phạt | Không |
-  | `draft_dpia` | kết luận (findings) | bản nháp markdown hồ sơ đánh giá tác động, mở đầu bằng nhãn BẢN NHÁP | Không gửi đi đâu; chỉ tạo bản nháp chờ người duyệt |
+  | `draft_dpia` | kết luận đã được người xác nhận | bản nháp markdown hồ sơ đánh giá tác động, mở đầu bằng nhãn BẢN NHÁP | Không gửi đi đâu; chỉ tạo bản nháp chờ người duyệt |
 
-- **Mức tự động:** [x] AI gợi ý, người quyết · [ ] AI tự làm khi chắc, chuyển người khi không · [ ] AI tự làm — Sai thì người dùng có thể bỏ sót nghĩa vụ thật hoặc lo thừa; sửa rẻ nếu có bằng chứng dòng code để kiểm trong vài giây, đắt nếu tin một kết luận mà không kiểm. Vì vậy mọi kết luận phải kèm bằng chứng, và bản nháp hồ sơ luôn mang nhãn BẢN NHÁP, chỉ được dùng hoặc nộp sau khi người chịu trách nhiệm xác nhận.
+- **Mức tự động:** [x] AI gợi ý, người quyết · [ ] AI tự làm khi chắc, chuyển người khi không · [ ] AI tự làm — Sai thì người dùng có thể bỏ sót nghĩa vụ thật hoặc lo thừa; sửa rẻ nếu có bằng chứng dòng code để kiểm trong vài giây, đắt nếu tin một kết luận mà không kiểm. Vì vậy mọi kết luận phải kèm bằng chứng, và bản nháp hồ sơ chỉ sinh ra sau khi người chịu trách nhiệm xác nhận, luôn mang nhãn BẢN NHÁP.
 - **Chỗ chặn rủi ro:** (1) AI không bao giờ quyết định kết luận pháp lý, rule engine quyết bằng điều kiện viết tay trên số cứng (100 nghìn chủ thể, 60 ngày); (2) mọi mã điều khoản lấy từ `citations.json`, đầu ra chứa mã không có trong bảng bị coi là sai; (3) khi thiếu căn cứ hoặc độ tin cậy thấp, trả `CAN_LUAT_SU` hoặc `CAN_NGUOI_XAC_NHAN` thay vì đoán.
 - **Chỗ người duyệt** (việc AI không được tự làm): xác nhận kết luận và loại hình doanh nghiệp, quyết định có lập và nộp hồ sơ hay không, và mọi hành động gửi hồ sơ cho cơ quan nhà nước.
 - **Nguyên tắc thiết kế** (≥3, bắt buộc G10):
@@ -120,9 +119,9 @@ flowchart LR
   | Danh mục đóng thì thành rule, văn xuôi mới vào AI | Bảng luật JSON đi thẳng vào rule engine; các nhóm nhạy cảm (Điều 4 Nghị định 356, điểm a–m), ngưỡng 100 nghìn, bảng trích dẫn không đi qua LLM |
   | Có bằng chứng kiểm được | Mỗi kết luận kèm file và số dòng, người dùng kiểm trong vài giây |
   | Minh bạch dữ liệu gửi ra ngoài | Màn hình "gửi gì ra ngoài" trước khi gọi AI; chỉ tên cột và đoạn code đã lọc secret |
-  | Con người giữ thẩm quyền | Bản nháp mang nhãn BẢN NHÁP và không tự gửi đi; người xác nhận trước khi dùng hoặc nộp |
+  | Con người giữ thẩm quyền | Cổng xác nhận bắt buộc: chưa gõ `xac_nhan` thì không có bản nháp; bản nháp mang nhãn BẢN NHÁP và không tự gửi đi |
 
-- Phần nào còn giả — ghi rõ, không giả làm thật: tầng quét mã nguồn, phân loại bằng từ điển, rule engine và bảng luật JSON đã viết xong và chạy thật (75 test; chế độ rule trên 50 case dev đạt 36/50). **Chưa nối model thật:** `codebase/ai.py` còn ở chế độ giả nên chế độ `hybrid` (AI phân loại cột, kiểm chứng đường đi) và chế độ `llm` (cấu hình B của ablation) chưa chạy được; dự kiến dùng Claude Haiku. Chưa có bộ chấm tự động (`eval/grade.py`) và `eval/ablation.py`, nên chưa có số ablation. Chế độ `llm` chưa có kho luật `chunks.jsonl` nên tạm dùng bảng tóm tắt `citations.json`. Bảng luật đã đối chiếu Luật 91 và Nghị định 356 với văn bản gốc. Các mã điều khoản của Nghị định 330 (Điều 7, 43, 55, 56) đã đối chiếu với hai bản tái bản toàn văn giống hệt nhau, nhưng **chưa đối chiếu Công báo hay bản có dấu đỏ**; mức phạt trong bảng luật là mức của tổ chức (cá nhân bằng một nửa) và chỉ là khung tối đa.
+- Phần nào còn giả — ghi rõ, không giả làm thật: tầng quét mã nguồn, phân loại bằng từ điển, rule engine và bảng luật JSON chạy thật bằng code (chế độ rule trên 50 case dev đạt 36/50). **Đã nối model thật** qua `codebase/ai.py`: `gpt-6-luna` phân loại cột và chạy chế độ `llm` (cấu hình B của ablation), `gpt-6.1-terra` kiểm chứng đường đi dữ liệu; mới thử nối 3 câu đầu của benchmark, **chưa có lượt đánh giá nào** nên chưa có số của chế độ `hybrid` và `llm`. Bộ chấm tự động và ablation chưa nằm trên nhánh chính. Chế độ `llm` đọc kho luật `data/legal/chunks.jsonl`; phần Nghị định 330 trong đó chỉ là bản tin của EY, không phải toàn văn. Repo demo (`data/demo_repos/`) chưa có. Bảng luật đã đối chiếu Luật 91 và Nghị định 356 với văn bản gốc. Các mã điều khoản của Nghị định 330 (Điều 7, 43, 55, 56) đã đối chiếu với hai bản tái bản toàn văn giống hệt nhau, nhưng **chưa đối chiếu Công báo hay bản có dấu đỏ**; mức phạt trong bảng luật là mức của tổ chức (cá nhân bằng một nửa) và chỉ là khung tối đa.
 
 ## §5. Chỗ khó — 4 lớp + ≥6 kịch bản + 2 tấn công *(guide 2.3)*
 
@@ -142,7 +141,7 @@ flowchart LR
 (1) nguồn sự thật · (2) mơ hồ / thiếu thông tin · (3) ngoài phạm vi / thẩm quyền · (4) đặc thù lĩnh vực (sai thì người dùng mất gì đắt nhất: tưởng mình còn được miễn trừ trong khi đã mất)
 
 ## §6. Bốn đường đi của trải nghiệm
-- Mọi thứ suôn sẻ: quét xong, hiện danh sách nghĩa vụ kèm bằng chứng file:dòng và điều luật, kèm bản nháp hồ sơ mang nhãn BẢN NHÁP; người dùng xác nhận trước khi dùng hoặc nộp.
+- Mọi thứ suôn sẻ: quét xong, hiện danh sách nghĩa vụ kèm bằng chứng file:dòng và điều luật, người dùng xác nhận thì sinh bản nháp hồ sơ.
 - Không chắc (lớp 2): thiếu loại hình hoặc số chủ thể, hoặc độ tin cậy phân loại cột thấp → trạng thái `CAN_NGUOI_XAC_NHAN`, hỏi lại đúng thông tin còn thiếu, không đoán.
 - Không có căn cứ (lớp 1): không tìm thấy đường đi dữ liệu cá nhân tới nơi ngoài lãnh thổ → `KHONG_KICH_HOAT`, và nói "không thấy bằng chứng trong mã nguồn đã quét", không nói "an toàn".
 - Người dùng sửa: người dùng bác một kết luận hoặc sửa loại hình, số chủ thể thì hệ thống chạy lại rule engine, không gọi lại AI nếu đầu vào cho AI không đổi.
@@ -163,6 +162,7 @@ flowchart LR
 - **Chuẩn "đạt"** (chốt **trước 19:30 Thứ Sáu 27/11**, giữ nguyên đến 23:59 Thứ Bảy 28/11): "Đạt khi ≥ 80% câu trong `eval/benchmark.csv` qua (cột `pass` = 1), và `trich_dan_dung` đạt 100%."
 - Giới hạn của đo lường: nhãn do nhóm tự dán, không qua luật sư duyệt.
 - Giả định đã chốt cho C1 (XN6): chỉ tính lời gọi tới dịch vụ bên thứ ba có trong mã nguồn (API AI, email, analytics đặt ngoài lãnh thổ Việt Nam). Không tính nơi đặt hạ tầng nền như cơ sở dữ liệu hay xác thực của Supabase, vì quét từ mã nguồn không biết vùng đặt máy chủ. Nếu tính cả hạ tầng nền thì gần như mọi app đều kích hoạt C1. Nhóm chưa hỏi luật sư về giả định này.
+- Giả định đã chốt cho C2 (Khoa chốt 27/11): email và số điện thoại được tính là khoá người dùng của nhật ký đồng ý, với điều kiện bảng có đủ thời điểm và phiên bản (Nghị định 356 Điều 6: kiểm chứng được chủ thể, thời điểm, nội dung đồng ý). Bộ quét chế độ `rule` đã được chỉnh sau khi xem corpus, nên baseline `rule` không còn là baseline chưa nhìn dữ liệu, và 7 case `data_that` không dùng làm bằng chứng hệ thống tổng quát hoá.
 - Ngoài phạm vi C1–C3: dữ liệu của trẻ em (Luật 91 Điều 24), một số repo công khai trong corpus có chạm vào; hệ thống không kiểm nghĩa vụ này và không kết luận về nó. Nhãn được commit trước khi viết rule engine; có 10 mẫu giữ lại chỉ chạy một lần ở cuối.
 - Kết quả: lượt 1 __/__ (__%) · lượt 2 __/__ (__%) — run ID: __ / __ → chi tiết `eval/report.md`, hồ sơ `eval/README.md` *(chưa chạy)*
 
