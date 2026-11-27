@@ -148,7 +148,7 @@ flowchart LR
 - Trường hợp đặc thù lĩnh vực (lớp 4): có cột nhạy cảm → `MAT_MIEN_TRU` kể cả khi chỉ có một người dùng; nói rõ miễn trừ chỉ áp cho Điều 21, 22 và khoản 2 Điều 33, không áp cho chuyển dữ liệu xuyên biên giới hay sự đồng ý.
 
 ## §7. Đánh giá & chuẩn "đạt" *(guide 2.4, 4.1)*
-- Data card: `data/DATA_CARD.md` · bộ câu thử: `eval/benchmark.csv` — mục tiêu 25–30 câu (thuong __ · kho __ · tu_choi __), hiện __ câu · metric: `eval/metric_spec.yaml` (4 metric, đã chốt)
+- Data card: `data/DATA_CARD.md` · bộ câu thử: `eval/benchmark.csv` — hiện 13 câu (thuong 6 · kho 5 · tu_choi 2), mục tiêu 25–30 câu ở CP3 (khung yêu cầu tối thiểu 20) · metric: `eval/metric_spec.yaml` (4 metric, đã chốt)
 - Bốn metric, chấm bằng code (`eval/grade.py`), định nghĩa đầy đủ trong `eval/metric_spec.yaml`:
 
   | Metric | Đo gì | Ngưỡng |
