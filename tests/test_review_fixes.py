@@ -63,6 +63,14 @@ class TestDraftGate(unittest.TestCase):
         self.assertIn("BẢN NHÁP", out)
         self.assertFalse(report_json(out)["tu_choi"])
 
+    def test_refused_turn_in_between_cancels_pending_result(self):
+        """Review Khoa PR #6: kết luận → câu tự do bị từ chối → xác nhận thì KHÔNG được sinh nháp của kết luận cũ."""
+        run(json.dumps(CASE))
+        self.assertTrue(report_json(run("app tôi có hợp pháp không?"))["tu_choi"])
+        out = run("xác nhận")
+        self.assertNotIn("BẢN NHÁP", out)
+        self.assertTrue(report_json(out)["tu_choi"])
+
     def test_confirmation_without_result_refused(self):
         agent._LAST.clear()
         self.assertTrue(report_json(run("xác nhận"))["tu_choi"])
