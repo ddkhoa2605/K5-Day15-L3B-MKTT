@@ -178,6 +178,7 @@
       "phone",
       "so_dien_thoai",
       "dien_thoai",
+      "sdt",
       "ho_ten",
       "full_name",
       "fullname",
@@ -189,6 +190,6 @@
       "cmnd",
       "can_cuoc"
     ],
-    "ghi_chu": "Từ điển chỉ dùng từ vựng chuẩn (từ đầy đủ, tiếng Anh, viết tắt phổ biến), không lấy tên cột viết tắt ad hoc từ bộ nhãn, để cấu hình A (rule only) là baseline trung thực cho ablation. Điều 4 có điểm m là điều khoản mở (dữ liệu khác pháp luật quy định phải bảo mật), không có từ khoá nên không đưa vào đây. Khi một tên cột khớp cả pii_co_ban và một nhóm nhạy cảm (ví dụ anh_cccd khớp cả cccd và anh_cccd), nhóm nhạy cảm được ưu tiên."
+    "ghi_chu": "Từ điển chỉ dùng từ vựng chuẩn (từ đầy đủ, tiếng Anh, viết tắt phổ biến), không lấy tên cột viết tắt ad hoc từ bộ nhãn, để cấu hình A (rule only) là baseline trung thực cho ablation. Điều 4 có điểm m là điều khoản mở (dữ liệu khác pháp luật quy định phải bảo mật), không có từ khoá nên không đưa vào đây. Khi một tên cột khớp cả pii_co_ban và một nhóm nhạy cảm (ví dụ anh_cccd khớp cả cccd và anh_cccd), nhóm nhạy cảm được ưu tiên. Ngoại lệ có chủ ý: `sdt` (số điện thoại) được thêm vì là viết tắt phổ biến và chỉ có một nghĩa, cùng loại với cccd, cmnd; các viết tắt mơ hồ như tt_sk, ghi_chu_bn, tk_nh vẫn không đưa vào."
   }
 }
