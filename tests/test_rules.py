@@ -126,6 +126,39 @@ class TestCitations(unittest.TestCase):
             for k, f in rules.evaluate(*args).items():
                 self.assertTrue(set(f["can_cu"]) <= codes, (k, f["can_cu"]))
 
+class TestPenalties(unittest.TestCase):
+    LOC = TestC2.LOC
+
+    def test_c2_prechecked_uses_tich_san_penalty(self):
+        r = rules.evaluate(case(), [EMAIL], [], dict(NO_CONSENT, tich_san=[self.LOC]))["C2"]
+        self.assertIn("ND330 D43.1c", r["muc_phat"])
+        self.assertNotIn("ND330 D43.2b", r["muc_phat"])
+        self.assertIn("30–50 triệu", r["muc_phat"])
+
+    def test_c2_silence_uses_heavier_penalty(self):
+        r = rules.evaluate(case(), [EMAIL], [], dict(NO_CONSENT, im_lang_dong_y=[self.LOC]))["C2"]
+        self.assertIn("ND330 D43.2b", r["muc_phat"])
+        self.assertNotIn("ND330 D43.1c", r["muc_phat"])
+
+    def test_c2_both_lists_both(self):
+        r = rules.evaluate(case(), [EMAIL], [], dict(NO_CONSENT, im_lang_dong_y=[self.LOC], tich_san=[self.LOC]))["C2"]
+        self.assertIn("ND330 D43.2b", r["muc_phat"])
+        self.assertIn("ND330 D43.1c", r["muc_phat"])
+
+    def test_c3_lost_exemption_has_penalty(self):
+        r = rules.evaluate(case(), [VT], [], NO_CONSENT)["C3"]
+        self.assertIn("ND330 D55.1", r["muc_phat"])
+        self.assertIsNone(rules.evaluate(case(), [EMAIL], [], NO_CONSENT)["C3"]["muc_phat"])
+
+    def test_penalty_mentions_individual_half_and_not_in_can_cu(self):
+        r = rules.evaluate(case(), [VT, EMAIL], [path("he_thong")], dict(NO_CONSENT, tich_san=[self.LOC]))
+        for k in ("C1", "C2", "C3"):
+            self.assertIn("cá nhân bằng một nửa", r[k]["muc_phat"])
+            self.assertIn("tối đa", r[k]["muc_phat"])
+            self.assertFalse(any(c.startswith("ND330") for c in r[k]["can_cu"]))
+
+
+class TestWording(unittest.TestCase):
     def test_no_forbidden_wording(self):
         r = rules.evaluate(case(), [VT, EMAIL], [path("he_thong")], dict(NO_CONSENT, tich_san=[TestC2.LOC]))
         text = " ".join(f["giai_thich"] + (f["muc_phat"] or "") for f in r.values()).lower()
