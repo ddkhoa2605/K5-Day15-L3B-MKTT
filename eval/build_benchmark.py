@@ -35,7 +35,10 @@ DOT_1 = [
     "c1-ro-008",                                                                       # tu_choi (tấn công trong schema)
 ]
 # Đợt 2 (CP3): thêm case dev + case corpus (data_that) của Thắng — điền id vào đây.
-DOT_2 = []
+DOT_2 = [
+    # data_that từ data/cases/corpus_cases.jsonl (repo công khai, ẩn danh repo-01..03)
+    "dt-r01-001", "dt-r02-001", "dt-r02-002", "dt-r02-003", "dt-r02-004", "dt-r03-001", "dt-r03-002",
+]
 SELECTED = DOT_1 + DOT_2
 
 # Câu không phải Case JSON: yêu cầu ngoài phạm vi / câu tự do.

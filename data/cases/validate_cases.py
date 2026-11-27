@@ -16,6 +16,8 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 CASES = os.path.join(HERE, "cases.jsonl")
+CORPUS = os.path.join(HERE, "corpus_cases.jsonl")  # tuỳ chọn: case data_that từ repo công khai
+CORPUS_NGUON = re.compile(r"^data_that: corpus/repo-\d{2}$")
 # Tham số tuỳ chọn: đường dẫn citations.json khác (vd bản lấy từ nhánh chưa merge về máy).
 CITATIONS = sys.argv[1] if len(sys.argv) > 1 else os.path.join(ROOT, "data", "legal", "citations.json")
 
@@ -91,6 +93,21 @@ def main():
     if len(rows) != 60:
         err("tổng", "cần đúng 60 case, đang có %d" % len(rows))
 
+    # Case dựng từ repo công khai (data_that): file riêng, không tính vào 60 case / phân bổ / split.
+    if os.path.exists(CORPUS):
+        with open(CORPUS, encoding="utf-8") as f:
+            for i, line in enumerate(f, 1):
+                if not line.strip():
+                    continue
+                try:
+                    c = json.loads(line)
+                except ValueError as e:
+                    err("corpus dòng %d" % i, "JSON hỏng: %s" % e)
+                    continue
+                c["_corpus"] = True
+                rows.append(c)
+        print("Case corpus (data_that): %d" % sum(1 for r in rows if r.get("_corpus")))
+
     ids = [r.get("id") for r in rows]
     for d in sorted({x for x in ids if ids.count(x) > 1}):
         err(d, "id trùng")
@@ -130,8 +147,19 @@ def main():
             if fl not in FLAGS:
                 err(cid, "cờ xác nhận lạ %r" % fl)
 
-        dist[n["nhom_con"]] = dist.get(n["nhom_con"], 0) + 1
-        splits[n["split"]] = splits.get(n["split"], 0) + 1
+        if r.get("_corpus"):
+            # nguồn ghi đúng mã ẩn danh, không lộ tên/URL repo; corpus chỉ dùng cho dev/benchmark
+            if not CORPUS_NGUON.match(n.get("nguon") or ""):
+                err(cid, "case corpus cần nhan.nguon dạng 'data_that: corpus/repo-NN'")
+            if n["split"] != "dev":
+                err(cid, "case corpus phải là split dev")
+            if not n["nhom_con"].endswith("_corpus"):
+                err(cid, "case corpus cần nhom_con dạng '<C1|C2|C3>_corpus'")
+            if re.search(r"github\.com|gitlab\.com|bitbucket\.org", r["mo_ta"] + json.dumps(r["code"]), re.I):
+                err(cid, "case corpus không được ghi URL repo nguồn")
+        else:
+            dist[n["nhom_con"]] = dist.get(n["nhom_con"], 0) + 1
+            splits[n["split"]] = splits.get(n["split"], 0) + 1
         tags[n["tag"]] = tags.get(n["tag"], 0) + 1
         if n["nhom_kiem"] != n["nhom_con"].split("_")[0]:
             err(cid, "nhom_kiem không khớp nhom_con")

@@ -239,7 +239,7 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
   - Nếu một chuyên gia đọc case vẫn không kết luận được, dùng `CAN_NGUOI_XAC_NHAN`. Bộ hiện tại không có case loại này, vì mỗi case đều được viết kèm ngữ cảnh đủ rõ.
 - **C2 không có nhãn "cần rà soát"** trong enum của nhóm. Vì vậy bộ dữ liệu tránh dựng case C2 mập mờ. Nếu cần, đề xuất thêm enum (xem báo cáo).
 - **Căn cứ chưa kiểm được:** không bịa số điều. Vẫn dùng mã theo quy ước, gắn cờ `XN…`, và ghi rõ ở mục 6.4.
-- **Sửa nhãn sau khi commit:** chỉ khi phát hiện hiểu sai luật. Ghi vào mục 12 (lý do, người duyệt, ngày) **trước khi** xem lại output. Không sửa nhãn để khớp kết quả hệ thống.
+- **Sửa nhãn sau khi commit:** chỉ khi phát hiện hiểu sai luật. Ghi vào mục 13 (lý do, người duyệt, ngày) **trước khi** xem lại output. Không sửa nhãn để khớp kết quả hệ thống.
 
 ## 9. Chia dev và holdout
 
@@ -307,7 +307,32 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
 
 **Kiểm sau mỗi thay đổi:** chạy `python data/cases/validate_cases.py`. Khi đã có `data/legal/citations.json`, script sẽ tự đối chiếu mã căn cứ với file đó.
 
-## 12. Nhật ký sửa nhãn
+## 12. Case dựng từ repo công khai (`corpus_cases.jsonl`, nguồn `data_that`)
+
+- **File riêng**, không thêm vào `cases.jsonl`. Bộ 60 case đã được commit trước `rules.py` làm bằng chứng nhãn không bị chỉnh theo kết quả, nên không sửa nữa. File corpus không tính vào 60 case, vào bảng phân bổ hay vào 50/10.
+- **7 case** từ 3 repo Next.js + Supabase công khai, ghi ẩn danh `repo-01..03`. Mọi case đều là `split=dev` và đều nằm trong `DOT_2` của `eval/build_benchmark.py`.
+
+  | Case | Trọng tâm |
+  |---|---|
+  | `dt-r01-001` | C3: phiếu khám có chẩn đoán, sinh hiệu |
+  | `dt-r02-001` | C1: ghi âm cuộc gọi gửi Gemini và Anthropic |
+  | `dt-r02-002` | C2 đủ bằng chứng: bảng đồng ý tiếng Việt, khoá theo SĐT/email; kèm C1 gửi email qua Resend |
+  | `dt-r02-003` | C3: GPS chấm công nhân viên |
+  | `dt-r02-004` | C1, bẫy chatbox: hệ thống tự gắn họ tên vào prompt |
+  | `dt-r03-001` | C3, bẫy: toạ độ là của trường, chưa dùng |
+  | `dt-r03-002` | C1 âm tính: email mời gửi qua Supabase Auth (XN6) |
+
+- **Quy tắc riêng:**
+  - Ghi `nhan.nguon = "data_that: corpus/repo-NN"`.
+  - `nhom_con` có dạng `<C1|C2|C3>_corpus`.
+  - Không ghi tên hay URL repo. Thay tên thương hiệu, tên trường, tên công ty bằng mô tả chung. Bỏ tiền tố schema có mang tên repo.
+  - Schema và code là trích đoạn thật, ghi đúng số dòng. Không thêm bảng hay cột không có trong repo.
+  - Danh sách URL chỉ để trên máy, không commit. Code của repo không commit.
+- **Loại hình:** repo công khai không cho biết loại hình hay số chủ thể, nên mọi case ghi `loai_hinh=khong_ro`, `so_chu_the_luy_ke=null`, và C3 là `CAN_NGUOI_XAC_NHAN`. Đây là đúng thực tế khi quét `repo:`.
+- **Thứ tự làm:** dán nhãn tay và **commit nhãn trước**, sau đó mới chạy hệ thống trên các case này.
+- **Giới hạn:** repo-03 xử lý dữ liệu trẻ em (Luật 91 Điều 24), nằm ngoài phạm vi C1–C3.
+
+## 13. Nhật ký sửa nhãn
 
 | Ngày | Case | Sửa gì | Lý do (hiểu sai luật nào) | Người duyệt |
 |---|---|---|---|---|
