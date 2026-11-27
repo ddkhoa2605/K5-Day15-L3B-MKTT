@@ -310,7 +310,7 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
 ## 12. Case dựng từ repo công khai (`corpus_cases.jsonl`, nguồn `data_that`)
 
 - **File riêng**, không thêm vào `cases.jsonl`. Bộ 60 case đã được commit trước `rules.py` làm bằng chứng nhãn không bị chỉnh theo kết quả. Vì vậy **không sửa nhãn** của bộ 60 case. Input (ví dụ `mo_ta`) chỉ được sửa khi có lý do rõ, ví dụ lộ đáp án, và phải ghi vào nhật ký §13. File corpus không tính vào 60 case, vào bảng phân bổ hay vào 50/10.
-- **10 case** từ 3 repo Next.js + Supabase công khai, ghi ẩn danh `repo-01..03`: 7 case đợt 1 (27/11) và 3 case đợt 2 (28/11). Mọi case đều là `split=dev` và đều nằm trong `DOT_2` của `eval/build_benchmark.py`.
+- **12 case** từ 3 repo Next.js + Supabase công khai, ghi ẩn danh `repo-01..03`: 7 case đợt 1 (27/11) và 5 case đợt 2 (28/11). Mọi case đều là `split=dev` và đều nằm trong `DOT_2` của `eval/build_benchmark.py`.
 
   | Case | Trọng tâm |
   |---|---|
@@ -323,7 +323,9 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
   | `dt-r03-002` | C1 âm tính: email mời gửi qua Supabase Auth, không tính theo XN6 đã chốt |
   | `dt-r01-002` (đợt 2) | C3: đơn thuốc + ảnh siêu âm, **giả định** hộ kinh doanh, 2.000 bệnh nhân → `MAT_MIEN_TRU` trên code thật |
   | `dt-r02-005` (đợt 2) | C3 bẫy, tag `vt`: cột `vi_tri` là thứ hạng Google (SEO), số liệu tổng hợp, không có dữ liệu cá nhân |
-  | `dt-r02-006` (đợt 2) | C1 bẫy chatbox: nhân viên gõ đơn của khách vào Telegram rồi gửi sang Anthropic → `KICH_HOAT`, không phải `CAN_LUAT_SU` |
+  | `dt-r02-006` (đợt 2) | C1 bẫy chatbox: nhân viên gõ đơn của khách vào nhóm chat rồi gửi sang Anthropic → `KICH_HOAT`, không phải `CAN_LUAT_SU` |
+  | `dt-r02-007` (đợt 2) | C1 âm tính, tag `am`: gọi Graph API của Facebook chỉ để lấy chi tiêu quảng cáo của tài khoản công ty, không có dữ liệu cá nhân |
+  | `dt-r02-008` (đợt 2) | C1: trợ lý AI giao việc, hệ thống tự ghép họ tên + chức vụ của mọi nhân viên vào system prompt gửi Anthropic → `KICH_HOAT` |
 
 - **Quy tắc riêng:**
   - Ghi `nhan.nguon = "data_that: corpus/repo-NN"`.
@@ -334,7 +336,24 @@ Cờ ✅ đã được Khoa chốt qua `data/legal/*.json` và trả lời ngày
   - Danh sách URL chỉ để trên máy, không commit. Code của repo không commit.
 - **Loại hình:** repo công khai không cho biết loại hình hay số chủ thể, nên mọi case ghi `loai_hinh=khong_ro`, `so_chu_the_luy_ke=null`, và C3 là `CAN_NGUOI_XAC_NHAN`. Đây là đúng thực tế khi quét `repo:`.
 - **Ngoại lệ có giả định (`dt-r01-002`):** để thử `MAT_MIEN_TRU` trên code thật (góp ý CP3 của Khoa), nhóm **giả định** loại hình và quy mô: hộ kinh doanh, 2.000 chủ thể. Giả định được ghi nguyên văn trong `mo_ta` ("Giả định của nhóm để thử C3 (repo không ghi)…") và trong `ly_do`, không lấy từ repo. Script dựng corpus chặn mọi case có kết luận C3 khác `CAN_NGUOI_XAC_NHAN` mà không có câu giả định này.
-- **Ẩn danh đợt 2:** tên file migration của repo-01 có tên repo, nên được bỏ khỏi đường dẫn (giữ số dòng thật). Không lấy dòng prompt có tên nhân viên bán hàng của repo-02.
+- **Ẩn danh đợt 2 (sửa theo review của Khoa trên PR #13):** case mới chưa bị khoá nên không được mở rộng rủi ro dò ngược.
+  - Giữ nguyên **cột là điểm của ví dụ** (`vi_tri`, `dosage`, `noi_dung`, `full_name`, `position`).
+  - Tên bảng đặc thù đổi sang tên chung cùng cấu trúc, ví dụ `seo_theo_url`, `seo_theo_truy_van`, `tin_nhan_chat`, `don_tu_chat`. Schema rút gọn còn vài cột đủ thấy vì sao nhãn đúng; mọi cột còn lại đều có thật trong repo.
+  - Đường dẫn đặc thù đổi sang đường dẫn chung, ví dụ `lib/seo.ts`, `app/api/cron/xu-ly-don-chat/route.ts`, `lib/tro-ly/giao-viec.ts`. Tên file migration bỏ dấu thời gian và tên repo (`supabase/migrations/billing.sql`).
+  - **Số dòng và nội dung dòng code là thật.** Script dựng đọc đúng dòng trong repo và kiểm có chứa chuỗi mong đợi; chỉ tên bảng đặc thù trong dòng code được đổi theo tên chung.
+  - Không lấy dòng prompt có tên nhân viên bán hàng của repo-02.
+- **Tỉ lệ câu thật trong benchmark:** 12/30 = 40%. Nếu không tính `dt-r01-002` (có giả định loại hình và quy mô) thì còn 11/30 = 36,7%, vẫn trên ngưỡng 1/3 của `run.py check`.
+
+### 12.4 Tiêu chí chọn câu dev đưa vào benchmark ở đợt 2
+
+- **Mục đích:** tăng n của hai nhóm bẫy `vt` và `am` để số theo tag bớt nhiễu. Không câu nào thuộc holdout.
+- **Chọn có chủ đích các bẫy âm tính khó** ở nhóm `am` (`c2-du-003`, `c1-am-003`, đều `do_kho=hard`). Vì vậy benchmark **không phải mẫu ngẫu nhiên** của dev. Khi Khoa đối chiếu ở `e9b06b2`, rule đạt 5/6 câu `am` trong benchmark và 8/8 câu `am` ngoài benchmark. Do đó `bao_dong_gia` đo trên benchmark sẽ **cao hơn** tỉ lệ thật trên toàn dev. Thiên lệch này bất lợi cho hệ thống, không có lợi.
+- **Số `bao_dong_gia` để báo cáo** lấy từ 50 case dev của `eval/ablation.py`, không lấy từ benchmark. Số trên benchmark chỉ dùng để theo dõi giữa các lượt chạy.
+- **Ở nhóm `vt`:** các câu chọn để phủ thêm nhóm nhạy cảm chưa có hoặc còn ít trong benchmark: `tai_chinh` (`c3-vt-004`), `vi_tri_dinh_vi` (`c3-vt-006`), `doi_tu_rieng_tu` (`c3-vt-009`). Khi Khoa đối chiếu, nhóm này không thấy thiên lệch (rule đạt 2/7 trong benchmark so với 1/3 ngoài benchmark).
+- **Bỏ 2 câu khi thêm 2 case `data_that`**, để giữ tổng 30 câu. Lý do bỏ **dựa trên nội dung, không dựa trên kết quả rule đạt hay trượt**:
+  - `c3-am-003` (toạ độ kho hàng, không phải vị trí cá nhân) cùng ô `C3_con_mien` và cùng kiểu bẫy "cột vị trí không phải định vị cá nhân" với câu thật `dt-r02-005`. Câu thật thay câu tự viết.
+  - `c3-vt-012` (`suc_khoe`): benchmark đã có 4 câu `suc_khoe`, trong đó có một câu `vt` (`c3-vt-002`). Đây là nhóm nhạy cảm được phủ nhiều nhất.
+  - **Giữ `c1-am-003`** dù câu này cùng ô `C1_api_khong_pii` với `dt-r02-007`, vì đây là câu rule đã biết là trượt; bỏ nó sẽ làm benchmark dễ hơn cho hệ thống.
 - **Thứ tự làm:** dán nhãn tay và **commit nhãn trước**, sau đó mới chạy hệ thống trên các case này.
 - **Giới hạn:** repo-03 xử lý dữ liệu trẻ em (Luật 91 Điều 24), nằm ngoài phạm vi C1–C3.
 
@@ -348,3 +367,4 @@ Ghi **mọi** lần sửa sau commit đầu tiên: sửa nhãn, và cả sửa i
 | 19:18 | `dt-r02-001` | **Nhãn C2:** `KHONG_KICH_HOAT` → `KICH_HOAT` (căn cứ thêm `Luat91 D9.3`, `ND356 D6`); cập nhật `bang_chung`, `ly_do`; `do_kho` → `hard`. Trong benchmark, ô `expected` đổi theo (chạy `build_benchmark.py --cho-sua-expected=dt-r02-001`, **trước CP2**, câu chưa vào `main`). | Hiểu sai phạm vi bản ghi đồng ý: bảng `dong_y_du_lieu` chỉ được form lead ghi vào, không có bằng chứng khách bị ghi âm đã đồng ý. Sửa **trước khi** ai chạy hệ thống trên case này. | Minh phát hiện (review PR #5); **Khoa duyệt** 27/11, trước khi merge PR #5 (duyệt qua trao đổi nhóm ngoài GitHub, Thịnh xác nhận) |
 | 19:18 | `dt-r01-001`, `dt-r02-003` | Chỉ `ly_do`: gộp 2 câu kết luận C3 bị lặp. Bỏ câu "không còn miễn trừ", vì câu này mâu thuẫn với trường hợp doanh nghiệp lớn (không thuộc diện miễn). Trạng thái giữ nguyên. | Lý do viết chưa chính xác | Minh (review PR #5) |
 | 19:18 | 7 case corpus | Thêm trường `nhom_con_goc` để validator chạy cùng luật kiểm như 60 case. Trạng thái giữ nguyên. | Kiểm nhất quán | Minh (review PR #5) |
+| 28/11 (trước CP3, sửa PR #13) | `dt-r01-002`, `dt-r02-005`, `dt-r02-006` | **Chỉ input** (schema, đường dẫn file trong `code` và `bang_chung`, tên bảng trong dòng code, `mo_ta` không còn chữ Telegram). Đổi tên bảng và đường dẫn đặc thù sang tên chung, bỏ dấu thời gian trong tên migration; số dòng và nội dung dòng code giữ thật. Trạng thái C1/C2/C3, nhóm, `can_cu` giữ nguyên. Thêm `dt-r02-007`, `dt-r02-008`. Benchmark: bỏ `c3-am-003`, `c3-vt-012` (lý do ở §12.4). Cả 10 câu đợt 2 **chưa vào `main`** và **chưa ai chạy hệ thống trên chúng**; benchmark dựng lại từ bản 20 câu của `main`. | Tên đặc thù có thể bị dò ngược ra repo gốc; tỉ lệ câu thật cần biên an toàn ngoài case có giả định. Không phải sửa vì kết quả hệ thống. | Khoa (review PR #13) |
