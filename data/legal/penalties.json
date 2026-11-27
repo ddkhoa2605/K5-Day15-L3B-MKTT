@@ -1,31 +1,67 @@
 {
   "C1": {
-    "muc": "30–50 triệu đồng nếu không lập hoặc không nộp hồ sơ đánh giá tác động chuyển dữ liệu xuyên biên giới đúng hạn",
-    "can_cu": [],
-    "muc_tran": "Bản tin EY nêu khung tối đa 5% doanh thu năm liền trước tại thị trường Việt Nam (hoặc 3 tỷ đồng nếu không có doanh thu), chủ yếu cho hành vi chuyển dữ liệu cá nhân xuyên biên giới dẫn đến mất hoặc lộ dữ liệu của công dân Việt Nam ở quy mô lớn; chưa xác định khung này có áp cho hành vi khác hay không",
-    "can_cu_tran": [],
-    "ghi_chu": "Mức 30–50 triệu lấy từ bản tin GV Lawyers (08/2026), không nêu điều khoản nên can_cu để trống. Khung trần lấy từ bản tin EY (10/2026); số điều khoản chỉ xuất hiện trong chú thích của bản tin thứ cấp nên chưa đưa vào can_cu/citations. Ngưỡng quy mô dữ liệu bị lộ trong chính bản tin EY không nhất quán (10.000 công dân ở phần chữ, 1.000.000 ở bảng); cần đối chiếu Công báo trước khi nói con số cụ thể trên slide.",
-    "nguon": "Bản tin pháp lý thứ cấp (GV Lawyers 08/2026; EY 10/2026), chưa phải toàn văn Nghị định 330/2026/NĐ-CP trên Công báo. Các con số là khung mức phạt (khoảng hoặc mức tối đa), không phải mức mặc định hay chắc chắn bị áp dụng.",
-    "tham_chieu_chua_xac_minh": [
-      "Điều 56 khoản 3 và Điều 7 khoản 4 Nghị định 330/2026 (theo chú thích bản tin EY 10/2026)"
-    ]
+    "muc": "30–50 triệu đồng với hành vi không lập hoặc không nộp hồ sơ đánh giá tác động chuyển dữ liệu xuyên biên giới đúng hạn (không lập trước hoặc trong khi chuyển, không nộp trong 60 ngày)",
+    "muc_ca_nhan": "15–25 triệu đồng",
+    "can_cu": [
+      "ND330 D56.1"
+    ],
+    "muc_tran": "Tỷ lệ doanh thu chỉ áp theo Điều 56 khoản 3 khi chuyển dữ liệu dẫn đến lộ, mất dữ liệu (hoặc che giấu, khai báo sai dòng dữ liệu, hoặc tiếp tục chuyển sau lệnh ngừng): 1–2%, 2–3%, 3–5% doanh thu năm trước tại Việt Nam theo số công dân Việt Nam bị lộ (10.000 / 100.000 / 1.000.000). Nếu không có doanh thu hoặc mức tính thấp hơn 3 tỷ: 200–500 triệu, 500 triệu–1 tỷ, 1–3 tỷ đồng (khoản 4). Trần chung cho vi phạm quy định chuyển dữ liệu xuyên biên giới là 5% doanh thu năm trước (Điều 7 khoản 4 điểm b)",
+    "can_cu_tran": [
+      "ND330 D56.3",
+      "ND330 D56.4",
+      "ND330 D7.4b"
+    ],
+    "chu_the": "to_chuc",
+    "he_so_ca_nhan": 0.5,
+    "ghi_chu": "Mức nêu ở đây là mức của tổ chức; cá nhân cùng hành vi bị phạt bằng một nửa (ND330 D7.1). Đây là khung mức phạt, không phải mức mặc định hay chắc chắn bị áp dụng. Điều 56 khoản 3 đòi điều kiện lộ, mất dữ liệu từ 10.000 công dân Việt Nam; hệ thống chỉ phát hiện nghĩa vụ đã phát sinh, không biết có lộ dữ liệu hay không, nên không tự kết luận mức tỷ lệ doanh thu. Mốc 100.000 ở đây là bậc tiền phạt, khác vai trò của mốc 100.000 trong Nghị định 356 Điều 41 (ngưỡng phát sinh nghĩa vụ).",
+    "nguon": "Nghị định 330/2026/NĐ-CP, bản tái bản toàn văn (nhanchinh.vn, luatminhnguyen.com.vn), chưa đối chiếu Công báo hay bản có dấu đỏ."
   },
   "C2": {
-    "muc": "Đến 50 triệu đồng với hành vi xử lý dữ liệu cá nhân không có sự đồng ý hợp lệ",
-    "can_cu": [],
-    "ghi_chu": "Nghị định 356 Điều 6 yêu cầu bên kiểm soát phải lưu trữ sự đồng ý và chịu trách nhiệm chứng minh; không quy định cách lưu trữ cụ thể. Mức phạt riêng cho hành vi không lưu trữ sự đồng ý chưa đối chiếu được nên không gán ở đây. Số điều khoản Nghị định 330 chỉ có từ bản tin thứ cấp nên chưa đưa vào can_cu.",
-    "nguon": "Bản tin pháp lý thứ cấp (GV Lawyers 08/2026; EY 10/2026), chưa phải toàn văn Nghị định 330/2026/NĐ-CP trên Công báo. Các con số là khung mức phạt (khoảng hoặc mức tối đa), không phải mức mặc định hay chắc chắn bị áp dụng.",
-    "tham_chieu_chua_xac_minh": [
-      "Điều 43 khoản 1 Nghị định 330/2026 (theo chú thích bản tin EY 10/2026)"
-    ]
+    "muc": "30–50 triệu đồng với hành vi không ghi nhận, không lưu trữ nhật ký về sự đồng ý, hoặc không chứng minh được đã có sự đồng ý khi được yêu cầu",
+    "muc_ca_nhan": "15–25 triệu đồng",
+    "can_cu": [
+      "ND330 D43.1g"
+    ],
+    "lien_quan": [
+      "ND330 D43.1a",
+      "ND330 D43.1h"
+    ],
+    "chu_the": "to_chuc",
+    "he_so_ca_nhan": 0.5,
+    "ghi_chu": "Mức của tổ chức; cá nhân bằng một nửa (ND330 D7.1); khung mức phạt, không phải mức mặc định. Nghĩa vụ lưu trữ sự đồng ý: Nghị định 356 Điều 6 (bên kiểm soát chịu trách nhiệm chứng minh). D43.1a là xử lý khi chưa có đồng ý; D43.1h là không thông báo khi xử lý dữ liệu nhạy cảm (cùng mức 30–50 triệu).",
+    "nguon": "Nghị định 330/2026/NĐ-CP, bản tái bản toàn văn (nhanchinh.vn, luatminhnguyen.com.vn), chưa đối chiếu Công báo hay bản có dấu đỏ."
   },
   "C2_NANG": {
-    "muc": "50–70 triệu đồng với hành vi coi sự im lặng là sự đồng ý, hoặc tiếp tục xử lý dữ liệu sau khi có yêu cầu hợp lệ rút lại đồng ý hoặc hạn chế xử lý",
-    "can_cu": [],
-    "ghi_chu": "Checkbox tích sẵn mặc định bị Nghị định 356 Điều 6 cấm (không được thiết lập phương thức mặc định đồng ý). Việc phạt theo khoản nào của Nghị định 330 chưa đối chiếu toàn văn nên báo cáo chỉ nói 'chạm vào nhóm hành vi này'. Số điều khoản chỉ có từ bản tin thứ cấp nên chưa đưa vào can_cu.",
-    "nguon": "Bản tin pháp lý thứ cấp (GV Lawyers 08/2026; EY 10/2026), chưa phải toàn văn Nghị định 330/2026/NĐ-CP trên Công báo. Các con số là khung mức phạt (khoảng hoặc mức tối đa), không phải mức mặc định hay chắc chắn bị áp dụng.",
-    "tham_chieu_chua_xac_minh": [
-      "Điều 43 khoản 2 Nghị định 330/2026 (theo chú thích bản tin EY 10/2026)"
-    ]
+    "muc": "50–70 triệu đồng với hành vi thu thập, xử lý dữ liệu khi chủ thể im lặng hoặc không phản hồi, tự ý coi sự im lặng là đồng ý",
+    "muc_ca_nhan": "25–35 triệu đồng",
+    "can_cu": [
+      "ND330 D43.2b"
+    ],
+    "chu_the": "to_chuc",
+    "he_so_ca_nhan": 0.5,
+    "ghi_chu": "Mức của tổ chức; cá nhân bằng một nửa (ND330 D7.1); khung mức phạt, không phải mức mặc định. Dùng cho trường hợp im lặng được coi là đồng ý (câu kiểu 'tiếp tục sử dụng đồng nghĩa với đồng ý'). Checkbox tích sẵn là hành vi khác, mức thấp hơn, xem C2_NANG_TICH_SAN.",
+    "nguon": "Nghị định 330/2026/NĐ-CP, bản tái bản toàn văn (nhanchinh.vn, luatminhnguyen.com.vn), chưa đối chiếu Công báo hay bản có dấu đỏ."
+  },
+  "C2_NANG_TICH_SAN": {
+    "muc": "30–50 triệu đồng với hành vi thiết lập phương thức mặc định đồng ý hoặc tạo chỉ dẫn không rõ ràng gây hiểu lầm giữa đồng ý và không đồng ý",
+    "muc_ca_nhan": "15–25 triệu đồng",
+    "can_cu": [
+      "ND330 D43.1c"
+    ],
+    "chu_the": "to_chuc",
+    "he_so_ca_nhan": 0.5,
+    "ghi_chu": "Mức của tổ chức; cá nhân bằng một nửa (ND330 D7.1); khung mức phạt, không phải mức mặc định. Dùng cho checkbox tích sẵn. Điều cấm tương ứng: Nghị định 356 Điều 6 khoản 3. Khác mức phạt của 'coi im lặng là đồng ý' (50–70 triệu).",
+    "nguon": "Nghị định 330/2026/NĐ-CP, bản tái bản toàn văn (nhanchinh.vn, luatminhnguyen.com.vn), chưa đối chiếu Công báo hay bản có dấu đỏ."
+  },
+  "C3": {
+    "muc": "20–30 triệu đồng với hành vi bắt đầu xử lý dữ liệu cá nhân mà không lập, không duy trì hồ sơ đánh giá tác động xử lý dữ liệu cá nhân, hoặc không gửi 01 bản chính trong 60 ngày kể từ ngày đầu tiên xử lý",
+    "muc_ca_nhan": "10–15 triệu đồng",
+    "can_cu": [
+      "ND330 D55.1"
+    ],
+    "chu_the": "to_chuc",
+    "he_so_ca_nhan": 0.5,
+    "ghi_chu": "Mức của tổ chức; cá nhân bằng một nửa (ND330 D7.1); khung mức phạt, không phải mức mặc định. Áp khi đã mất miễn trừ (C3 MAT_MIEN_TRU) nên phải thực hiện Điều 21 Luật 91. Khác Điều 56 (hồ sơ đánh giá tác động chuyển dữ liệu xuyên biên giới, 30–50 triệu): một sản phẩm vừa mất miễn trừ vừa gọi API nước ngoài có thể phát sinh cả hai hồ sơ. Biện pháp khắc phục kèm theo gồm buộc dừng hoạt động xử lý đến khi nộp đủ hồ sơ (Điều 55 khoản 3 điểm b).",
+    "nguon": "Nghị định 330/2026/NĐ-CP, bản tái bản toàn văn (nhanchinh.vn, luatminhnguyen.com.vn), chưa đối chiếu Công báo hay bản có dấu đỏ."
   }
 }

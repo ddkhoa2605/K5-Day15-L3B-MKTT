@@ -120,7 +120,7 @@ flowchart LR
   | Minh bạch dữ liệu gửi ra ngoài | Màn hình "gửi gì ra ngoài" trước khi gọi AI; chỉ tên cột và đoạn code đã lọc secret |
   | Con người giữ thẩm quyền | Cổng xác nhận bắt buộc; hồ sơ chỉ là bản nháp |
 
-- Phần nào còn giả — ghi rõ, không giả làm thật: tại thời điểm viết, `codebase/` vẫn là khung ví dụ của BTC, các công cụ ở bảng trên chưa viết xong; `codebase/ai.py` chưa nối model thật, đang ở chế độ giả. Bảng luật JSON (`data/legal/`) đã có và đã đối chiếu Luật 91 và Nghị định 356 với văn bản gốc. Các mã điều khoản của Nghị định 330 **chưa xác minh** trên toàn văn (chỉ có bản tin của GV Lawyers và EY), nên chưa đưa vào danh mục trích dẫn. Cập nhật mục này khi code xong.
+- Phần nào còn giả — ghi rõ, không giả làm thật: tại thời điểm viết, `codebase/` vẫn là khung ví dụ của BTC, các công cụ ở bảng trên chưa viết xong; `codebase/ai.py` chưa nối model thật, đang ở chế độ giả. Bảng luật JSON (`data/legal/`) đã có và đã đối chiếu Luật 91 và Nghị định 356 với văn bản gốc. Các mã điều khoản của Nghị định 330 (Điều 7, 43, 55, 56) đã đối chiếu với hai bản tái bản toàn văn giống hệt nhau, nhưng **chưa đối chiếu Công báo hay bản có dấu đỏ**; mức phạt trong bảng luật là mức của tổ chức (cá nhân bằng một nửa) và chỉ là khung tối đa. Cập nhật mục này khi code xong.
 
 ## §5. Chỗ khó — 4 lớp + ≥6 kịch bản + 2 tấn công *(guide 2.3)*
 
