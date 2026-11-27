@@ -1,0 +1,194 @@
+{
+  "chung_toc_dan_toc": {
+    "ten": "Dữ liệu tiết lộ nguồn gốc chủng tộc, nguồn gốc dân tộc",
+    "can_cu": "ND356 D4a",
+    "diem": "a",
+    "tu_khoa": [
+      "dan_toc",
+      "chung_toc",
+      "ethnic",
+      "ethnicity",
+      "nguon_goc_dan_toc"
+    ]
+  },
+  "chinh_tri_ton_giao": {
+    "ten": "Quan điểm về chính trị, tôn giáo, tín ngưỡng",
+    "can_cu": "ND356 D4b",
+    "diem": "b",
+    "tu_khoa": [
+      "ton_giao",
+      "tin_nguong",
+      "chinh_tri",
+      "religion",
+      "political",
+      "quan_diem_chinh_tri"
+    ]
+  },
+  "doi_tu_rieng_tu": {
+    "ten": "Thông tin về đời sống riêng tư, bí mật cá nhân, bí mật gia đình",
+    "can_cu": "ND356 D4c",
+    "diem": "c",
+    "tu_khoa": [
+      "bi_mat_ca_nhan",
+      "bi_mat_gia_dinh",
+      "bi_mat_rieng",
+      "rieng_tu",
+      "tam_su",
+      "private_note",
+      "private_diary"
+    ],
+    "ghi_chu": "Nhóm mơ hồ nhất; tên cột kiểu nhật ký, ghi chú riêng thường cần LLM hoặc người xác nhận."
+  },
+  "suc_khoe": {
+    "ten": "Tình trạng sức khỏe",
+    "can_cu": "ND356 D4d",
+    "diem": "d",
+    "tu_khoa": [
+      "suc_khoe",
+      "benh_an",
+      "tien_su_benh",
+      "chan_doan",
+      "health_status",
+      "health_record",
+      "medical",
+      "diagnosis"
+    ],
+    "ghi_chu": "Từ khoá `health_status` có thể trúng nhầm cột trạng thái hạ tầng (service_health_status); chế độ rule chấp nhận báo nhầm này, hybrid dùng LLM phân biệt."
+  },
+  "sinh_trac_di_truyen": {
+    "ten": "Dữ liệu sinh trắc học, đặc điểm di truyền",
+    "can_cu": "ND356 D4đ",
+    "diem": "đ",
+    "tu_khoa": [
+      "sinh_trac",
+      "biometric",
+      "van_tay",
+      "khuon_mat",
+      "face_id",
+      "faceid",
+      "face_embedding",
+      "fingerprint_template",
+      "di_truyen",
+      "genetic"
+    ]
+  },
+  "tinh_duc": {
+    "ten": "Dữ liệu tiết lộ đời sống tình dục, xu hướng tình dục của cá nhân",
+    "can_cu": "ND356 D4e",
+    "diem": "e",
+    "tu_khoa": [
+      "tinh_duc",
+      "xu_huong_tinh_duc",
+      "doi_song_tinh_duc",
+      "sexual",
+      "sexuality",
+      "sexual_orientation"
+    ]
+  },
+  "toi_pham": {
+    "ten": "Dữ liệu về tội phạm, vi phạm pháp luật được thu thập, lưu trữ bởi các cơ quan thực thi pháp luật",
+    "can_cu": "ND356 D4g",
+    "diem": "g",
+    "tu_khoa": [
+      "toi_pham",
+      "tien_an",
+      "ly_lich_tu_phap",
+      "criminal",
+      "conviction",
+      "police_record"
+    ],
+    "ghi_chu": "Chỉ thuộc nhóm nhạy cảm khi do cơ quan thực thi pháp luật thu thập, lưu trữ. App thông thường hiếm khi chạm; không tự kết luận chỉ từ tên cột."
+  },
+  "vi_tri_dinh_vi": {
+    "ten": "Vị trí của cá nhân được xác định qua dịch vụ định vị",
+    "can_cu": "ND356 D4h",
+    "diem": "h",
+    "tu_khoa": [
+      "vi_tri",
+      "toa_do",
+      "geolocation",
+      "user_location",
+      "latitude",
+      "longitude",
+      "gps",
+      "coordinates",
+      "lat_lng"
+    ],
+    "ghi_chu": "Khớp theo chuỗi con nên `vi_tri` có thể trúng nhầm cột kiểu vị trí công việc (job position). Chế độ rule chấp nhận báo nhầm này; chế độ hybrid xử lý bằng LLM."
+  },
+  "dinh_danh_dien_tu": {
+    "ten": "Tên đăng nhập, mật khẩu tài khoản định danh điện tử; hình ảnh thẻ căn cước, căn cước công dân, chứng minh nhân dân",
+    "can_cu": "ND356 D4i",
+    "diem": "i",
+    "tu_khoa": [
+      "dinh_danh_dien_tu",
+      "vneid",
+      "anh_cccd",
+      "anh_cmnd",
+      "hinh_anh_cccd",
+      "cccd_image",
+      "id_card_image"
+    ],
+    "ghi_chu": "Điểm i chỉ nói về hình ảnh thẻ và tài khoản định danh. Số CCCD đơn thuần không có trong danh mục Điều 4; xếp vào pii_co_ban."
+  },
+  "tai_chinh": {
+    "ten": "Tên đăng nhập, mật khẩu tài khoản ngân hàng; thông tin thẻ ngân hàng, lịch sử giao dịch tài khoản ngân hàng; thông tin tài chính, tín dụng và hoạt động, giao dịch tài chính, chứng khoán, bảo hiểm của khách hàng tại các tổ chức tín dụng, chi nhánh ngân hàng nước ngoài, tổ chức trung gian thanh toán, chứng khoán, bảo hiểm và tổ chức được phép khác",
+    "can_cu": "ND356 D4k",
+    "diem": "k",
+    "tu_khoa": [
+      "ngan_hang",
+      "bank_account",
+      "bank_card",
+      "bank_card_number",
+      "credit_card",
+      "so_the_ngan_hang",
+      "lich_su_giao_dich",
+      "transaction_history",
+      "tin_dung",
+      "credit_score",
+      "bao_hiem",
+      "chung_khoan"
+    ]
+  },
+  "hanh_vi_mang": {
+    "ten": "Dữ liệu theo dõi hành vi, hoạt động sử dụng dịch vụ viễn thông, mạng xã hội, dịch vụ truyền thông trực tuyến và các dịch vụ khác trên không gian mạng",
+    "can_cu": "ND356 D4l",
+    "diem": "l",
+    "tu_khoa": [
+      "hanh_vi_nguoi_dung",
+      "user_behavior",
+      "user_behaviour",
+      "user_tracking",
+      "behavior_tracking",
+      "clickstream",
+      "click_stream",
+      "browsing_history",
+      "lich_su_duyet",
+      "activity_log",
+      "user_event"
+    ],
+    "ghi_chu": "Khớp `user_tracking`, `behavior_tracking` có thể trúng cờ cấu hình (user_tracking_enabled) vốn chưa chứng tỏ có thu thập dữ liệu theo dõi; cần xem thêm bằng chứng code."
+  },
+  "pii_co_ban": {
+    "ten": "Dữ liệu cá nhân cơ bản, không thuộc danh mục nhạy cảm của Điều 4 Nghị định 356",
+    "can_cu": null,
+    "diem": null,
+    "tu_khoa": [
+      "email",
+      "phone",
+      "so_dien_thoai",
+      "dien_thoai",
+      "ho_ten",
+      "full_name",
+      "fullname",
+      "dia_chi",
+      "address",
+      "ngay_sinh",
+      "birthday",
+      "cccd",
+      "cmnd",
+      "can_cuoc"
+    ],
+    "ghi_chu": "Từ điển chỉ dùng từ vựng chuẩn (từ đầy đủ, tiếng Anh, viết tắt phổ biến), không lấy tên cột viết tắt ad hoc từ bộ nhãn, để cấu hình A (rule only) là baseline trung thực cho ablation. Điều 4 có điểm m là điều khoản mở (dữ liệu khác pháp luật quy định phải bảo mật), không có từ khoá nên không đưa vào đây. Khi một tên cột khớp cả pii_co_ban và một nhóm nhạy cảm (ví dụ anh_cccd khớp cả cccd và anh_cccd), nhóm nhạy cảm được ưu tiên."
+  }
+}
