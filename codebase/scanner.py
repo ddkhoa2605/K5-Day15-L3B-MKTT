@@ -228,7 +228,9 @@ _SILENCE = re.compile(r"(tiếp tục\s+(?:sử dụng|dùng|truy cập)|tiep tu
                       r"by\s+continuing|continued\s+use)[^\n]{0,120}?(đồng ý|dong y|chấp nhận|chap nhan|agree|accept|consent)",
                       re.IGNORECASE)
 _USER_COL = re.compile(r"(^|_)(user|nguoi_dung|khach_hang|khach|customer|profile|account|subject|member|hoc_vien)(_id|id)?($|_)"
-                       r"|^uid$|^owner_id$")
+                       r"|^uid$|^owner_id$"
+                       # Khoa chốt 27/11: email / SĐT cũng định danh được chủ thể đồng ý ("ai")
+                       r"|(^|_)(email|e_mail|phone|sdt|so_dt|so_dien_thoai|dien_thoai)($|_)")
 _TIME_COL = re.compile(r"(_at$|^thoi_gian|^ngay_|_time$|timestamp|_date$)")
 _VERSION_COL = re.compile(r"(version|phien_ban|policy_hash|terms_rev)")
 # Cột đồng ý gắn trên bảng khác (vd users.terms_accepted_at). Hai mức:

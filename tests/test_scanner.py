@@ -165,6 +165,13 @@ class TestCorpusFeedback(unittest.TestCase):
         r = self.consent("users(id, email, policy_version, agreed_at)")
         self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("users", True))
 
+    def test_consent_table_keyed_by_email_or_phone_is_full(self):
+        """Khoa chốt 27/11: email/SĐT tính là khoá người dùng (bảng dong_y_du_lieu không có user_id)."""
+        r = self.consent("dong_y_du_lieu(id, email, phone, created_at, phien_ban, muc_dich, van_ban, ip, ua)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("dong_y_du_lieu", True))
+        r = self.consent("dong_y(id, sdt, thoi_gian, phien_ban)")
+        self.assertTrue(r["du_3_truong"])
+
     def test_plain_table_not_consent(self):
         self.assertIsNone(self.consent("orders(id, user_id, total, created_at)")["bang_consent"])
 
