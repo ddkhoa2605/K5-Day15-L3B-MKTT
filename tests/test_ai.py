@@ -1,7 +1,10 @@
 """Test M3: nối model (không gọi mạng — post_json được giả lập)."""
 import os
 import sys
+import io
+import socket
 import unittest
+import urllib.error
 from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "codebase"))
@@ -92,6 +95,85 @@ class TestFakeAndTrace(unittest.TestCase):
         models = [c[0][2]["model"] for c in post.call_args_list]
         self.assertEqual(models[0], "gpt-6-luna")
         self.assertEqual(models[-1], "gpt-6.1-terra")
+
+
+def http_error(code, body=""):
+    return urllib.error.HTTPError("https://x", code, "err", {}, io.BytesIO(body.encode("utf-8")))
+
+
+class TestRetryAndMask(unittest.TestCase):
+    """Review Khoa PR #8: thử lại khi lỗi tạm thời, che API key trong thông điệp lỗi."""
+
+    def setUp(self):
+        self.sleep = mock.patch("ai.time.sleep").start()
+        self.addCleanup(mock.patch.stopall)
+
+    def test_retry_429_then_ok(self):
+        with configured("openai"), mock.patch("ai._send", side_effect=[http_error(429), OPENAI_REPLY]) as send:
+            r = ai.call_model("s", "u")
+        self.assertEqual(send.call_count, 2)
+        self.assertEqual(r["tokens_in"], 120)
+        self.assertEqual([c[0][0] for c in self.sleep.call_args_list], [2])
+
+    def test_retry_5xx_and_timeout_then_give_up_with_error(self):
+        errs = [http_error(503), socket.timeout("timed out"), http_error(500, "boom")]
+        with configured("openai"), mock.patch("ai._send", side_effect=errs) as send:
+            with self.assertRaisesRegex(RuntimeError, "HTTP 500.*sau 3 lần gọi"):
+                ai.call_model("s", "u")
+        self.assertEqual(send.call_count, 3)
+        self.assertEqual([c[0][0] for c in self.sleep.call_args_list], [2, 4])
+
+    def test_no_retry_on_401(self):
+        with configured("openai"), mock.patch("ai._send", side_effect=[http_error(401)]) as send:
+            with self.assertRaisesRegex(RuntimeError, "HTTP 401"):
+                ai.call_model("s", "u")
+        self.assertEqual(send.call_count, 1)
+        self.sleep.assert_not_called()
+
+    def test_key_masked_in_error(self):
+        echo = http_error(400, '{"error": "bad key sk-proj-SECRET123 in header"}')
+        with configured("openai", key="sk-proj-SECRET123"), mock.patch("ai._send", side_effect=[echo]):
+            with self.assertRaises(RuntimeError) as cm:
+                ai.call_model("s", "u")
+        self.assertNotIn("sk-proj-SECRET123", str(cm.exception))
+        self.assertIn("[KEY]", str(cm.exception))
+
+    def test_failed_call_traced_as_error_without_tokens(self):
+        with configured("openai"), mock.patch("ai._send", side_effect=[http_error(500) for _ in range(3)]):
+            tracing.begin("t")
+            with self.assertRaises(RuntimeError):
+                ai.call_model("s", "u")
+            summary, _ = tracing.end()
+        self.assertEqual(summary["tokens_in"], 0)
+
+
+class TestOptionalParams(unittest.TestCase):
+    def body(self, provider, **env):
+        reply = OPENAI_REPLY if provider == "openai" else CLAUDE_REPLY
+        with configured(provider), mock.patch.multiple(ai, **env), \
+                mock.patch("ai.post_json", return_value=reply) as post:
+            ai.call_model("s", "u")
+        return post.call_args[0][2]
+
+    def test_openai_defaults_send_nothing_extra(self):
+        b = self.body("openai", MODEL_MAX_TOKENS=None, MODEL_TEMPERATURE=None)
+        self.assertNotIn("max_completion_tokens", b)
+        self.assertNotIn("temperature", b)
+
+    def test_openai_cap_and_temperature(self):
+        b = self.body("openai", MODEL_MAX_TOKENS=4000, MODEL_TEMPERATURE=0.0)
+        self.assertEqual((b["max_completion_tokens"], b["temperature"]), (4000, 0.0))
+
+    def test_claude_needs_max_tokens(self):
+        self.assertEqual(self.body("anthropic", MODEL_MAX_TOKENS=None, MODEL_TEMPERATURE=None)["max_tokens"], 1024)
+        self.assertEqual(self.body("anthropic", MODEL_MAX_TOKENS=2048, MODEL_TEMPERATURE=None)["max_tokens"], 2048)
+
+    def test_env_num(self):
+        with mock.patch.dict(os.environ, {"X_NUM": " 12 ", "X_BAD": "abc", "X_EMPTY": ""}):
+            self.assertEqual(ai._env_num("X_NUM", int), 12)
+            self.assertIsNone(ai._env_num("X_EMPTY", int))
+            with self.assertRaises(RuntimeError):
+                ai._env_num("X_BAD", float)
 
 
 if __name__ == "__main__":

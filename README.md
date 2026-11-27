@@ -83,7 +83,7 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 
 | Thành phần | Thật / Giả | Ghi chú |
 |---|---|---|
-| Lời gọi AI ở quyết định trung tâm | **Thật**: đã nối OpenAI qua `codebase/ai.py`, token lấy từ `usage` của API | Phân loại cột và chế độ `llm`: `gpt-6-luna` (`MODEL_NAME`). Kiểm chứng đường đi dữ liệu: `gpt-6.1-terra` (`MODEL_NAME_VERIFY`). `ai.py` cũng hỗ trợ `MODEL_PROVIDER=anthropic`. Lượt thử 27/11: 3/3 câu khớp `expected` |
+| Lời gọi AI ở quyết định trung tâm | **Thật**: đã nối OpenAI qua `codebase/ai.py`, token lấy từ `usage` của API | Phân loại cột và chế độ `llm`: `gpt-6-luna` (`MODEL_NAME`). Kiểm chứng đường đi dữ liệu: `gpt-6.1-terra` (`MODEL_NAME_VERIFY`). `ai.py` cũng hỗ trợ `MODEL_PROVIDER=anthropic`. Đã thử nối 27/11: 3 câu đầu của benchmark chạy được, token > 0. Chưa phải kết quả đánh giá, xem `eval/report.md` |
 | Quét mã nguồn, rule engine, bảng luật (`data/legal/`) | **Thật** | Chạy bằng code Python, không gọi model; mọi mã điều khoản lấy từ `citations.json` |
 | Repo demo, corpus repo công khai | **Chưa có** | Làm ở CP3 (xem `data/DATA_CARD.md`) |
 
