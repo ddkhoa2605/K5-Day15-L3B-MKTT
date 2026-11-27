@@ -147,6 +147,21 @@ _NOT_FOREIGN = (".vn", "localhost", "127.0.0.1", "0.0.0.0")
 _SKIP_HTTP_HOSTS = ("supabase.co", "supabase.in")  # kho dữ liệu chính của app, không tính là sink ở lát cắt này
 
 CONTEXT = 5
+_STRING_LIT = re.compile(r"""("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)""")
+_TRAILING_COMMENT = re.compile(r"(^|\s)//.*$")
+
+
+_IMPORT_LINE = re.compile(r"""(\brequire\s*\(|^\s*import\b|\bfrom\s+['"])""")
+
+
+def _code_only(line):
+    """Bỏ chuỗi chữ và comment cuối dòng. Dùng cho mẫu nhận diện theo TÊN dịch vụ (analytics, email): tên dịch vụ
+    nằm trong chuỗi chữ (vd script sinh tài liệu liệt kê "Mailchimp.com") hay comment không phải lời gọi API.
+    Mẫu URL (_AI_URL, _HTTP_CALL) vẫn chạy trên dòng gốc vì URL luôn nằm trong chuỗi.
+    Dòng import/require giữ nguyên: chuỗi ở đó là tên gói thật (require("sendgrid"), from "mailgun.js")."""
+    if _IMPORT_LINE.search(line):
+        return line
+    return _TRAILING_COMMENT.sub("", _STRING_LIT.sub('""', line))
 
 
 def _snippet(lines, idx, ctx=CONTEXT):
@@ -181,11 +196,12 @@ def find_sinks(files: dict) -> list:
                 if not host.endswith(_NOT_FOREIGN) and not host.endswith(_SKIP_HTTP_HOSTS):
                     hits.append((i, "http_ngoai", host))
                 continue
-            m = _ANALYTICS.search(line)
+            code = _code_only(line)
+            m = _ANALYTICS.search(code)
             if m:
                 hits.append((i, "analytics", m.group(1).lower()))
                 continue
-            m = _EMAIL.search(line)
+            m = _EMAIL.search(code)
             if m:
                 hits.append((i, "email", m.group(1).lower()))
         if ai_import and not any(k == "ai_nuoc_ngoai" for _, k, _ in hits):
@@ -215,7 +231,9 @@ _USER_COL = re.compile(r"(^|_)(user|nguoi_dung|khach_hang|khach|customer|profile
                        r"|^uid$|^owner_id$")
 _TIME_COL = re.compile(r"(_at$|^thoi_gian|^ngay_|_time$|timestamp|_date$)")
 _VERSION_COL = re.compile(r"(version|phien_ban|policy_hash|terms_rev)")
-_EMBEDDED_CONSENT = re.compile(r"(terms|consent|dong_y|dongy|dieu_khoan|privacy|chinh_sach|policy)")
+_EMBEDDED_CONSENT = re.compile(r"(terms|consent|dong_y|dongy|dieu_khoan|privacy|chinh_sach|policy|agree|accept|opt_?in)")
+# Tên bảng nhật ký đồng ý: consents, dong_y_du_lieu, user_agreements, terms_acceptances, marketing_opt_ins…
+_CONSENT_TABLE = re.compile(r"(consent|dong_?y|agreement|acceptance|opt_?in)")
 _USER_TABLE = re.compile(r"^(users?|profiles?|accounts?|customers?|members?|khach(_hang)?|nguoi_dung|hoc_vien|tai_khoan)$")
 
 
@@ -231,7 +249,7 @@ def find_consent(files: dict, columns: list) -> dict:
             logged.add(normalize(m.group(1).split(".")[-1]))
     best, full = None, False
     for table, cols in by_table.items():
-        if "consent" in table or "dong_y" in table or "dongy" in table or table in logged:
+        if _CONSENT_TABLE.search(table) or table in logged:
             ok = (any(_USER_COL.search(c) for c in cols) and any(_TIME_COL.search(c) for c in cols)
                   and any(_VERSION_COL.search(c) for c in cols))
         else:

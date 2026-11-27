@@ -116,5 +116,43 @@ class TestRepo(unittest.TestCase):
         self.assertEqual(len(consent["tich_san"]), 1)
 
 
+class TestCorpusFeedback(unittest.TestCase):
+    """Phản hồi của Thắng sau khi quét 35 repo thật (27/11): sink giả do chữ, consent bị bỏ sót.
+    Tên cột/chuỗi ở đây là mẫu dựng lại theo mô tả, không chép từ corpus."""
+
+    def sinks(self, text):
+        return [(x["line"], x["kind"]) for x in scanner.find_sinks({"x.js": text})]
+
+    def test_vendor_name_in_string_is_not_a_sink(self):
+        self.assertEqual(self.sinks('const vendors = ["Mailchimp.com", "Gửi qua SendGrid"]\nconsole.log("dùng hotjar")'), [])
+
+    def test_vendor_name_in_trailing_comment_is_not_a_sink(self):
+        self.assertEqual(self.sinks("const x = 1 // trước đây dùng mailchimp.com"), [])
+
+    def test_real_calls_still_found(self):
+        got = self.sinks("await mailchimp.lists.addListMember(id, {email})\nposthog.capture('signup')\n"
+                         "const sg = require('sendgrid')(KEY)\nimport mailgun from \"mailgun.js\"\n"
+                         "fetch(\"https://api.openai.com/v1/chat/completions\")")
+        self.assertEqual(got, [(1, "email"), (2, "analytics"), (3, "email"), (4, "email"), (5, "ai_nuoc_ngoai")])
+
+    def consent(self, schema):
+        return scanner.find_consent({}, scanner.parse_schema_line(schema))
+
+    def test_agreed_at_policy_version_on_users(self):
+        r = self.consent("users(id, email, consent_marketing, agreed_at, policy_version)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("users", True))
+
+    def test_agreement_table_name(self):
+        r = self.consent("user_agreements(id, user_id, accepted_at, terms_version)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("user_agreements", True))
+
+    def test_opt_in_without_version_found_but_not_full(self):
+        r = self.consent("profiles(id, marketing_opt_in, opt_in_at)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("profiles", False))
+
+    def test_plain_table_not_consent(self):
+        self.assertIsNone(self.consent("orders(id, user_id, total, created_at)")["bang_consent"])
+
+
 if __name__ == "__main__":
     unittest.main()
