@@ -1,34 +1,10 @@
-> Đây là khung repo nộp bài. Điền mọi chỗ `____`, giữ nguyên tên các mục. **Mục 0 xoá đi sau khi tạo repo xong.**
+> Đây là khung repo nộp bài. Điền mọi chỗ `____`, giữ nguyên tên các mục.
 > Giờ, mốc, luật, rubric: xem `README.md`, `02-guide.md`, `03-rubric.md` trong repo đề (bộ đề BTC phát).
 
 # MKTT — Kiểm tra nghĩa vụ bảo vệ dữ liệu cá nhân từ mã nguồn trước khi phát hành ứng dụng.
 **Thành viên, lớp, track:** xem [TEAMS.md](TEAMS.md). **Điền TEAMS.md đúng format**: khi chấm và đánh giá, BTC quét file này để ghép điểm cho từng người.
 
 *Lát cắt = phần nhỏ nhất làm xong được trong hackathon: một người dùng · một việc · một quyết định AI · một kết quả.*
-
----
-
-## 0. Tạo repo nhóm từ khung này *(guide bước 1.0 — xoá mục này khi xong)*
-
-**Hai luật:** repo **mới, công khai (Public)** · tên `K5-Day15-<lớp>-<tên nhóm>`, vd `K5-Day15-L3A-StudyPulse` (tên nhóm viết liền, không dấu). Chép **nội dung bên trong** `starter-repo/` — `README.md`, `run.py` phải nằm ngay ở trang đầu repo.
-
-**(a) Không cần terminal — làm trên web GitHub**
-1. **New repository** → tên theo mẫu → **Public** → không tick thêm gì → tạo.
-2. Trên máy mở thư mục `starter-repo/`, **bật hiện file ẩn** (Mac Finder: `Cmd + Shift + .` · Windows: View → Show → Hidden items) để thấy `.gitignore`, `.env.example`.
-3. Trên repo vừa tạo: **Add file → Upload files** → **kéo thả** tất cả file và thư mục bên trong `starter-repo/` → **Commit changes**. Kéo thả mới giữ được thư mục con; lỗi vì nhiều file quá thì tải từng thư mục.
-4. Kiểm: có `.gitignore` chưa (hay thiếu nhất). Thiếu thì **Add file → Create new file**, tên `.gitignore`, dán nội dung từ máy.
-5. Từ giờ sửa file ngay trên web (biểu tượng bút chì → Commit). Phần code vẫn cần **một** người chạy được trên máy: trước mỗi lượt chạy tải **Code → Download ZIP** về thư mục mới (mang `.env` sang), chạy xong chỉ upload file kết quả và file vừa sửa; trong lúc đang chạy không ai sửa `eval/benchmark.csv` trên web.
-
-**(b) Dùng git**
-```bash
-git clone https://github.com/<tai-khoan>/K5-Day15-L3A-TenNhom.git
-cd K5-Day15-L3A-TenNhom
-cp -R ../duong-dan-toi/starter-repo/. .      # Windows PowerShell: Copy-Item -Recurse -Force ..\duong-dan-toi\starter-repo\* .
-git status                                   # không được có .env, data-btc/
-git add -A && git commit -m "Khung repo từ starter-repo" && git push
-```
-
-**Xong khi:** mở link repo bằng **cửa sổ ẩn danh** thấy được file (link nộp CP1) · đã mời thành viên (Settings → Collaborators) · đã điền `TEAMS.md` và `python run.py check` không báo gì ở phần "Kiểm TEAMS.md".
 
 ---
 
@@ -107,14 +83,15 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 
 | Thành phần | Thật / Giả | Ghi chú |
 |---|---|---|
-| Lời gọi AI ở quyết định trung tâm | **Thật** (bắt buộc từ CP3) | Model: ____ |
-|  |  |  |
+| Lời gọi AI ở quyết định trung tâm | **Thật** (bắt buộc từ CP3); hiện **chưa nối**, `ai.py` đang ở chế độ giả | Model: Claude Haiku 5.5 (`claude-haiku-5-5`), dự kiến cho phân loại cột và chế độ `llm`; model kiểm chứng đường đi chưa chốt |
+| Quét mã nguồn, rule engine, bảng luật (`data/legal/`) | **Thật** | Chạy bằng code Python, không gọi model; mọi mã điều khoản lấy từ `citations.json` |
+| Repo demo, corpus repo công khai | **Chưa có** | Làm ở CP3 (xem `data/DATA_CARD.md`) |
 
 ## Dùng AI vào việc gì
 
 2–3 dòng (bắt buộc): nhóm dùng công cụ AI nào để làm gì, người kiểm lại phần nào. Chi tiết: [docs/ai-usage.md](docs/ai-usage.md). Coding agent đọc [AGENTS.md](AGENTS.md).
 
-____
+Nhóm dùng Claude Code để viết code, test và tài liệu theo kế hoạch đã soạn, và dùng Codex để review chéo bảng luật và pipeline. Người trong nhóm đối chiếu từng mã điều khoản với văn bản gốc (Luật 91, Nghị định 356, Nghị định 330) và không tin trích dẫn do AI sinh ra; nhãn 60 case do người dán trước khi viết rule engine. Trong sản phẩm, AI chỉ phân loại tên cột và kiểm chứng đường đi dữ liệu, mọi kết luận pháp lý do rule engine quyết.
 
 ## File mẫu — điền ở bước nào
 
@@ -146,5 +123,5 @@ ____
 | 4 | Bản chạy thử làm trọn lát cắt | `codebase/` · lệnh ở mục "Lệnh" |
 | 5 | Định nghĩa "tốt" + bộ câu thử | `data/DATA_CARD.md` · `eval/` |
 | 6 | Mô phỏng chi phí khi dùng thật | `cost/` |
-| 7 | Slide + demo + video dự phòng | `demo-slides.pdf` ở thư mục gốc · link video: ____ |
+| 7 | Slide + demo + video dự phòng | `demo-slides.pdf` ở thư mục gốc · link video: *(chưa có, quay trước CP4)* |
 | + | *Bonus:* người dùng thử | `validation/log.md` |
