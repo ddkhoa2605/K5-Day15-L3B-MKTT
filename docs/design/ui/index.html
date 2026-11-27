@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ship Hợp Pháp</title>
+<!--
+  Bản thiết kế 10 màn theo docs/design/Ship-Hợp-Pháp-Wireframe-MVP.html, theme docs/design/ship-hop-phap.md.
+  Chạy:  python -m http.server 8000 --directory docs/design/ui   rồi mở http://localhost:8000
+  (Không mở thẳng file: trình duyệt chặn nạp file .jsx qua file://.)
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone@7.26.4/babel.min.js" crossorigin></script>
+</head>
+<body>
+<div id="root">
+  <p id="boot" style="padding:40px;font-family:system-ui">Đang tải…</p>
+</div>
+<script>
+  if (location.protocol === "file:") {
+    document.getElementById("boot").innerHTML =
+      "Trang này cần chạy qua máy chủ cục bộ.<br><br>Ở thư mục gốc repo, chạy:<br><code>python -m http.server 8000 --directory docs/design/ui</code><br>rồi mở <code>http://localhost:8000</code>";
+  }
+</script>
+<script src="data.js"></script>
+<script type="text/babel" data-presets="react" src="components.jsx"></script>
+<script type="text/babel" data-presets="react" src="screens-scan.jsx"></script>
+<script type="text/babel" data-presets="react" src="screens-evidence.jsx"></script>
+<script type="text/babel" data-presets="react" src="screens-review.jsx"></script>
+<script type="text/babel" data-presets="react" src="app.jsx"></script>
+</body>
+</html>
