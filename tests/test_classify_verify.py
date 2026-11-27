@@ -29,7 +29,7 @@ class TestClassifyPrompt(unittest.TestCase):
             return reply('[{"table": "t", "column": "created_at", "nhom": "khong_ca_nhan", "do_tin_cay": 0.9}]')
         with mock.patch.object(classify, "call_model", fake):
             classify.classify_llm([{"table": "t", "column": "created_at"}], "app")
-        self.assertEqual(seen, [classify.SYSTEM])
+        self.assertEqual(seen, [classify.SYSTEM] * classify.PASSES)
 
 
 class TestClassifyRule(unittest.TestCase):
@@ -56,7 +56,7 @@ class TestClassifyRule(unittest.TestCase):
 class TestClassifyLLM(unittest.TestCase):
     def test_llm_ok(self):
         with mock.patch("classify.call_model", return_value=reply(
-                '```json\n[{"table":"u","column":"tt_sk","nhom":"suc_khoe","do_tin_cay":0.9}]\n```')):
+                '```json\n[{"table":"u","column":"tt_sk","nhom":"suc_khoe","do_tin_cay":0.9,"can_cu":"tt_sk"}]\n```')):
             r = classify.classify_llm([{"table": "u", "column": "tt_sk"}], "app khám bệnh")
         self.assertEqual((r[0]["nhom"], r[0]["do_tin_cay"]), ("suc_khoe", 0.9))
 
@@ -69,7 +69,7 @@ class TestClassifyLLM(unittest.TestCase):
     def test_llm_bad_json_retries_once_then_khong_ro(self):
         with mock.patch("classify.call_model", return_value=reply("xin lỗi, tôi không chắc")) as m:
             out = classify.classify_llm([{"table": "u", "column": "tt_sk"}], "")
-        self.assertEqual(m.call_count, 2)
+        self.assertEqual(m.call_count, 2 * classify.PASSES)   # mỗi lượt: gọi lại 1 lần khi JSON hỏng
         self.assertEqual((out[0]["nhom"], out[0]["do_tin_cay"]), ("khong_ro", 0.0))
 
     def test_llm_missing_column_is_khong_ro(self):
@@ -77,11 +77,11 @@ class TestClassifyLLM(unittest.TestCase):
             out = classify.classify_llm([{"table": "u", "column": "a"}, {"table": "u", "column": "b"}], "")
         self.assertEqual([o["nhom"] for o in out], ["pii_co_ban", "khong_ro"])
 
-    def test_prompt_has_no_row_data_and_one_call(self):
+    def test_prompt_has_no_row_data_and_one_call_per_pass(self):
         cols = [{"table": "u", "column": c} for c in ("a", "b", "c")]
         with mock.patch("classify.call_model", return_value=reply("[]")) as m:
             classify.classify_llm(cols, "mô tả")
-        self.assertEqual(m.call_count, 1)
+        self.assertEqual(m.call_count, classify.PASSES)
         system, user = m.call_args[0][:2]
         self.assertIn("Chỉ trả JSON", system)
         self.assertNotRegex(user, r"D\d+\.\d")
@@ -181,7 +181,7 @@ class TestFreeTextRule(unittest.TestCase):
 
     def test_llm_unsure_free_text_becomes_basic_pii_but_sensitive_kept(self):
         rep = ('[{"table": "gop_y", "column": "loi_nhan", "nhom": "khong_ro", "do_tin_cay": 0.0},'
-               ' {"table": "kham", "column": "ghi_chu_trieu_chung", "nhom": "suc_khoe", "do_tin_cay": 0.9}]')
+               ' {"table": "kham", "column": "ghi_chu_trieu_chung", "nhom": "suc_khoe", "do_tin_cay": 0.9, "can_cu": "trieu_chung"}]')
         with mock.patch.object(classify, "call_model", lambda *a, **k: reply(rep)):
             r = classify.classify_llm([{"table": "gop_y", "column": "loi_nhan"},
                                        {"table": "kham", "column": "ghi_chu_trieu_chung"}], "app")
@@ -245,4 +245,47 @@ class TestEmailRecipientRule(unittest.TestCase):
         import scanner
         s = scanner.find_sinks({"t.ts": 'await fetch("https://api.mailjet.com/v3.1/send", { method: "POST" })'})
         self.assertEqual(s[0]["kind"], "email")
+
+
+class TestClassifyGuardrails(unittest.TestCase):
+    """Vòng sửa trước run-3 (comment của Khoa trên PR #15), mục 1, 4, 5, 6. Ví dụ tự dựng."""
+
+    def _run(self, replies, cols, mo_ta="app bán cây cảnh"):
+        it = iter(replies)
+        with mock.patch.object(classify, "call_model", lambda *a, **k: reply(next(it))):
+            return classify.classify_llm(cols, mo_ta)
+
+    def test_sensitive_without_real_evidence_is_demoted(self):
+        rep = '[{"table":"don","column":"tong_gia","nhom":"tai_chinh","do_tin_cay":0.9,"can_cu":"thông tin thẻ của khách"}]'
+        r = self._run([rep] * 2, [{"table": "don", "column": "tong_gia"}])
+        self.assertEqual((r[0]["nhom"], r[0]["do_tin_cay"]), ("khong_ro", 0.0))
+
+    def test_sensitive_with_evidence_from_description_is_kept(self):
+        rep = '[{"table":"ho_so","column":"ma_x","nhom":"suc_khoe","do_tin_cay":0.8,"can_cu":"Kết quả xét nghiệm"}]'
+        r = self._run([rep] * 2, [{"table": "ho_so", "column": "ma_x"}], "Phòng khám lưu kết quả xét nghiệm của bệnh nhân")
+        self.assertEqual(r[0]["nhom"], "suc_khoe")
+
+    def test_keyword_hit_rescues_missing_evidence(self):   # mục 4: chỉ hạ khi CẢ căn cứ lẫn từ khoá cùng thiếu
+        col = {"table": "nguoi_dung", "column": "so_tai_khoan_ngan_hang"}
+        hit = [h[2] for h in classify._keyword_hits(col["column"])]
+        rep = '[{"table":"nguoi_dung","column":"so_tai_khoan_ngan_hang","nhom":"%s","do_tin_cay":0.9,"can_cu":""}]' % hit[0]
+        r = self._run([rep] * 2, [col])
+        self.assertEqual(r[0]["nhom"], hit[0])
+
+    def test_unknown_group_retried_once(self):   # mục 5
+        bad = '[{"table":"t","column":"c","nhom":"tai-chinh","do_tin_cay":0.9}]'
+        ok = '[{"table":"t","column":"c","nhom":"pii_co_ban","do_tin_cay":0.9,"can_cu":"c"}]'
+        r = self._run([bad, ok] * classify.PASSES, [{"table": "t", "column": "c"}])
+        self.assertEqual(r[0]["nhom"], "pii_co_ban")
+
+    def test_vote(self):   # mục 6
+        self.assertEqual(classify._vote([("suc_khoe", 0.9, "x"), ("suc_khoe", 0.7, "")])[:2], ("suc_khoe", 0.7))
+        self.assertEqual(classify._vote([("suc_khoe", 0.9, "x"), ("pii_co_ban", 0.9, "")])[0], "khong_ro")
+        self.assertEqual(classify._vote([("pii_co_ban", 0.9, ""), ("khong_ca_nhan", 0.8, "")])[0], "pii_co_ban")
+        self.assertEqual(classify._vote([("khong_ro", 0.0, ""), ("pii_co_ban", 0.8, "")])[0], "khong_ro")
+
+    def test_prompt_has_guardrails(self):
+        for must in ("can_cu", "CHÉP NGUYÊN VĂN", "Không suy diễn nhóm nhạy cảm", "KHÔNG phải giá bán",
+                     "KHÔNG phải cột nối hai bản ghi", "KHÔNG phải thứ hạng"):
+            self.assertIn(must, classify.SYSTEM)
 
