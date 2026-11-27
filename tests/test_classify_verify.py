@@ -248,6 +248,41 @@ class TestEmailRecipientRule(unittest.TestCase):
         self.assertEqual(s[0]["kind"], "email")
 
 
+class TestClassifyRetryAndKeys(unittest.TestCase):
+    """Mục 5 (gọi lại khi mã nhóm lạ) và tra kết quả bằng khoá đã chuẩn hoá. Ví dụ tự dựng."""
+
+    def _run(self, replies, cols):
+        it = iter(replies)
+        calls = []
+
+        def fake(*a, **k):
+            calls.append(1)
+            return reply(next(it))
+        with mock.patch.object(classify, "call_model", fake):
+            return classify.classify_llm(cols, "app bán cây cảnh"), len(calls)
+
+    def test_unknown_group_retried_once(self):
+        bad = '[{"table":"t","column":"c","nhom":"tai-chinh","do_tin_cay":0.9}]'
+        ok = '[{"table":"t","column":"c","nhom":"pii_co_ban","do_tin_cay":0.9}]'
+        r, n = self._run([bad, ok], [{"table": "t", "column": "c"}])
+        self.assertEqual((r[0]["nhom"], n), ("pii_co_ban", 2))
+
+    def test_still_bad_after_retry_is_khong_ro(self):
+        bad = '[{"table":"t","column":"c","nhom":"tai-chinh","do_tin_cay":0.9}]'
+        r, n = self._run([bad, bad], [{"table": "t", "column": "c"}])
+        self.assertEqual((r[0]["nhom"], r[0]["do_tin_cay"], n), ("khong_ro", 0.0, 2))
+
+    def test_valid_reply_not_retried(self):
+        ok = '[{"table":"t","column":"c","nhom":"khong_ro","do_tin_cay":0.1}]'
+        _, n = self._run([ok], [{"table": "t", "column": "c"}])
+        self.assertEqual(n, 1)
+
+    def test_camel_case_column_found(self):
+        ok = '[{"table":"KhachHang","column":"soDienThoai","nhom":"pii_co_ban","do_tin_cay":0.9}]'
+        r, _ = self._run([ok], [{"table": "KhachHang", "column": "soDienThoai"}])
+        self.assertEqual((r[0]["column"], r[0]["nhom"]), ("soDienThoai", "pii_co_ban"))
+
+
 class TestVerifyQuotedEvidence(unittest.TestCase):
     """Mục 7, 8 của Khoa: "không thấy" ≠ "không có"; khi nói có gửi thì phải trích đoạn code có thật. Ví dụ tự dựng."""
     SINK = {"file": "b.ts", "line": 2, "kind": "ai_nuoc_ngoai", "endpoint": "responses.create",
