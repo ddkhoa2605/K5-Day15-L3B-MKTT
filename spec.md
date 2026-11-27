@@ -159,7 +159,9 @@ flowchart LR
   | `tu_choi_dung` | Câu nhãn cần luật sư / người xác nhận, câu chatbox, câu tấn công: từ chối đúng, không kết luận chắc chắn | tối thiểu 90% |
 
 - **Chuẩn "đạt"** (chốt **trước 19:30 Thứ Sáu 27/11**, giữ nguyên đến 23:59 Thứ Bảy 28/11): "Đạt khi ≥ 80% câu trong `eval/benchmark.csv` qua (cột `pass` = 1), và `trich_dan_dung` đạt 100%."
-- Giới hạn của đo lường: nhãn do nhóm tự dán, không qua luật sư duyệt. Nhãn được commit trước khi viết rule engine; có 10 mẫu giữ lại chỉ chạy một lần ở cuối.
+- Giới hạn của đo lường: nhãn do nhóm tự dán, không qua luật sư duyệt.
+- Giả định đã chốt cho C1 (XN6): chỉ tính lời gọi tới dịch vụ bên thứ ba có trong mã nguồn (API AI, email, analytics đặt ngoài lãnh thổ Việt Nam). Không tính nơi đặt hạ tầng nền như cơ sở dữ liệu hay xác thực của Supabase, vì quét từ mã nguồn không biết vùng đặt máy chủ. Nếu tính cả hạ tầng nền thì gần như mọi app đều kích hoạt C1. Nhóm chưa hỏi luật sư về giả định này.
+- Ngoài phạm vi C1–C3: dữ liệu của trẻ em (Luật 91 Điều 24), một số repo công khai trong corpus có chạm vào; hệ thống không kiểm nghĩa vụ này và không kết luận về nó. Nhãn được commit trước khi viết rule engine; có 10 mẫu giữ lại chỉ chạy một lần ở cuối.
 - Kết quả: lượt 1 __/__ (__%) · lượt 2 __/__ (__%) — run ID: __ / __ → chi tiết `eval/report.md`, hồ sơ `eval/README.md` *(chưa chạy)*
 
 ## §8. Chi phí khi dùng thật *(guide 4.2)*
