@@ -10,6 +10,8 @@ Chạy:
     python eval/ablation.py --tap data_that          # 7 case từ repo công khai (KHÔNG còn độc lập, chỉ tham khảo)
     python eval/ablation.py --modes rule --limit 5   # chạy thử nhanh → file *-thu, không phải số báo cáo
     python eval/ablation.py --tap holdout            # 10 case holdout — ĐÚNG MỘT LẦN, cần model thật
+    python eval/ablation.py --tao-manifest --khoa-duyet="<giờ> (Khoa)"   # in eval/blind.manifest (chỉ mã băm)
+    python eval/ablation.py --tap blind              # bộ mù (issue #20) — ĐÚNG MỘT LẦN, file phải khớp manifest
 
 Ghi ra:
     eval/ablation-<tap>-<mode>.csv   mỗi case một dòng: id, tag, pass, 4 metric, token, ghi_chu
@@ -22,12 +24,15 @@ Quy tắc:
   thì DỪNG. Người chạy commit holdout.lock cùng kết quả ngay trong lượt đó.
   Holdout phải chạy đủ 3 chế độ, không --limit, và không được chạy bằng model giả. Trước khi ghi khoá,
   script gọi thử model mặc định và model kiểm chứng (MODEL_NAME_VERIFY); một lời gọi lỗi thì dừng, chưa ghi khoá.
+- Bộ mù (issue #20) theo đúng luật của holdout, khoá riêng eval/blind.lock. Thêm: data/blind/blind_cases.jsonl phải
+  khớp eval/blind.manifest (sha256 cả file và từng dòng, tính sau khi đổi CRLF → LF), không khớp thì DỪNG.
 - Báo cáo .md đặt tên theo chế độ khi chạy tập con (vd ablation-dev-rule.md), không ghi đè bảng đủ 3 chế độ.
 - Chế độ llm/hybrid chạy bằng model giả (MODEL_PROVIDER=fake) bị đánh dấu "không dùng được" trong báo cáo.
 - Chấm bằng chính eval/grade.py (cùng định nghĩa metric với run.py eval → grade → score).
 """
 import csv
 import datetime
+import hashlib
 import json
 import math
 import os
@@ -48,6 +53,11 @@ import grade  # noqa: E402
 CASES = os.path.join(ROOT, "data", "cases", "cases.jsonl")
 CORPUS = os.path.join(ROOT, "data", "cases", "corpus_cases.jsonl")
 HOLDOUT_LOCK = os.path.join(HERE, "holdout.lock")
+BLIND = os.path.join(ROOT, "data", "blind", "blind_cases.jsonl")
+BLIND_MANIFEST = os.path.join(HERE, "blind.manifest")
+BLIND_LOCK = os.path.join(HERE, "blind.lock")
+LOCKS = {"holdout": HOLDOUT_LOCK, "blind": BLIND_LOCK}  # tập chỉ chạy một lần → file khoá của tập đó
+ONE_SHOT_NAME = {"holdout": "holdout", "blind": "bộ mù"}
 MODES = ("rule", "llm", "hybrid")
 LABEL = {"rule": "A · rule", "llm": "B · llm", "hybrid": "C · hybrid"}
 TAGS = ("ro", "vt", "am", "chatbox", "luy_ke", "tan_cong")
@@ -67,7 +77,75 @@ def load_cases(tap):
         return [c for c in _read_jsonl(CASES) if c["nhan"]["split"] == tap]
     if tap == "data_that":
         return _read_jsonl(CORPUS)
-    raise ValueError("tap phải là dev, holdout hoặc data_that (đang là %r)" % tap)
+    if tap == "blind":
+        return load_blind(BLIND, BLIND_MANIFEST)
+    raise ValueError("tap phải là dev, holdout, data_that hoặc blind (đang là %r)" % tap)
+
+
+# ---------------------------------------------------------------- bộ mù: manifest sha256 (issue #20 mục 3.2, 3.3)
+def _lf_bytes(path):
+    """Byte của file sau khi đổi CRLF → LF: git trên Windows có thể đổi xuống dòng lúc checkout mà nội dung không đổi."""
+    with open(path, "rb") as f:
+        return f.read().replace(b"\r\n", b"\n")
+
+
+def _sha(b):
+    return hashlib.sha256(b).hexdigest()
+
+
+def blind_manifest_text(path, khoa_duyet=""):
+    """Nội dung eval/blind.manifest: CHỈ mã băm, số câu, phân bổ đếm được — không có input hay nhãn."""
+    b = _lf_bytes(path)
+    lines = [l for l in b.split(b"\n") if l.strip()]
+    cases = [json.loads(l.decode("utf-8")) for l in lines]
+    cnt = {}
+    for c in cases:
+        n = c["nhan"]
+        for k in (n.get("nhom_kiem", "?"), "tag_" + n.get("tag", "?"), (n.get("nguon") or "tu_viet").split(":")[0]):
+            cnt[k] = cnt.get(k, 0) + 1
+    out = ["file: %s" % os.path.basename(path), "sha256: %s" % _sha(b), "so_cau: %d" % len(cases),
+           "phan_bo: " + " · ".join("%s=%d" % (k, cnt[k]) for k in sorted(cnt)),
+           "khoa_duyet: %s" % khoa_duyet, "cac_cau:"]
+    out += ["%s %s" % (c["id"], _sha(l)) for c, l in zip(cases, lines)]
+    return "\n".join(out) + "\n"
+
+
+def _read_manifest(path):
+    if not os.path.exists(path):
+        sys.exit("DỪNG: chưa có %s — khoá manifest trước khi chạy bộ mù." % path)
+    file_sha, per, in_list = None, {}, False
+    with open(path, encoding="utf-8") as f:
+        rows = [l.strip() for l in f if l.strip()]
+    for l in rows:
+        if l.startswith("sha256:"):
+            file_sha = l.split(":", 1)[1].strip()
+        elif l.startswith("cac_cau:"):
+            in_list = True
+        elif in_list and " " in l:
+            cid, h = l.split(None, 1)
+            per[cid] = h.strip()
+    if not file_sha or not per:
+        sys.exit("DỪNG: %s thiếu dòng sha256 hoặc danh sách cac_cau." % path)
+    return file_sha, per
+
+
+def load_blind(data_path, manifest_path):
+    """Đọc bộ mù CHỈ KHI khớp manifest: sha256 cả file, sha256 từng dòng, đủ id, mọi case split = blind."""
+    if not os.path.exists(data_path):
+        sys.exit("DỪNG: không thấy %s." % data_path)
+    file_sha, per = _read_manifest(manifest_path)
+    b = _lf_bytes(data_path)
+    if _sha(b) != file_sha:
+        sys.exit("DỪNG: sha256 của %s khác manifest — file đã bị sửa sau khi khoá. Không chạy." % data_path)
+    lines = [l for l in b.split(b"\n") if l.strip()]
+    cases = [json.loads(l.decode("utf-8")) for l in lines]
+    got = {c["id"]: _sha(l) for c, l in zip(cases, lines)}
+    if got != per:
+        bad = sorted(k for k in set(got) | set(per) if got.get(k) != per.get(k))
+        sys.exit("DỪNG: mã băm từng câu khác manifest (%s). Không chạy." % ", ".join(bad))
+    if any((c.get("nhan") or {}).get("split") != "blind" for c in cases):
+        sys.exit("DỪNG: có case không phải split = blind trong %s." % data_path)
+    return cases
 
 
 def case_input(c):
@@ -211,6 +289,9 @@ def render_md(tap, sums, meta):
     if tap == "dev":
         out.append("- Số trên `dev` là số **sau khi chỉnh** code theo dev (người viết code đã chạy và sửa theo các case này). "
                    "Số chưa bị chỉnh chỉ có ở `holdout`.")
+    if tap == "blind":
+        out.append("- Bộ mù (issue #20): nhãn khoá bằng `eval/blind.manifest` trước khi chạy, chạy một lần sau `code-freeze`. "
+                   "Chưa ai sửa code theo tập này; n nhỏ nên chỉ đọc k/n kèm khoảng tin cậy.")
     if tap == "data_that":
         out.append("- Tập `data_that` **không còn là tập độc lập**: case đã được nhiều người xem và scanner đã được chỉnh sau khi "
                    "xem corpus (PR #11). Số chỉ để tham khảo, không dùng làm bằng chứng tổng quát hoá.")
@@ -239,14 +320,15 @@ def report_name(tap, modes, limit):
 
 
 def check_can_run(tap, modes, provider, limit):
-    if tap != "holdout":
+    if tap not in LOCKS:
         return
+    ten = ONE_SHOT_NAME[tap]
     if limit is not None:
-        sys.exit("DỪNG: holdout không chạy với --limit (chỉ có một lần, phải chạy đủ).")
+        sys.exit("DỪNG: %s không chạy với --limit (chỉ có một lần, phải chạy đủ)." % ten)
     if tuple(m for m in MODES if m in modes) != MODES:
-        sys.exit("DỪNG: holdout phải chạy đủ 3 chế độ %s trong cùng một lần." % ", ".join(MODES))
+        sys.exit("DỪNG: %s phải chạy đủ 3 chế độ %s trong cùng một lần." % (ten, ", ".join(MODES)))
     if (provider or "fake") in ("fake", "mock"):
-        sys.exit("DỪNG: MODEL_PROVIDER=%s là model giả. Holdout chỉ chạy một lần — nối model thật trước." % provider)
+        sys.exit("DỪNG: MODEL_PROVIDER=%s là model giả. %s chỉ chạy một lần — nối model thật trước." % (provider, ten))
 
 
 def preflight_model(call_model, api_key, verify_model=None):
@@ -307,17 +389,17 @@ def holdout_lock_history(lock=HOLDOUT_LOCK, run=None):
     return [l for l in (out or "").splitlines() if l.strip()]
 
 
-def claim_holdout(lock, meta, history=None):
-    """Ghi khoá TRƯỚC khi chạy holdout: chạy hỏng giữa chừng vẫn tính là đã dùng lần duy nhất.
+def claim_holdout(lock, meta, history=None, ten="holdout"):
+    """Ghi khoá TRƯỚC khi chạy tập một-lần (holdout, bộ mù): chạy hỏng giữa chừng vẫn tính là đã dùng lần duy nhất.
     Từ chối nếu khoá đã có trên máy HOẶC đã từng được commit (history: danh sách commit chứa file khoá)."""
     history = holdout_lock_history(lock) if history is None else history
     if history:
-        sys.exit("DỪNG: holdout đã chạy rồi — eval/holdout.lock có trong lịch sử git (%s). Không chạy lại."
-                 % "; ".join(history[:3]))
+        sys.exit("DỪNG: %s đã chạy rồi — %s có trong lịch sử git (%s). Không chạy lại."
+                 % (ten, os.path.basename(lock), "; ".join(history[:3])))
     if os.path.exists(lock):
         with open(lock, encoding="utf-8") as f:
             prev = f.read().strip()
-        sys.exit("DỪNG: holdout đã chạy rồi (%s): %s. Không chạy lại, không chỉnh theo kết quả holdout." % (lock, prev))
+        sys.exit("DỪNG: %s đã chạy rồi (%s): %s. Không chạy lại, không chỉnh theo kết quả %s." % (ten, lock, prev, ten))
     with open(lock, "w", encoding="utf-8") as f:
         json.dump(meta, f, ensure_ascii=False)
 
@@ -340,6 +422,9 @@ def main(argv):
             return argv[i + 1] if i + 1 < len(argv) else default
         return default
 
+    if "--tao-manifest" in argv:  # in nội dung manifest, KHÔNG ghi file và không chạy gì
+        sys.stdout.write(blind_manifest_text(BLIND, opt("khoa-duyet", "")))
+        return 0
     tap = opt("tap", "dev")
     modes = [m.strip() for m in opt("modes", ",".join(MODES)).split(",") if m.strip()]
     bad = [m for m in modes if m not in MODES]
@@ -355,11 +440,13 @@ def main(argv):
     suffix = "-thu" if limit else ""
     meta = {"ngay": datetime.datetime.now().strftime("%d/%m/%Y %H:%M"), "commit": _commit(), "provider": provider,
             "lenh": "python eval/ablation.py " + " ".join(argv), "tap": tap, "n": len(cases), "thu": bool(limit)}
-    if tap == "holdout":
+    if tap in LOCKS:  # holdout, bộ mù: đúng một lần. Bộ mù đã qua kiểm manifest ở load_cases (trước khi ghi khoá)
         # dừng ở đây nếu chưa gọi được model thật — gọi thử cả model kiểm chứng của hybrid
         verify = ai.verify_model() if hasattr(ai, "verify_model") else None  # có từ PR #8 (MODEL_NAME_VERIFY)
         meta["model_thu"] = preflight_model(ai.call_model, ai.API_KEY, verify_model=verify)
-        claim_holdout(HOLDOUT_LOCK, meta)
+        if tap == "blind":
+            meta["sha256"] = _read_manifest(BLIND_MANIFEST)[0]
+        claim_holdout(LOCKS[tap], meta, ten=ONE_SHOT_NAME[tap])
     print("Ablation tập %s · %d case · chế độ %s · MODEL_PROVIDER=%s" % (tap, len(cases), ", ".join(modes), provider))
 
     sums = {}
