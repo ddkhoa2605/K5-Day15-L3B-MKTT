@@ -36,6 +36,8 @@
 
 Quét 27/11/2026, **N = 35 repo**, quét được 35/35 (0 lỗi). Số "máy đếm" là output chế độ `rule`; số "kiểm tay" là sau khi người đọc bằng chứng (dòng code / tên cột) của từng repo bị gắn cờ. **Số máy đếm chỉ để thống kê, không dùng làm nhãn.**
 
+> **Phiên bản bộ quét đã dùng:** `codebase/scanner.py` ở commit `f230a48` (file đổi lần cuối ở `2609dcf`), chạy trên nhánh `thang/g2-corpus` tối 27/11 — tức **trước** thay đổi scanner của `bbe1055` (vào `main` qua #6) và **trước PR #11**. Chạy lại bằng bộ quét mới hơn sẽ ra số máy đếm khác (vd hết báo nhầm Mailchimp ở C1, Y nhận ra repo-02 vì email/SĐT được tính là khoá người dùng). Muốn tái lập đúng bảng dưới: `git checkout f230a48 -- codebase/` rồi chạy `scripts/scan_corpus.py`. Cột "kiểm tay" không phụ thuộc phiên bản bộ quét.
+
 | Đếm gì | Máy đếm | Kiểm tay | Ghi chú |
 |---|---|---|---|
 | Có lời gọi ra dịch vụ ngoài (AI, email, analytics, HTTP) | 17/35 (49%) | — | Chưa kiểm tay từng lời gọi |
@@ -49,7 +51,7 @@ Quét 27/11/2026, **N = 35 repo**, quét được 35/35 (0 lỗi). Số "máy đ
 - **Y là số mạnh nhất**: 32/35 repo không có chỗ nào trong schema để lưu sự đồng ý của người dùng, dù 32/35 repo có cột dữ liệu cá nhân cơ bản (SĐT, email, địa chỉ, họ tên, CCCD…; tìm theo tên cột trong mọi file `.sql`). Số này đã kiểm chéo bằng 2 cách (bộ quét và tìm tên cột rồi đọc tay) và ra gần như nhau (33/35 và 32/35).
 - **X và Z thấp sau khi kiểm tay**: corpus phần lớn là app quản lý nội bộ, bán hàng, đặt lịch, ít app gửi dữ liệu cá nhân sang AI. Nhưng **31% repo đã gọi AI nước ngoài** — chỉ là bộ quét chưa chứng minh được dữ liệu cá nhân đi theo lời gọi đó.
 - **C3 của cả 35 repo là `CAN_NGUOI_XAC_NHAN`**: repo công khai không cho biết loại hình doanh nghiệp hay số người dùng, nên không chốt được miễn trừ.
-- **Bộ quét báo nhầm nhiều ở phân loại tên cột** (6/9 cờ "nhạy cảm" sai) → khớp đúng pain mà metric `phan_loai_viet_tat` và `bao_dong_gia` muốn đo; **cần báo Minh**.
+- **Bộ quét báo nhầm nhiều ở phân loại tên cột** (6/9 cờ "nhạy cảm" sai) → khớp đúng pain mà metric `phan_loai_viet_tat` và `bao_dong_gia` muốn đo. Lỗi C1 (chuỗi chữ bị tính là lời gọi) và consent bị sót đã sửa ở PR #11; cờ phân loại tên cột giữ nguyên ở chế độ `rule` để làm đường so sánh cho ablation.
 
 ## 4. ≥5 ví dụ cụ thể (mã đã ẩn danh)
 
@@ -76,6 +78,7 @@ Quét 27/11/2026, **N = 35 repo**, quét được 35/35 (0 lỗi). Số "máy đ
 - Chỉ repo **công khai** → lệch về dự án học tập, portfolio, đồ án. App thương mại của freelancer thường để private.
 - **Phân tích tĩnh**: thấy lời gọi ra ngoài trong code, không biết app có thật sự chạy và gửi dữ liệu thật không. Không gọi endpoint, không chạy app.
 - Bộ dò sink và consent dùng quy tắc (regex) → có thể sót lời gọi qua wrapper tự viết, hoặc sót bảng consent đặt tên lạ.
+- **Số Y chỉ dựa trên schema SQL**: cả bộ quét lẫn cách đếm tay chỉ đọc file `.sql`. Sự đồng ý có thể được lưu ở chỗ khác — `auth.users.raw_user_meta_data` của Supabase (JSON, không có trong migration), cookie banner / localStorage phía trình duyệt, hoặc công cụ bên ngoài (CMP, form của bên thứ ba). Vì vậy 32/35 có thể **hơi cao** so với thực tế; con số đúng nghĩa là "32/35 repo không có chỗ lưu đồng ý **trong schema**".
 - Lọc "người Việt" bằng chữ riêng của tiếng Việt → bỏ sót repo viết hoàn toàn bằng tiếng Anh.
 - Mẫu không ngẫu nhiên: 5 repo chọn tay, 30 repo theo thứ tự kết quả tìm kiếm (ưu tiên repo khớp chuỗi tiếng Việt trong code, rồi repo cập nhật gần đây).
 - Chỉ kiểm tay các repo **bị gắn cờ** → biết bộ quét báo nhầm bao nhiêu, nhưng chưa biết nó **bỏ sót** bao nhiêu ở X và Z (trừ Y đã kiểm chéo). Kiểm ngẫu nhiên 5–10 repo không bị gắn cờ là việc tiếp theo.

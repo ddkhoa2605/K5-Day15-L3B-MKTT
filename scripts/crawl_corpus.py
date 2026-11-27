@@ -213,7 +213,10 @@ def candidate(item: dict) -> bool:
 
 def tree_precheck(full_name: str, token: str | None) -> bool:
     """Có token: hỏi cây thư mục qua API trước khi clone (rẻ, 5.000 lượt/giờ).
-    Bỏ repo không có dấu hiệu Next.js hoặc không có file .sql → khỏi clone vô ích.
+    Bỏ repo không có file .sql, hoặc không có cả next.config.* lẫn package.json → khỏi clone vô ích.
+    Lưu ý: chỉ cần có package.json bất kỳ là qua phần "Next.js" (không đọc nội dung), nên gần như
+    repo JS nào có .sql cũng được clone; việc kiểm "next" trong package.json nằm ở bộ lọc sau clone.
+    Giữ nguyên như vậy để lần chạy corpus 35 repo (27/11) tái lập được.
     Không có token, hoặc API lỗi: trả True để kiểm sau khi clone như cũ."""
     if not token:
         return True

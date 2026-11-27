@@ -12,7 +12,7 @@ Các trường `why` trong `metric_spec.yaml` (đã chốt ở CP2) trỏ về c
 |---|---|---|---|---|
 | P-a | **Không biết app đã kích hoạt nghĩa vụ nào**: freelancer đặt tên cột kiểu `tt_sk`, `vi_tri_gan_nhat`, gửi dữ liệu người dùng sang dịch vụ nước ngoài mà không nhận ra đó là chuyển dữ liệu xuyên biên giới | `phan_loai_viet_tat` | Corpus (mục 2.2): 32/35 repo lưu dữ liệu cá nhân cơ bản, 32/35 không có chỗ lưu sự đồng ý; 11/35 gọi AI nước ngoài. Bộ quét tự động gắn nhầm 6/9 cờ "nhạy cảm" → tên cột thật khó phân loại. Số nền B1, B4 | Phỏng vấn xác nhận "không biết" |
 | P-b | **Bị khách hoặc nhà đầu tư hỏi mà không trả lời được**: không chỉ ra được căn cứ điều khoản nào, dòng code nào | `trich_dan_dung` | Chưa có số | Phỏng vấn: số lần bị hỏi / tháng, lần gần nhất mất bao lâu |
-| P-c | **Tốn thời gian tra cứu cho cả những app không cần**: không biết app nào còn được miễn trừ (ND356 Điều 41) | `bao_dong_gia` | Corpus: sau kiểm tay chỉ 2/35 repo chạm dữ liệu nhạy cảm và 1/35 chắc chắn gửi dữ liệu cá nhân ra nước ngoài → phần lớn app **không** kích hoạt C1/C3-nhạy cảm, báo đỏ đồng loạt là sai | Phỏng vấn: phút tra cứu / app |
+| P-c | **Tốn thời gian tra cứu cho cả những app không cần**: không biết app nào còn được miễn trừ (ND356 Điều 41) | `bao_dong_gia` | Chưa có bằng chứng cho pain "tốn thời gian". Bối cảnh từ corpus (không phải bằng chứng pain): sau kiểm tay chỉ 2/35 repo chạm dữ liệu nhạy cảm và 1/35 chắc chắn gửi dữ liệu cá nhân ra nước ngoài → nhiều app **không** kích hoạt C1/C3-nhạy cảm, nên công cụ cần phân biệt được thay vì báo đỏ đồng loạt | Phỏng vấn: phút tra cứu / app (bằng chứng thật cho P-c) |
 | P-d | **Hậu quả khi không biết nghĩa vụ**: mức phạt tối đa theo ND330 và Luật 91; hồ sơ nộp sai phải làm lại | `tu_choi_dung` | B4 (mục 2.1); mức phạt tối đa theo `data/legal/penalties.json` của Khoa | Nguồn gốc của B4 |
 
 ## 1. Nguồn đã dùng
@@ -39,7 +39,7 @@ Các số này cho thấy app dựng nhanh bằng AI thường xử lý dữ li�
 
 ### 2.2 Đào data: corpus 35 repo
 
-35 repo công khai Next.js + Supabase do người Việt dựng (5 chọn tay + 30 tìm tự động), quét tĩnh 27/11/2026 bằng `scanner.case_from_repo` + `agent.answer` chế độ `rule` của Minh, rồi **kiểm tay** từng repo bị gắn cờ. Chi tiết cách đếm, bảng đầy đủ và 10 ví dụ: `evidence/data-mining.md`. Số máy đếm chỉ để thống kê, không dùng làm nhãn.
+35 repo công khai Next.js + Supabase do người Việt dựng (5 chọn tay + 30 tìm tự động), quét tĩnh 27/11/2026 bằng `scanner.case_from_repo` + `agent.answer` chế độ `rule` của Minh, (bộ quét ở commit `f230a48`, trước #6 và #11), rồi **kiểm tay** từng repo bị gắn cờ. Số "không có chỗ lưu đồng ý" chỉ tính trong schema SQL. Chi tiết cách đếm, bảng đầy đủ và 10 ví dụ: `evidence/data-mining.md`. Số máy đếm chỉ để thống kê, không dùng làm nhãn.
 
 | Đếm gì | Kết quả | Cách đếm |
 |---|---|---|
@@ -79,7 +79,7 @@ Corpus nói: 32/35 app lưu dữ liệu cá nhân, 32/35 không có chỗ lưu s
 
 ## 5. Kết luận
 
-Giả thuyết ở `evidence/hypothesis.md` — *"freelancer/agency dựng app cho SME chưa biết Điều 20 áp cho lời gọi AI"*: **phải đổi một phần** (corpus nghiêng về cách giải thích khác số 3 trong file đó). Phần "không biết" chưa kiểm được bằng code, chờ phỏng vấn theo ngưỡng đã đặt trước ở `hypothesis.md` mục 2b.
+Giả thuyết ở `evidence/hypothesis.md` — *"freelancer/agency dựng app cho SME chưa biết Điều 20 áp cho lời gọi AI"*: **phải đổi một phần**: kết quả corpus gợi ý pain C2 lớn hơn C1, trong khi giả thuyết đặt trước nhấn vào C1. *(Các "cách giải thích khác" ở `hypothesis.md` mục 1b viết sau khi đã thấy số corpus, nên không dùng để nói kết quả này đã được dự đoán.)* Phần "không biết" chưa kiểm được bằng code, chờ phỏng vấn theo ngưỡng đã đặt trước ở `hypothesis.md` mục 2b.
 - **Đúng hơn dự kiến ở C2**: thiếu bằng chứng đồng ý là chuyện gần như mọi app (32/35 không có chỗ lưu).
 - **Yếu hơn dự kiến ở C1**: 11/35 app gọi AI nước ngoài, nhưng mới chứng minh được 1/35 gửi kèm dữ liệu cá nhân. Chưa biết bộ quét bỏ sót bao nhiêu → cần kiểm ngẫu nhiên các repo không bị gắn cờ.
 
