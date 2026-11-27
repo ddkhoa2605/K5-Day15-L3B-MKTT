@@ -229,18 +229,19 @@ _SILENCE = re.compile(r"(tiếp tục\s+(?:sử dụng|dùng|truy cập)|tiep tu
                       re.IGNORECASE)
 _USER_COL = re.compile(r"(^|_)(user|nguoi_dung|khach_hang|khach|customer|profile|account|subject|member|hoc_vien)(_id|id)?($|_)"
                        r"|^uid$|^owner_id$"
-                       # Khoa chốt 27/11: email / SĐT cũng định danh được chủ thể đồng ý ("ai")
+                       # Email, SĐT định danh được chủ thể đã đồng ý ("ai"): ND356 Điều 6 yêu cầu kiểm chứng được
+                       # chủ thể, thời điểm, nội dung đồng ý, không bắt buộc khoá là user_id.
                        r"|(^|_)(email|e_mail|phone|sdt|so_dt|so_dien_thoai|dien_thoai)($|_)")
 _TIME_COL = re.compile(r"(_at$|^thoi_gian|^ngay_|_time$|timestamp|_date$)")
 _VERSION_COL = re.compile(r"(version|phien_ban|policy_hash|terms_rev)")
 # Cột đồng ý gắn trên bảng khác (vd users.terms_accepted_at). Hai mức:
-# - chắc chắn: tên cột tự nói là đồng ý/điều khoản (consent_marketing, terms_version, opt_in…) → nhận bảng.
-# - mơ hồ: accepted_at, agreed_at, policy_version cũng gặp ở bảng không liên quan (thư được dịch vụ email nhận,
-#   chốt kết quả giải đấu, phiên bản quy trình khám — phản hồi corpus của Thắng 27/11) → chỉ nhận khi bảng có
-#   khoá người dùng VÀ đủ mốc thời gian + phiên bản trong các cột đồng ý.
+# - chắc chắn: tên cột tự nói là đồng ý/điều khoản (marketing_consent, terms_version, opt_in…) → nhận bảng.
+# - mơ hồ: accepted_at, agreed_at, policy_version cũng gặp ở bảng không liên quan tới đồng ý (hàng đợi email,
+#   kết quả thi đấu, mẫu quy trình…) → chỉ nhận khi bảng có khoá người dùng VÀ đủ mốc thời gian + phiên bản
+#   trong các cột đồng ý.
 _EMBEDDED_STRONG = re.compile(r"(terms|consent|dong_y|dongy|dieu_khoan|privacy|chinh_sach|opt_?in)")
 _EMBEDDED_WEAK = re.compile(r"(policy|agree|accept)")
-# Tên bảng nhật ký đồng ý: consents, dong_y_du_lieu, user_agreements, terms_acceptances, marketing_opt_ins…
+# Tên bảng nhật ký đồng ý: consents, dong_y, user_agreements, terms_acceptances, marketing_opt_ins…
 _CONSENT_TABLE = re.compile(r"(consent|dong_?y|agreement|acceptance|opt_?in)")
 _USER_TABLE = re.compile(r"^(users?|profiles?|accounts?|customers?|members?|khach(_hang)?|nguoi_dung|hoc_vien|tai_khoan)$")
 

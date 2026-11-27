@@ -117,8 +117,8 @@ class TestRepo(unittest.TestCase):
 
 
 class TestCorpusFeedback(unittest.TestCase):
-    """Phản hồi của Thắng sau khi quét 35 repo thật (27/11): sink giả do chữ, consent bị bỏ sót.
-    Tên cột/chuỗi ở đây là mẫu dựng lại theo mô tả, không chép từ corpus."""
+    """Lỗi tìm thấy khi kiểm tay kết quả quét corpus (27/11): sink giả do chữ, consent bị bỏ sót hoặc nhận nhầm.
+    Tên bảng/cột ở đây là mẫu chung dựng theo cấu trúc lỗi, không chép từ repo nào trong corpus."""
 
     def sinks(self, text):
         return [(x["line"], x["kind"]) for x in scanner.find_sinks({"x.js": text})]
@@ -139,7 +139,7 @@ class TestCorpusFeedback(unittest.TestCase):
         return scanner.find_consent({}, scanner.parse_schema_line(schema))
 
     def test_agreed_at_policy_version_on_users(self):
-        r = self.consent("users(id, email, consent_marketing, agreed_at, policy_version)")
+        r = self.consent("users(id, email, marketing_consent, agreed_at, policy_version)")
         self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("users", True))
 
     def test_agreement_table_name(self):
@@ -150,15 +150,15 @@ class TestCorpusFeedback(unittest.TestCase):
         r = self.consent("profiles(id, marketing_opt_in, opt_in_at)")
         self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("profiles", False))
 
-    def test_consent_flag_on_leads_found_but_not_full(self):
-        r = self.consent("leads(id, ho_ten, email, sdt, consent_marketing, created_at)")
-        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("leads", False))
+    def test_consent_flag_without_time_version_found_but_not_full(self):
+        r = self.consent("subscribers(id, ho_ten, email, sdt, marketing_consent, created_at)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("subscribers", False))
 
     def test_ambiguous_columns_on_unrelated_tables_are_not_consent(self):
-        """Âm tính (Thắng 27/11): accepted_at của hộp thư gửi đi, agreed_at của giải đấu, policy_version của quy trình khám."""
-        for schema in ("consultation_email_outbox(id, to_email, status, accepted_at, created_at)",
-                       "tournament_settlements(id, tournament_id, winner_id, agreed_at)",
-                       "clinical_routes(id, name, policy_version, updated_at)"):
+        """Âm tính: accepted_at / agreed_at / policy_version ở bảng không liên quan tới đồng ý."""
+        for schema in ("email_queue(id, to_email, status, accepted_at, created_at)",
+                       "match_results(id, match_id, winner_id, agreed_at)",
+                       "workflow_templates(id, name, policy_version, updated_at)"):
             self.assertIsNone(self.consent(schema)["bang_consent"], schema)
 
     def test_ambiguous_columns_with_user_time_version_count(self):
@@ -166,9 +166,9 @@ class TestCorpusFeedback(unittest.TestCase):
         self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("users", True))
 
     def test_consent_table_keyed_by_email_or_phone_is_full(self):
-        """Khoa chốt 27/11: email/SĐT tính là khoá người dùng (bảng dong_y_du_lieu không có user_id)."""
-        r = self.consent("dong_y_du_lieu(id, email, phone, created_at, phien_ban, muc_dich, van_ban, ip, ua)")
-        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("dong_y_du_lieu", True))
+        """Email/SĐT định danh được chủ thể đồng ý, kể cả khi bảng không có user_id."""
+        r = self.consent("dong_y(id, email, created_at, phien_ban, noi_dung)")
+        self.assertEqual((r["bang_consent"], r["du_3_truong"]), ("dong_y", True))
         r = self.consent("dong_y(id, sdt, thoi_gian, phien_ban)")
         self.assertTrue(r["du_3_truong"])
 
