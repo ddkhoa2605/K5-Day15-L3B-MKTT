@@ -1,0 +1,39 @@
+{
+  "nguong_luy_ke": 100000,
+  "nguong_ghi_chu": "Ngưỡng 100 nghìn chủ thể chỉ có trong Nghị định 356 Điều 41 (Luật 91 Điều 38 chỉ nói 'số lượng lớn'). Là lũy kế tổng lượng dữ liệu cá nhân đã xử lý, tính 'kể từ thời điểm có quy mô đạt'.",
+  "loai_hinh": {
+    "ho_kinh_doanh": {
+      "che_do": "khong_phai_thuc_hien",
+      "can_cu": "Luat91 D38.3",
+      "can_cu_nd": "ND356 D41.2"
+    },
+    "doanh_nghiep_sieu_nho": {
+      "che_do": "khong_phai_thuc_hien",
+      "can_cu": "Luat91 D38.3",
+      "can_cu_nd": "ND356 D41.2"
+    },
+    "doanh_nghiep_nho": {
+      "che_do": "quyen_lua_chon_den_2031-01-01",
+      "can_cu": "Luat91 D38.2",
+      "can_cu_nd": "ND356 D41.1"
+    },
+    "khoi_nghiep": {
+      "che_do": "quyen_lua_chon_den_2031-01-01",
+      "can_cu": "Luat91 D38.2",
+      "can_cu_nd": "ND356 D41.1"
+    },
+    "doanh_nghiep_lon": {
+      "che_do": "khong_mien",
+      "can_cu": null,
+      "can_cu_nd": null
+    }
+  },
+  "mat_mien_tru": {
+    "dich_vu_xu_ly": "ND356 D41",
+    "du_lieu_nhay_cam": "ND356 D41",
+    "nguong_luy_ke": "ND356 D41"
+  },
+  "mat_mien_tru_ghi_chu": "Điều 41 không chia điểm cho ba trường hợp mất miễn trừ; chúng nằm chung một câu ở khoản 1 (doanh nghiệp nhỏ, khởi nghiệp) và khoản 2 (hộ kinh doanh, doanh nghiệp siêu nhỏ). Khi trích dẫn kết luận cụ thể, dùng `can_cu_nd` của loại hình tương ứng (D41.1 hoặc D41.2); mã 'ND356 D41' ở trên chỉ chỉ tới Điều 41 nói chung.",
+  "nghia_vu_duoc_mien": ["Luat91 D21", "Luat91 D22", "Luat91 D33.2"],
+  "nghia_vu_khong_duoc_mien": "Miễn trừ chỉ áp cho Điều 21, Điều 22 và khoản 2 Điều 33 Luật 91. Nghĩa vụ về chuyển dữ liệu xuyên biên giới (Điều 20) và sự đồng ý (Điều 9) không nằm trong diện được miễn của Điều 38."
+}

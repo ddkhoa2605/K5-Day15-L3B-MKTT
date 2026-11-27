@@ -1,0 +1,31 @@
+{
+  "C1": {
+    "muc": "30–50 triệu đồng nếu không lập hoặc không nộp hồ sơ đánh giá tác động chuyển dữ liệu xuyên biên giới đúng hạn",
+    "can_cu": [],
+    "muc_tran": "Bản tin EY nêu khung tối đa 5% doanh thu năm liền trước tại thị trường Việt Nam (hoặc 3 tỷ đồng nếu không có doanh thu), chủ yếu cho hành vi chuyển dữ liệu cá nhân xuyên biên giới dẫn đến mất hoặc lộ dữ liệu của công dân Việt Nam ở quy mô lớn; chưa xác định khung này có áp cho hành vi khác hay không",
+    "can_cu_tran": [],
+    "ghi_chu": "Mức 30–50 triệu lấy từ bản tin GV Lawyers (08/2026), không nêu điều khoản nên can_cu để trống. Khung trần lấy từ bản tin EY (10/2026); số điều khoản chỉ xuất hiện trong chú thích của bản tin thứ cấp nên chưa đưa vào can_cu/citations. Ngưỡng quy mô dữ liệu bị lộ trong chính bản tin EY không nhất quán (10.000 công dân ở phần chữ, 1.000.000 ở bảng); cần đối chiếu Công báo trước khi nói con số cụ thể trên slide.",
+    "nguon": "Bản tin pháp lý thứ cấp (GV Lawyers 08/2026; EY 10/2026), chưa phải toàn văn Nghị định 330/2026/NĐ-CP trên Công báo. Các con số là khung mức phạt (khoảng hoặc mức tối đa), không phải mức mặc định hay chắc chắn bị áp dụng.",
+    "tham_chieu_chua_xac_minh": [
+      "Điều 56 khoản 3 và Điều 7 khoản 4 Nghị định 330/2026 (theo chú thích bản tin EY 10/2026)"
+    ]
+  },
+  "C2": {
+    "muc": "Đến 50 triệu đồng với hành vi xử lý dữ liệu cá nhân không có sự đồng ý hợp lệ",
+    "can_cu": [],
+    "ghi_chu": "Nghị định 356 Điều 6 yêu cầu bên kiểm soát phải lưu trữ sự đồng ý và chịu trách nhiệm chứng minh; không quy định cách lưu trữ cụ thể. Mức phạt riêng cho hành vi không lưu trữ sự đồng ý chưa đối chiếu được nên không gán ở đây. Số điều khoản Nghị định 330 chỉ có từ bản tin thứ cấp nên chưa đưa vào can_cu.",
+    "nguon": "Bản tin pháp lý thứ cấp (GV Lawyers 08/2026; EY 10/2026), chưa phải toàn văn Nghị định 330/2026/NĐ-CP trên Công báo. Các con số là khung mức phạt (khoảng hoặc mức tối đa), không phải mức mặc định hay chắc chắn bị áp dụng.",
+    "tham_chieu_chua_xac_minh": [
+      "Điều 43 khoản 1 Nghị định 330/2026 (theo chú thích bản tin EY 10/2026)"
+    ]
+  },
+  "C2_NANG": {
+    "muc": "50–70 triệu đồng với hành vi coi sự im lặng là sự đồng ý, hoặc tiếp tục xử lý dữ liệu sau khi có yêu cầu hợp lệ rút lại đồng ý hoặc hạn chế xử lý",
+    "can_cu": [],
+    "ghi_chu": "Checkbox tích sẵn mặc định bị Nghị định 356 Điều 6 cấm (không được thiết lập phương thức mặc định đồng ý). Việc phạt theo khoản nào của Nghị định 330 chưa đối chiếu toàn văn nên báo cáo chỉ nói 'chạm vào nhóm hành vi này'. Số điều khoản chỉ có từ bản tin thứ cấp nên chưa đưa vào can_cu.",
+    "nguon": "Bản tin pháp lý thứ cấp (GV Lawyers 08/2026; EY 10/2026), chưa phải toàn văn Nghị định 330/2026/NĐ-CP trên Công báo. Các con số là khung mức phạt (khoảng hoặc mức tối đa), không phải mức mặc định hay chắc chắn bị áp dụng.",
+    "tham_chieu_chua_xac_minh": [
+      "Điều 43 khoản 2 Nghị định 330/2026 (theo chú thích bản tin EY 10/2026)"
+    ]
+  }
+}

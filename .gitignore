@@ -35,3 +35,7 @@ evidence/**/raw-*
 # Nguyên file data BTC cấp (data/preclass, data/training-ops… của repo đề): để ở đây, không commit
 data-btc
 data-btc/
+
+# Tài liệu nguồn tải về và tài liệu kế hoạch nội bộ, không commit
+data/legal/*.pdf
+docs/superpowers/
