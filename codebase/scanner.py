@@ -145,6 +145,9 @@ _SDK_IMPORT = re.compile(r"""(?:from\s+|require\(\s*|import\s+)['"](@sentry/[\w\
                          r"""@amplitude/[\w\-]+|resend|@sendgrid/mail|logrocket)['"]""")
 _NOT_FOREIGN = (".vn", "localhost", "127.0.0.1", "0.0.0.0")
 _SKIP_HTTP_HOSTS = ("supabase.co", "supabase.in")  # kho dữ liệu chính của app, không tính là sink ở lát cắt này
+# API gửi email gọi thẳng bằng fetch/axios: cùng loại với SDK email (kind "email") để áp quy tắc người nhận email.
+_EMAIL_HOSTS = ("api.resend.com", "api.sendgrid.com", "api.mailgun.net", "api.eu.mailgun.net", "api.postmarkapp.com",
+                "api.brevo.com", "api.sendinblue.com", "mandrillapp.com", "api.mailjet.com", "api.sparkpost.com")
 
 CONTEXT = 5
 _STRING_LIT = re.compile(r"""("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)""")
@@ -318,7 +321,7 @@ def find_sinks(files: dict) -> list:
             if m:
                 host = m.group(1).split("://", 1)[1].split(":")[0].lower()
                 if not host.endswith(_NOT_FOREIGN) and not host.endswith(_SKIP_HTTP_HOSTS):
-                    hits.append((i, "http_ngoai", host))
+                    hits.append((i, "email" if host.endswith(_EMAIL_HOSTS) else "http_ngoai", host))
                 continue
             code = _code_only(line)
             m = _ANALYTICS.search(code)

@@ -165,3 +165,84 @@ class TestVerifyUserTypedVsBusiness(unittest.TestCase):
     def test_end_user_free_text_needs_lawyer(self):
         self.assertEqual(self._c1('{"xac_nhan": true, "truong_ca_nhan": [], "nguon": "nguoi_dung_tu_nhap"}'), "CAN_LUAT_SU")
 
+
+class TestFreeTextRule(unittest.TestCase):
+    """Quyết định của Khoa (28/11): cột chữ tự do tự nó không nhạy cảm → pii_co_ban, C3 kèm lời nhắc. Ví dụ tự dựng."""
+
+    def test_free_text_names(self):
+        for yes in ("loi_nhan", "ghi_chu_noi_bo", "message_content", "comment", "noi_dung_gop_y"):
+            self.assertTrue(classify.is_free_text(yes), yes)
+        for no in ("content_type", "text_color", "so_luong", "body_mass", "trang_thai"):
+            self.assertFalse(classify.is_free_text(no), no)
+
+    def test_rule_mode_free_text_is_basic_pii(self):
+        r = classify.classify_rule([{"table": "gop_y", "column": "loi_nhan"}])
+        self.assertEqual((r[0]["nhom"], r[0]["do_tin_cay"]), ("pii_co_ban", classify.FREE_TEXT_CONF))
+
+    def test_llm_unsure_free_text_becomes_basic_pii_but_sensitive_kept(self):
+        rep = ('[{"table": "gop_y", "column": "loi_nhan", "nhom": "khong_ro", "do_tin_cay": 0.0},'
+               ' {"table": "kham", "column": "ghi_chu_trieu_chung", "nhom": "suc_khoe", "do_tin_cay": 0.9}]')
+        with mock.patch.object(classify, "call_model", lambda *a, **k: reply(rep)):
+            r = classify.classify_llm([{"table": "gop_y", "column": "loi_nhan"},
+                                       {"table": "kham", "column": "ghi_chu_trieu_chung"}], "app")
+        self.assertEqual([(x["nhom"], x["do_tin_cay"]) for x in r], [("pii_co_ban", 0.8), ("suc_khoe", 0.9)])
+
+    def test_prompt_states_rule(self):
+        self.assertIn("Cột chữ tự do", classify.SYSTEM)
+        self.assertIn("pii_co_ban", classify.SYSTEM)
+
+    def test_c3_keeps_status_and_adds_note(self):
+        import rules
+        labels = [{"table": "gop_y", "column": "loi_nhan", "nhom": "pii_co_ban", "do_tin_cay": 0.8, "file": None, "line": None}]
+        case = {"loai_hinh": "doanh_nghiep_sieu_nho", "so_chu_the_luy_ke": 300}
+        c3 = rules.evaluate(case, labels, [], {"tich_san": [], "im_lang_dong_y": []})["C3"]
+        self.assertEqual(c3["trang_thai"], "CON_MIEN_TRU")
+        self.assertIn("gop_y.loi_nhan", c3["luu_y"])
+        self.assertIn("không đọc nội dung", c3["giai_thich"])
+
+
+class TestEmailRecipientRule(unittest.TestCase):
+    """Quyết định của Khoa (28/11): email qua dịch vụ nước ngoài → người nhận quyết bằng nguồn địa chỉ. Ví dụ tự dựng."""
+
+    def _sink(self, snippet):
+        return {"file": "lib/thu.ts", "line": 3, "kind": "email", "endpoint": "api.mailjet.com", "snippet": snippet}
+
+    def test_recipient_source(self):
+        self.assertEqual(verify.email_recipient('{ to: hoiVien.dia_chi_thu, subject: "Chào" }'), "dong")
+        self.assertEqual(verify.email_recipient("{ to: process.env.HOP_THU_CHU, subject: x }"), "co_dinh")
+        self.assertEqual(verify.email_recipient("{ to: HOP_THU_QUAN_TRI }"), "co_dinh")
+        self.assertEqual(verify.email_recipient("{ to: ['chu@tiem.example'] }"), "co_dinh")
+        self.assertEqual(verify.email_recipient("await guiThu(payload)"), "khong_ro")
+
+    def test_dynamic_recipient_activates_c1(self):
+        import rules
+        res = verify.verify_path_rule(self._sink("await mj.post({ to: hoiVien.hopThu, text: 'Mã giảm giá' })"), [])
+        self.assertEqual((res["xac_nhan"], res["nguon"], res["truong_ca_nhan"]), (True, "he_thong", [verify.RECIPIENT]))
+        res["sink"] = self._sink("")
+        self.assertEqual(rules.evaluate_c1([res])["trang_thai"], "KICH_HOAT")
+
+    def test_fixed_admin_recipient_without_customer_data_not_activated(self):
+        res = verify.verify_path_rule(self._sink("await mj.post({ to: process.env.HOP_THU_CHU, text: 'Có đơn mới' })"), [])
+        self.assertFalse(res["xac_nhan"])
+
+    def test_fixed_admin_recipient_with_customer_data_activated(self):
+        cols = [{"table": "don", "column": "ten_nguoi_dat"}]
+        res = verify.verify_path_rule(
+            self._sink("await mj.post({ to: process.env.HOP_THU_CHU, text: `Đơn của ${d.ten_nguoi_dat}` })"), cols)
+        self.assertEqual((res["xac_nhan"], res["truong_ca_nhan"]), (True, ["don.ten_nguoi_dat"]))
+
+    def test_unknown_recipient_is_unsure_path(self):
+        res = verify.verify_path_rule(self._sink("const r = await fetch(\"https://api.mailjet.com/v3.1/send\", opts);"), [])
+        self.assertEqual(res, verify.UNSURE)
+
+    def test_model_said_no_but_dynamic_recipient(self):
+        with mock.patch.object(verify, "call_model", lambda *a, **k: reply('{"xac_nhan": false, "truong_ca_nhan": [], "nguon": "khong_ro"}')):
+            res = verify.verify_path_llm(self._sink("await mj.post({ to: hoiVien.dia_chi_thu })"), [])
+        self.assertTrue(res["xac_nhan"])
+        self.assertEqual(res["nguon"], "he_thong")
+
+    def test_email_api_via_fetch_is_email_kind(self):
+        import scanner
+        s = scanner.find_sinks({"t.ts": 'await fetch("https://api.mailjet.com/v3.1/send", { method: "POST" })'})
+        self.assertEqual(s[0]["kind"], "email")
+
