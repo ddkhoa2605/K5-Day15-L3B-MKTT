@@ -102,13 +102,17 @@ Bộ câu hỏi, kênh và thời gian: `evidence/survey/questions.md`. Số li�
 
 ## 3. ≥5 trích dẫn hoặc ví dụ nguyên văn (có nguồn, bỏ tên)
 
-**Ví dụ từ corpus** (chép từ `evidence/data-mining.md` mục 4, mã repo đã ẩn danh; ở đó có đủ 10 ví dụ, gồm cả báo nhầm):
-1. repo-01 (quản lý phòng khám): bảng phiếu khám có cột `diagnosis` → tình trạng sức khoẻ (ND356 Điều 4.1 điểm d).
-2. repo-14 (nền tảng gia sư): route gửi email tư vấn, email của gia sư được gửi qua API Resend → dữ liệu cá nhân đi tới dịch vụ email nước ngoài (C1).
-3. repo-17: bảng consents có khoá người dùng, thời điểm, phiên bản, mục đích, thời điểm rút — một trong **2/35** repo có nhật ký đồng ý gần đủ.
-4. repo-41: bảng kết nối cổng thanh toán lưu số tài khoản, tên chủ tài khoản ngân hàng của người bán, kèm webhook nhận giao dịch → có thể thuộc ND356 Điều 4.1 điểm k *(cần người xem)*.
-5. repo-02: cột `vi_tri` trên các bảng SEO — **vị trí xếp hạng SEO**, không phải vị trí của người *(báo nhầm của bộ quét)*.
-6. repo-10 và repo-27: cột `latitude` trên bảng câu lạc bộ / quán cafe — toạ độ của **địa điểm kinh doanh**, không phải của cá nhân *(báo nhầm)*.
+**Trích nguyên văn từ code và schema của corpus** (repo công khai, mã repo đã ẩn danh; tên bảng hoặc đường dẫn đặc thù đã đổi sang tên chung theo `data/cases/LABELING.md` §12, nội dung dòng code và số dòng là thật; nguồn: `data/cases/corpus_cases.jsonl`, case ghi trong ngoặc):
+
+1. **repo-01, quản lý phòng khám** (`dt-r01-001`). Schema bảng phiếu khám: `checkups(id, customer_id, doctor_id, checkup_date, symptoms, diagnosis, conclusion, notes, heart_beat, blood_pressure, temperature, weight, height, recheck_date)`, và `app/[locale]/(app)/checkups/actions.js:50`: `diagnosis: get("diagnosis"),` → triệu chứng, chẩn đoán, huyết áp là tình trạng sức khoẻ (ND356 Điều 4 điểm d); repo không có nơi lưu đồng ý của bệnh nhân.
+2. **repo-02, quản trị nhân sự** (`dt-r02-003`). `app/cham-cong/page.tsx:162`: `const id = navigator.geolocation.watchPosition(` và dòng 164: `setGps({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy });` → vị trí của nhân viên xác định qua dịch vụ định vị của thiết bị (điểm h), lưu vào `attendance.check_in_lat/lng` theo ngày.
+3. **repo-02, trợ lý AI nội bộ** (`dt-r02-004`). `components/ai-assistant.tsx:77`: `body: JSON.stringify({ query: q, path: pathname, role: user.role, name: user.full_name })` và `app/api/ai-chat/route.ts:32`: `` - Tên: ${name} `` → hệ thống tự gắn họ tên từ hồ sơ đăng nhập vào prompt gửi Anthropic (C1), không phải người dùng tự gõ.
+4. **repo-02, trợ lý giao việc** (`dt-r02-008`). `lib/tro-ly/giao-viec.ts:27`: `` .map((u) => `- ${u.full_name} (${u.position || "nhân viên"})`) `` và `lib/tro-ly/goi-ai.ts:49`: `const API_URL = "https://api.anthropic.com/v1/messages";` → họ tên và chức vụ của mọi nhân viên được ghép vào system prompt gửi ra nước ngoài (C1).
+5. **repo-02, form lead** (`dt-r02-002`). `lib/du-lieu-ca-nhan.ts:125`: `phien_ban: o.phienBan || PHIEN_BAN_DONG_Y, ip: o.ip || null, ua: o.ua ? String(o.ua).slice(0, 300) : null, meta: o.meta || null,` → một trong **2/35** repo có nhật ký đồng ý gần đủ (khoá theo SĐT/email, có phiên bản, mục đích, thời điểm).
+6. **repo-02, thống kê SEO** (`dt-r02-005`). Schema: `seo_theo_url(ngay, url, clicks, impressions, ctr, vi_tri)` → `vi_tri` là **thứ hạng trên Google**, không phải vị trí của người *(bộ quét báo nhầm)*.
+7. **repo-03, quản lý lớp học** (`dt-r03-001`). `supabase/migrations/0031_school_networks_checkin.sql:13`: `-- GPS geofence: chuẩn bị sẵn schema, CHƯA dùng (lat/lng/bán kính mét).` → toạ độ là của khuôn viên trường và chưa dùng, không phải vị trí cá nhân *(bộ quét báo nhầm)*.
+
+Các ví dụ khác (repo-14 gửi email qua Resend, repo-17 bảng consents, repo-41 số tài khoản người bán, repo-10 và repo-27 toạ độ quán) ở `evidence/data-mining.md` mục 4, dạng mô tả.
 
 **Câu trả lời nguyên văn từ khảo sát** (câu 16, "điều gì sẽ khiến bạn tiếp tục dùng"; 15/27 người trả lời câu này; đây là ý kiến về sản phẩm, không phải mô tả pain):
 - "Quét nhanh, chỉ đúng đoạn code gây rủi ro và trích đúng điều luật để sửa trước khi release, không báo sai quá nhiều." (1 người)
