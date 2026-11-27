@@ -2,9 +2,11 @@
 import json
 import os
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "eval"))
 import ablation  # noqa: E402
@@ -142,9 +144,68 @@ class TestReportAndHoldoutLock(unittest.TestCase):
 
     def test_holdout_runs_only_once(self):
         lock = os.path.join(self.dir, "holdout.lock")
-        ablation.claim_holdout(lock, {"commit": "abc1234"})
+        ablation.claim_holdout(lock, {"commit": "abc1234"}, history=[])  # chỉ kiểm khoá trên máy, không gọi git
         with self.assertRaises(SystemExit):
-            ablation.claim_holdout(lock, {"commit": "def5678"})
+            ablation.claim_holdout(lock, {"commit": "def5678"}, history=[])
+
+    def test_lock_history_fetches_before_reading_all_branches(self):
+        # Review của Khoa (PR #13): máy khác chạy holdout rồi push khoá → phải git fetch trước khi đọc lịch sử
+        calls = []
+
+        def fake_run(cmd, **kw):
+            calls.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0, stdout="9f8e7d6 Holdout: chạy một lần\n" if "log" in cmd else "")
+        hist = ablation.holdout_lock_history(os.path.join(ablation.HERE, "holdout.lock"), run=fake_run)
+        self.assertEqual(hist, ["9f8e7d6 Holdout: chạy một lần"])
+        self.assertEqual(calls[0][:2], ["git", "fetch"])
+        self.assertEqual(calls[1][:2], ["git", "log"])
+        self.assertIn("--all", calls[1])
+
+    def test_lock_history_fails_closed(self):
+        # Review của Khoa (PR #13): không fetch được hoặc không đọc được git → DỪNG, không coi là "chưa chạy"
+        lock = os.path.join(ablation.HERE, "holdout.lock")
+
+        def fail_on(word, exc):
+            def run(cmd, **kw):
+                if word in cmd:
+                    raise exc
+                return subprocess.CompletedProcess(cmd, 0, stdout="")
+            return run
+        for run in (fail_on("fetch", subprocess.CalledProcessError(128, "git fetch")),
+                    fail_on("log", subprocess.CalledProcessError(128, "git log")),
+                    fail_on("fetch", FileNotFoundError("git")),
+                    fail_on("log", subprocess.TimeoutExpired("git log", 60))):
+            with self.assertRaises(SystemExit):
+                ablation.holdout_lock_history(lock, run=run)
+
+    def test_claim_holdout_does_not_lock_when_git_unreadable(self):
+        # khoá đặt trong repo (thư mục tạm dưới eval/) để đi tới đúng bước gọi git, không dừng sớm vì khác ổ đĩa
+        d = tempfile.mkdtemp(dir=ablation.HERE)
+        try:
+            lock = os.path.join(d, "holdout.lock")
+            calls = []
+
+            def broken(cmd, **kw):
+                calls.append(cmd)
+                raise subprocess.CalledProcessError(128, cmd)
+            with mock.patch.object(ablation.subprocess, "run", broken):
+                with self.assertRaises(SystemExit):
+                    ablation.claim_holdout(lock, {"commit": "abc1234"})
+            self.assertTrue(calls)  # đã thử gọi git
+            self.assertFalse(os.path.exists(lock))
+        finally:
+            shutil.rmtree(d)
+
+    def test_lock_outside_repo_fails_closed(self):
+        # Windows: thư mục tạm khác ổ với repo → relpath lỗi. Bản cũ nuốt lỗi và coi là "chưa chạy".
+        lock = os.path.join(self.dir, "holdout.lock")
+        try:
+            os.path.relpath(lock, ablation.ROOT)
+        except ValueError:
+            with self.assertRaises(SystemExit):
+                ablation.holdout_lock_history(lock, run=lambda cmd, **kw: subprocess.CompletedProcess(cmd, 0, stdout=""))
+        else:
+            self.skipTest("thư mục tạm cùng ổ với repo")
 
     def test_holdout_preflight_blocks_before_lock(self):
         # Có provider thật nhưng thiếu key hoặc ai.py chưa gọi được model → dừng TRƯỚC khi ghi khoá holdout

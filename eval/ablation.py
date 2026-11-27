@@ -18,7 +18,8 @@ Ghi ra:
 
 Quy tắc:
 - Holdout chỉ chạy một lần: script ghi eval/holdout.lock TRƯỚC khi chạy và từ chối lần sau; từ chối cả khi khoá
-  đã từng được commit (lịch sử git). Người chạy commit holdout.lock cùng kết quả ngay trong lượt đó.
+  đã từng được commit (lịch sử git, sau khi git fetch mọi nhánh). Không fetch được hoặc không đọc được git
+  thì DỪNG. Người chạy commit holdout.lock cùng kết quả ngay trong lượt đó.
   Holdout phải chạy đủ 3 chế độ, không --limit, và không được chạy bằng model giả. Trước khi ghi khoá,
   script gọi thử model mặc định và model kiểm chứng (MODEL_NAME_VERIFY); một lời gọi lỗi thì dừng, chưa ghi khoá.
 - Báo cáo .md đặt tên theo chế độ khi chạy tập con (vd ablation-dev-rule.md), không ghi đè bảng đủ 3 chế độ.
@@ -275,16 +276,27 @@ def preflight_model(call_model, api_key, verify_model=None):
     return seen
 
 
-def holdout_lock_history(lock=HOLDOUT_LOCK):
+def holdout_lock_history(lock=HOLDOUT_LOCK, run=None):
     """Các commit (mọi nhánh) đã từng chứa file khoá holdout. Khoá chỉ trên máy có thể bị xoá hoặc chạy ở máy
-    khác; khoá đã commit thì lịch sử git là bằng chứng — review của Khoa trên PR #9."""
+    khác; khoá đã commit thì lịch sử git là bằng chứng — review của Khoa trên PR #9.
+    Review của Khoa trên PR #13: (1) git fetch TRƯỚC khi đọc, để thấy khoá máy khác đã push; (2) đóng khi lỗi —
+    không fetch được hoặc không đọc được lịch sử thì DỪNG, không coi là "chưa chạy"."""
+    run = run or subprocess.run
     try:
         rel = os.path.relpath(lock, ROOT).replace(os.sep, "/")
-        out = subprocess.run(["git", "log", "--all", "--format=%h %s", "--", rel], cwd=ROOT,
-                             capture_output=True, text=True, check=True).stdout
-        return [l for l in out.splitlines() if l.strip()]
-    except Exception:
-        return []
+    except ValueError as e:  # khoá khác ổ đĩa với repo (Windows) → git không theo dõi được
+        sys.exit("DỪNG: file khoá holdout %s không nằm trong repo (%s). Không chạy." % (lock, e))
+    kw =dict(cwd=ROOT, capture_output=True, text=True, check=True, timeout=120)
+    try:
+        run(["git", "fetch", "--quiet", "--all"], **kw)
+    except Exception as e:
+        sys.exit("DỪNG: không git fetch được (%s). Khoá holdout phải kiểm trên lịch sử mới nhất của mọi nhánh, "
+                 "kể cả khoá máy khác đã push. Nối mạng / sửa quyền truy cập repo rồi chạy lại." % e)
+    try:
+        out = run(["git", "log", "--all", "--format=%h %s", "--", rel], **kw).stdout
+    except Exception as e:
+        sys.exit("DỪNG: không đọc được lịch sử git (%s), nên không biết holdout đã chạy chưa. Không chạy." % e)
+    return [l for l in (out or "").splitlines() if l.strip()]
 
 
 def claim_holdout(lock, meta, history=None):
