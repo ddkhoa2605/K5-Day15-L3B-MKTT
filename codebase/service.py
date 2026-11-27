@@ -189,13 +189,16 @@ def preview(ctx: dict, mode: str) -> dict:
     mo_ta = scanner.redact((ctx["case"].get("mo_ta") or "")[:400])
     cols = ["%s.%s (tên cột)" % (c["table"], c["column"]) for c in ctx["columns"]]
     snippets = [{"file": s["file"], "tu_dong": s["tu_dong"], "den_dong": s["den_dong"],
+                 "dong_lien_quan": s.get("dong_lien_quan") or [], "qua_ham": s.get("qua_ham"),
                  "text": scanner.redact(s.get("snippet", ""))} for s in ctx["sinks"][:MAX_STEPS]]
     return {
         "model_phan_loai": {"model": ai.MODEL_NAME or None,
                             "noi_dung": (["mô tả app (đã lọc secret): " + mo_ta] if mo_ta else []) + cols}
         if ctx["columns"] else None,
         "model_kiem_chung": {"model": ai.verify_model() or None,
-                             "noi_dung": ["%s:%s-%s (đoạn code đã lọc secret)" % (s["file"], s["tu_dong"], s["den_dong"])
+                             "noi_dung": ["%s:%s-%s%s (đoạn code đã lọc secret)"
+                                          % (s["file"], s["tu_dong"], s["den_dong"],
+                                             " + dòng " + ", ".join(map(str, s["dong_lien_quan"])) if s["dong_lien_quan"] else "")
                                           for s in snippets],
                              "doan_code": snippets,
                              "kem_ten_cot_ca_nhan": "tên các cột được xếp là dữ liệu cá nhân ở bước phân loại"}

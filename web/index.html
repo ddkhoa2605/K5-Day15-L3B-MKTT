@@ -490,8 +490,16 @@ function renderScan() {
       list.append(el("label", { style: "margin-top:14px" }, "Đoạn code quanh lời gọi, kèm tên các cột cá nhân"));
       p.model_kiem_chung.doan_code.forEach((s) => {
         const pre = el("pre", { class: "code" });
-        String(s.text).split("\n").forEach((ln, i) => pre.append(el("span", { class: "ln" }, s.tu_dong + i), redacted(ln), "\n"));
-        list.append(el("div", { class: "help", style: "margin-top:8px;font-family:var(--mono)" }, s.file + ", dòng " + s.tu_dong + "–" + s.den_dong), pre);
+        const span = s.den_dong - s.tu_dong + 1;   // phần sau cửa sổ: các dòng liên quan, ghi "// dòng N: …"
+        String(s.text).split("\n").forEach((ln, i) => {
+          const m = i >= span ? /^\/\/ dòng (\d+): /.exec(ln) : null;
+          const no = i < span ? s.tu_dong + i : (m ? m[1] : "…");
+          pre.append(el("span", { class: "ln" }, no), redacted(m ? ln.slice(m[0].length) : ln), "\n");
+        });
+        const head = s.file + ", dòng " + s.tu_dong + "–" + s.den_dong
+          + ((s.dong_lien_quan || []).length ? " + dòng " + s.dong_lien_quan.join(", ") + " (gán biến đi vào lời gọi)" : "")
+          + (s.qua_ham ? " · gọi qua hàm " + s.qua_ham.ten + " (" + s.qua_ham.file + ":" + s.qua_ham.line + ")" : "");
+        list.append(el("div", { class: "help", style: "margin-top:8px;font-family:var(--mono)" }, head), pre);
       });
     }
   }

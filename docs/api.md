@@ -101,7 +101,7 @@ Trả về `201`:
     "model_phan_loai": {"model": "gpt-6-luna", "noi_dung": ["mô tả app (đã lọc secret): App đặt sân có bản đồ",
                                                             "users.email (tên cột)", "bookings.vi_tri_gan_nhat (tên cột)"]},
     "model_kiem_chung": {"model": "gpt-6.1-terra", "noi_dung": ["app/api/chat/route.ts:7-17 (đoạn code đã lọc secret)"],
-                         "doan_code": [{"file": "app/api/chat/route.ts", "tu_dong": 7, "den_dong": 17, "text": "… [REDACTED] …"}],
+                         "doan_code": [{"file": "app/api/chat/route.ts", "tu_dong": 7, "den_dong": 17, "dong_lien_quan": [3], "qua_ham": null, "text": "… [REDACTED] …\n// … dòng liên quan trong cùng file (gán biến đi vào lời gọi):\n// dòng 3: …"}],
                          "kem_ten_cot_ca_nhan": "tên các cột được xếp là dữ liệu cá nhân ở bước phân loại"},
     "khong_gui": "Không gửi dữ liệu trong bảng, không gửi file khác, không gửi API key (đã thay bằng [REDACTED])."
   },
