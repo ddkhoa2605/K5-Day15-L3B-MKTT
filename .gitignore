@@ -42,3 +42,6 @@ docs/superpowers/
 
 # Repo công khai tải về để dựng case data_that (code của người khác): không commit
 data/corpus/
+
+# Bộ mù (issue #20): giữ kín tới khi chạy; bỏ dòng này trong PR kết quả sau khi chạy một lần
+data/blind/
