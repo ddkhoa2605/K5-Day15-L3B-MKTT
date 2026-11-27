@@ -42,3 +42,6 @@ docs/superpowers/
 
 # Repo công khai tải về để dựng case data_that (code của người khác): không commit
 data/corpus/
+
+# Khảo sát: bản xuất gốc có email người trả lời, không commit (bản ẩn danh: evidence/survey/results.csv)
+evidence/survey/result.csv

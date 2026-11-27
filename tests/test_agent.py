@@ -92,7 +92,7 @@ class TestHybridMode(unittest.TestCase):
               '{"table":"bookings","column":"id","nhom":"khong_ca_nhan","do_tin_cay":0.9},' \
               '{"table":"bookings","column":"user_id","nhom":"khong_ca_nhan","do_tin_cay":0.9},' \
               '{"table":"bookings","column":"vi_tri_gan_nhat","nhom":"vi_tri_dinh_vi","do_tin_cay":0.95}]'
-        ver = '{"xac_nhan": true, "truong_ca_nhan": [], "nguon": "he_thong"}'
+        ver = '{"xac_nhan": true, "truong_ca_nhan": [], "nguon": "he_thong", "bang_chung": "content: user.email + msg"}'
         rep = lambda t: {"text": t, "model": "mock", "tokens_in": 1, "tokens_out": 1}  # noqa: E731
         with mock.patch("classify.call_model", return_value=rep(cls)), mock.patch("verify.call_model", return_value=rep(ver)):
             j = report_json(run(json.dumps(CASE_C, ensure_ascii=False), mode="hybrid"))
@@ -110,3 +110,32 @@ class TestWording(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestAblationBVariants(unittest.TestCase):
+    """Mục 9 của Khoa: B nguyên bản và B có danh sách mã đóng, cả hai dùng model mạnh nhất."""
+
+    def _calls(self, codes):
+        seen = []
+
+        def fake(system, user, model=None):
+            seen.append((system, user, model))
+            return {"text": '{"C1": {"trang_thai": "KHONG_KICH_HOAT", "can_cu": []}}', "model": "mock",
+                    "tokens_in": 1, "tokens_out": 1}
+        env = {"SHP_LLM_CODES": codes, "SHP_LLM_MODEL": "model-manh-nhat"}
+        with mock.patch.dict(os.environ, env), mock.patch.object(agent, "call_model", fake):
+            run(json.dumps(CASE_C, ensure_ascii=False), mode="llm")
+        return seen
+
+    def test_original_has_no_code_list(self):
+        (system, user, model), = self._calls("")
+        self.assertNotIn("Danh sách mã điều luật được phép", user)
+        self.assertEqual(model, "model-manh-nhat")
+
+    def test_closed_lists_every_citation_code(self):
+        import legal
+        (system, user, model), = self._calls("closed")
+        self.assertIn("CHỈ được chọn mã trong danh sách", system)
+        for code in legal.load()["citations"]:
+            self.assertIn(code, user)
+

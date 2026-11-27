@@ -121,7 +121,8 @@ class TestVerify(unittest.TestCase):
 
     def test_llm_path_snippet_redacted(self):
         with mock.patch("verify.call_model", return_value=reply(
-                '{"xac_nhan": true, "truong_ca_nhan": ["users.email"], "nguon": "he_thong"}')) as m:
+                '{"xac_nhan": true, "truong_ca_nhan": ["users.email"], "nguon": "he_thong", '
+                '"bang_chung": "content:  user.email"}')) as m:   # khác khoảng trắng vẫn khớp
             p = verify.verify_path_llm(self.SINK, self.PII)
         self.assertEqual(p["nguon"], "he_thong")
         self.assertNotIn("sk-abc", m.call_args[0][1])
@@ -245,4 +246,76 @@ class TestEmailRecipientRule(unittest.TestCase):
         import scanner
         s = scanner.find_sinks({"t.ts": 'await fetch("https://api.mailjet.com/v3.1/send", { method: "POST" })'})
         self.assertEqual(s[0]["kind"], "email")
+
+
+class TestClassifyRetryAndKeys(unittest.TestCase):
+    """Mục 5 (gọi lại khi mã nhóm lạ) và tra kết quả bằng khoá đã chuẩn hoá. Ví dụ tự dựng."""
+
+    def _run(self, replies, cols):
+        it = iter(replies)
+        calls = []
+
+        def fake(*a, **k):
+            calls.append(1)
+            return reply(next(it))
+        with mock.patch.object(classify, "call_model", fake):
+            return classify.classify_llm(cols, "app bán cây cảnh"), len(calls)
+
+    def test_unknown_group_retried_once(self):
+        bad = '[{"table":"t","column":"c","nhom":"tai-chinh","do_tin_cay":0.9}]'
+        ok = '[{"table":"t","column":"c","nhom":"pii_co_ban","do_tin_cay":0.9}]'
+        r, n = self._run([bad, ok], [{"table": "t", "column": "c"}])
+        self.assertEqual((r[0]["nhom"], n), ("pii_co_ban", 2))
+
+    def test_still_bad_after_retry_is_khong_ro(self):
+        bad = '[{"table":"t","column":"c","nhom":"tai-chinh","do_tin_cay":0.9}]'
+        r, n = self._run([bad, bad], [{"table": "t", "column": "c"}])
+        self.assertEqual((r[0]["nhom"], r[0]["do_tin_cay"], n), ("khong_ro", 0.0, 2))
+
+    def test_valid_reply_not_retried(self):
+        ok = '[{"table":"t","column":"c","nhom":"khong_ro","do_tin_cay":0.1}]'
+        _, n = self._run([ok], [{"table": "t", "column": "c"}])
+        self.assertEqual(n, 1)
+
+    def test_camel_case_column_found(self):
+        ok = '[{"table":"KhachHang","column":"soDienThoai","nhom":"pii_co_ban","do_tin_cay":0.9}]'
+        r, _ = self._run([ok], [{"table": "KhachHang", "column": "soDienThoai"}])
+        self.assertEqual((r[0]["column"], r[0]["nhom"]), ("soDienThoai", "pii_co_ban"))
+
+
+class TestVerifyQuotedEvidence(unittest.TestCase):
+    """Mục 7, 8 của Khoa: "không thấy" ≠ "không có"; khi nói có gửi thì phải trích đoạn code có thật. Ví dụ tự dựng."""
+    SINK = {"file": "b.ts", "line": 2, "kind": "ai_nuoc_ngoai", "endpoint": "responses.create",
+            "snippet": "const goi = hoiVien.map((h) => h.so_ho_chieu);\nawait client.responses.create({ input: goi })"}
+    PII = [{"table": "hoi_vien", "column": "so_ho_chieu", "nhom": "pii_co_ban", "do_tin_cay": 1.0}]
+
+    def _ask(self, text):
+        with mock.patch.object(verify, "call_model", lambda *a, **k: reply(text)):
+            return verify.verify_path_llm(self.SINK, self.PII)
+
+    def test_real_quote_kept(self):
+        r = self._ask('{"xac_nhan": true, "truong_ca_nhan": ["hoi_vien.so_ho_chieu"], "nguon": "he_thong", '
+                      '"bang_chung": "h.so_ho_chieu"}')
+        self.assertEqual((r["xac_nhan"], r["nguon"]), (True, "he_thong"))
+
+    def test_bad_quote_but_code_shows_column_keeps_that_column(self):
+        # đoạn code có h.so_ho_chieu: trích bịa / trống vẫn giữ "có gửi", với cột do code tìm thấy
+        for q in ('"bang_chung": "body: JSON.stringify(user)"', '"bang_chung": ""'):
+            r = self._ask('{"xac_nhan": true, "truong_ca_nhan": [], "nguon": "he_thong", %s}' % q)
+            self.assertEqual(r, {"xac_nhan": True, "truong_ca_nhan": ["hoi_vien.so_ho_chieu"], "nguon": "he_thong"})
+
+    def test_bad_quote_and_no_column_in_code_is_unsure(self):
+        sink = dict(self.SINK, snippet="const goi = taoCauHoi(chuDe);\nawait client.responses.create({ input: goi })")
+        for q in ('"bang_chung": "h.so_ho_chieu"', '"bang_chung": ""'):
+            text = '{"xac_nhan": true, "truong_ca_nhan": ["hoi_vien.so_ho_chieu"], "nguon": "he_thong", %s}' % q
+            with mock.patch.object(verify, "call_model", lambda *a, **k: reply(text)):
+                self.assertEqual(verify.verify_path_llm(sink, self.PII), verify.UNSURE)
+
+    def test_false_needs_no_quote(self):
+        r = self._ask('{"xac_nhan": false, "truong_ca_nhan": [], "nguon": "khong_ro"}')
+        self.assertFalse(r["xac_nhan"])
+
+    def test_prompt_states_rules(self):
+        for must in ("bang_chung", "CHÉP NGUYÊN VĂN"):
+            self.assertIn(must, verify.SYSTEM)
 
