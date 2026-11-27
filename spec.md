@@ -148,9 +148,17 @@ flowchart LR
 - Trường hợp đặc thù lĩnh vực (lớp 4): có cột nhạy cảm → `MAT_MIEN_TRU` kể cả khi chỉ có một người dùng; nói rõ miễn trừ chỉ áp cho Điều 21, 22 và khoản 2 Điều 33, không áp cho chuyển dữ liệu xuyên biên giới hay sự đồng ý.
 
 ## §7. Đánh giá & chuẩn "đạt" *(guide 2.4, 4.1)*
-- Data card: `data/DATA_CARD.md` · bộ câu thử: `eval/benchmark.csv` — mục tiêu 25–30 câu (thuong __ · kho __ · tu_choi __), hiện __ câu · metric: `eval/metric_spec.yaml` (mục tiêu 4 metric, hiện __)
-- Bốn metric dự kiến, chấm bằng code (`eval/grade.py`): phân loại đúng cột tên viết tắt tiếng Việt (≥ 85%), trích dẫn đúng điều khoản (100%), tỉ lệ báo động giả trên nhóm âm tính (≤ 10%), nhận đúng trường hợp thiếu thông tin và tự từ chối (≥ 90%). *(đề xuất, chốt chính thức ở task K2)*
-- **Chuẩn "đạt"** (chốt **trước 19:30 Thứ Sáu 27/11**, giữ nguyên đến 23:59 Thứ Bảy 28/11): "Đạt khi ≥ 80% câu qua, và 100% câu đúng về trích dẫn điều khoản." *(đề xuất, chốt ở K2)*
+- Data card: `data/DATA_CARD.md` · bộ câu thử: `eval/benchmark.csv` — mục tiêu 25–30 câu (thuong __ · kho __ · tu_choi __), hiện __ câu · metric: `eval/metric_spec.yaml` (4 metric, đã chốt)
+- Bốn metric, chấm bằng code (`eval/grade.py`), định nghĩa đầy đủ trong `eval/metric_spec.yaml`:
+
+  | Metric | Đo gì | Ngưỡng |
+  |---|---|---|
+  | `phan_loai_viet_tat` | Câu tag=vt: tập nhóm dữ liệu nhạy cảm trong output trùng đúng nhãn | tối thiểu 85% |
+  | `trich_dan_dung` | Mọi mã điều khoản có trong `citations.json` và tập mã bằng đúng nhãn | 100% |
+  | `bao_dong_gia` | Câu tag=am: tỉ lệ có nhóm bị báo kích hoạt sai | tối đa 10% |
+  | `tu_choi_dung` | Câu nhãn cần luật sư / người xác nhận, câu chatbox, câu tấn công: từ chối đúng, không kết luận chắc chắn | tối thiểu 90% |
+
+- **Chuẩn "đạt"** (chốt **trước 19:30 Thứ Sáu 27/11**, giữ nguyên đến 23:59 Thứ Bảy 28/11): "Đạt khi ≥ 80% câu trong `eval/benchmark.csv` qua (cột `pass` = 1), và `trich_dan_dung` đạt 100%."
 - Giới hạn của đo lường: nhãn do nhóm tự dán, không qua luật sư duyệt. Nhãn được commit trước khi viết rule engine; có 10 mẫu giữ lại chỉ chạy một lần ở cuối.
 - Kết quả: lượt 1 __/__ (__%) · lượt 2 __/__ (__%) — run ID: __ / __ → chi tiết `eval/report.md`, hồ sơ `eval/README.md` *(chưa chạy)*
 
