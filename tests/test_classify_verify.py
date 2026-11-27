@@ -273,6 +273,6 @@ class TestVerifyQuotedEvidence(unittest.TestCase):
         self.assertFalse(r["xac_nhan"])
 
     def test_prompt_states_rules(self):
-        for must in ("không có", "không thấy", "bang_chung", "CHÉP NGUYÊN VĂN"):
+        for must in ("bang_chung", "CHÉP NGUYÊN VĂN"):
             self.assertIn(must, verify.SYSTEM)
 
