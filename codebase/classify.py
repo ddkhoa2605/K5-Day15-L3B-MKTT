@@ -141,7 +141,9 @@ def _clamp(v):
         return 0.0
 
 
-PASSES = max(1, int(os.environ.get("CLASSIFY_PASSES") or 2))   # mục 6 (Khoa): phân loại 2 lượt, chốt theo đa số
+# Mục 6 (Khoa): phân loại nhiều lượt, chốt theo đa số. Đo trên dev 50 (2 lần mỗi cấu hình): 2 lượt 43, 43/50 so với
+# 1 lượt 45, 45/50 và token vào ×2,4 → mặc định 1 lượt; bật lại bằng CLASSIFY_PASSES=2.
+PASSES = max(1, int(os.environ.get("CLASSIFY_PASSES") or 1))
 
 
 def _ask(user):
