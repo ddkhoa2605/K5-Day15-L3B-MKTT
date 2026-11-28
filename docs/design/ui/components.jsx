@@ -44,20 +44,21 @@ function Pin({ c, open, size, ring, label }) {
   return <span className={cls} aria-hidden={label ? undefined : "true"} role={label ? "img" : undefined} aria-label={label} />;
 }
 
-// Trạng thái từ rules.py → nhãn + kiểu chip. Không tô đỏ nghĩa vụ đã phát sinh.
+// Trạng thái từ rules.py → [nhãn, nhóm đếm, kiểu chip]. Nghĩa vụ đã phát sinh dùng đỏ gạch trầm (không đỏ báo động),
+// tách khỏi màu cam của "cần xác nhận"; cách xin đồng ý sai đậm hơn (docs/api.md: đỏ đậm).
 const STATUS = {
-  KICH_HOAT: ["Đã phát sinh", "found"],
-  KICH_HOAT_NANG: ["Đã phát sinh, cách xin sai", "found"],
-  MAT_MIEN_TRU: ["Mất miễn trừ", "found"],
-  KHONG_THUOC_DIEN_MIEN: ["Không thuộc diện miễn", "found"],
+  KICH_HOAT: ["Đã phát sinh", "found", "due"],
+  KICH_HOAT_NANG: ["Đã phát sinh, cách xin sai", "found", "due-strong"],
+  MAT_MIEN_TRU: ["Mất miễn trừ", "found", "due"],
+  KHONG_THUOC_DIEN_MIEN: ["Không thuộc diện miễn", "found", "due"],
   CAN_NGUOI_XAC_NHAN: ["Cần bạn xác nhận", "human"],
   CAN_LUAT_SU: ["Cần luật sư rà soát", "human"],
   KHONG_KICH_HOAT: ["Không phát sinh", "none"],
   CON_MIEN_TRU: ["Còn miễn trừ", "ok"],
 };
 function Status({ s }) {
-  const [label, kind] = STATUS[s] || [s, "none"];
-  return <span className={"chip chip--" + kind}>{label}</span>;
+  const [label, kind, chip] = STATUS[s] || [s, "none"];
+  return <span className={"chip chip--" + (chip || kind)}>{label}</span>;
 }
 
 function Chip({ kind = "line", children }) {

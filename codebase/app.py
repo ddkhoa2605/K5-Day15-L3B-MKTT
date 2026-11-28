@@ -4,7 +4,7 @@ Chạy bằng: python run.py   (macOS/Linux có thể là python3, Windows có t
 Nhóm thay bằng giao diện của mình (web, bot…) nhưng giữ `python run.py` là lệnh duy nhất
 để chạy bản chạy thử (sửa hàm run_app() trong run.py nếu cần).
 
-Giao diện web (spec.md §4, §10): `SHP_UI=web python run.py` → chạy codebase/server.py (API + trang web ở web/).
+Giao diện web (spec.md §4, §10): `SHP_UI=web python run.py` → chạy codebase/server.py (API + giao diện docs/design/ui/; SHP_WEB_DIR=web cho bản dự phòng).
 Không đặt SHP_UI thì vẫn là bản dòng lệnh dưới đây — phương án dự phòng, kết quả như nhau.
 """
 import os

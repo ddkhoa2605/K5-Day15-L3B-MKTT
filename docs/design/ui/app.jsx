@@ -15,7 +15,7 @@ const INITIAL = {
   loaiHinh: "khong_ro",
   soChuThe: "",           // chuỗi số
   soKhongRo: true,        // người dùng chọn "Không rõ" số chủ thể
-  mode: "rule",           // rule (không gọi model) | hybrid
+  mode: "hybrid",         // hybrid (mặc định, như backend) | rule (không gọi model, dự phòng khi mất mạng)
   // từ backend
   scan: null,             // response POST /api/scan
   result: null,           // response analyze / business

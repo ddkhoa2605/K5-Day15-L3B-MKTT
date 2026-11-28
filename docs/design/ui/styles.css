@@ -7,6 +7,7 @@
   --color-accent: oklch(70% 0.19 40); --color-accent-ink: oklch(18% 0.006 60); --color-accent-soft: oklch(91% 0.05 50); --color-accent-text: oklch(42% 0.14 40); --color-focus: oklch(60% 0.19 40);
   --color-cool: oklch(48% 0.12 245); --color-cool-soft: oklch(92% 0.035 245);
   --color-ok: oklch(45% 0.11 150); --color-ok-soft: oklch(92% 0.04 150);
+  --color-due: oklch(47% 0.15 28); --color-due-soft: oklch(92% 0.045 28); --color-due-ink: oklch(98% 0.01 28);
   --color-grid: oklch(89.5% 0.014 85); --color-grid-strong: oklch(84% 0.018 85); --color-sheet: oklch(99.3% 0.004 85);
   --color-night: oklch(17% 0.012 250); --color-night-2: oklch(21.5% 0.012 250); --color-night-rule: oklch(34% 0.012 250);
   --color-night-ink: oklch(95% 0.006 85); --color-night-muted: oklch(74% 0.01 250); --color-night-cool: oklch(80% 0.1 240);
@@ -109,6 +110,8 @@ button { font: inherit; }
 /* ── chips (trạng thái) ── */
 .chip { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; min-height: 26px; padding: 0 10px; border-radius: 4px; font-size: 13px; font-weight: 500; }
 .chip--found { background: var(--color-cool-soft); color: var(--color-cool); }
+.chip--due { background: var(--color-due-soft); color: var(--color-due); box-shadow: inset 0 0 0 1px var(--color-due); }
+.chip--due-strong { background: var(--color-due); color: var(--color-due-ink); }
 .chip--human { background: var(--color-accent-soft); color: var(--color-accent-text); }
 .chip--none { background: var(--color-paper-3); color: var(--color-muted); }
 .chip--ok { background: var(--color-ok-soft); color: var(--color-ok); }
@@ -256,8 +259,8 @@ button { font: inherit; }
 .edge b { color: var(--color-ink); font-weight: 600; }
 .out { border-radius: 8px; padding: 10px 14px; font-size: 13.5px; line-height: 1.45; }
 .out b { display: block; font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-.out--found { background: var(--color-cool-soft); color: var(--color-ink-2); }
-.out--found b { color: var(--color-cool); }
+.out--found { background: var(--color-due-soft); color: var(--color-ink-2); }
+.out--found b { color: var(--color-due); }
 .out--human { background: var(--color-accent-soft); color: var(--color-ink-2); }
 .out--human b { color: var(--color-accent-text); }
 .out--none { background: var(--color-paper-3); color: var(--color-ink-2); }

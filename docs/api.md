@@ -3,7 +3,7 @@
 > Bản nháp 27/11/2026. BE viết bằng thư viện chuẩn Python (`http.server`), không cần `pip install`.
 > Chạy: `SHP_UI=web python3 run.py` → `http://127.0.0.1:8000` (hoặc `python3 codebase/server.py`). Đổi cổng: `SHP_PORT=8080`.
 > Không đặt `SHP_UI` thì `python run.py` vẫn là bản dòng lệnh (phương án dự phòng, spec §4). `answer()` không đổi; `eval`, `simulate` chạy như cũ.
-> **Trang web của FE:** đặt file tĩnh (đã build) vào thư mục `web/` ở gốc repo, `web/index.html` là trang chính. Server trả chúng ở `/`, cùng địa chỉ với API → gọi API bằng đường dẫn tương đối `/api/...`, không cần CORS. Dev server riêng (vd Vite ở `localhost:5173`) vẫn gọi được nhờ CORS cho localhost.
+> **Trang web của FE:** mặc định là giao diện Lextrace ở `docs/design/ui/` (`index.html` là trang chính); bản dự phòng một file ở `web/` (chạy với `SHP_WEB_DIR=web`). Server trả chúng ở `/`, cùng địa chỉ với API → gọi API bằng đường dẫn tương đối `/api/...`, không cần CORS. Dev server riêng (vd Vite ở `localhost:5173`) vẫn gọi được nhờ CORS cho localhost.
 
 ## 1. Luồng màn hình
 

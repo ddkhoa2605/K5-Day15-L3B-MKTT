@@ -10,7 +10,8 @@ Chạy:  SHP_UI=web python3 run.py              → http://127.0.0.1:8000  (lệ
 - CORS chỉ cho localhost / 127.0.0.1 và SHP_CORS_ORIGIN: trang web lạ mở trên máy demo không gọi được API
   (để không đốt tiền API).
 - Không sửa run.py: không đặt SHP_UI thì `python run.py` vẫn là bản dòng lệnh; eval / simulate vẫn gọi agent.answer().
-- Trang web (FE): đặt file tĩnh vào thư mục web/ (đổi bằng SHP_WEB_DIR); server trả chúng ở "/", cùng địa chỉ
+- Trang web (FE): mặc định là giao diện Lextrace ở docs/design/ui/ (có thì dùng), không có thì web/.
+  Đổi bằng SHP_WEB_DIR (vd SHP_WEB_DIR=web để dùng bản dự phòng một file). Server trả file tĩnh ở "/", cùng địa chỉ
   với API nên không cần CORS.
 """
 import json
@@ -24,7 +25,13 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import service  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-WEB_DIR = os.environ.get("SHP_WEB_DIR") or os.path.join(ROOT, "web")
+def _default_web_dir():
+    ui = os.path.join(ROOT, "docs", "design", "ui")
+    return ui if os.path.isfile(os.path.join(ui, "index.html")) else os.path.join(ROOT, "web")
+
+
+_env_web = (os.environ.get("SHP_WEB_DIR") or "").strip()
+WEB_DIR = (_env_web if os.path.isabs(_env_web) else os.path.join(ROOT, _env_web)) if _env_web else _default_web_dir()
 MAX_STATIC = 10 * 1024 * 1024
 MAX_BODY = 28 * 1024 * 1024   # zip 20 MB sau base64 (×4/3) ≈ 26,7 MB + phần JSON còn lại
 _LOCAL_ORIGIN = re.compile(r"^http://(localhost|127\.0\.0\.1)(:\d{1,5})?$")
