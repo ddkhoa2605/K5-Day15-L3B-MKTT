@@ -41,8 +41,8 @@
 | Dùng để làm gì | Đầu vào `repo:data/demo_repos/…` cho buổi demo và kiểm luồng quét repo đầu-cuối |
 | Từ đâu | Nhóm tự dựng (Thịnh, T3): `data/demo_repos/repo_a/`, `repo_b/`, `repo_c/`, mỗi repo có `supabase/migrations/001_init.sql` và 2–4 file `app/**/*.ts(x)` |
 | Xử lý những bước gì | Cài sẵn kết quả mong đợi cho từng repo; không cần chạy được |
-| Số dòng / số đoạn | 3 repo — **chưa có trên `main`** (kiểm 27/11 tối), điền số file ở CP3 |
-| Phiên bản / ngày lấy | __ |
+| Số dòng / số đoạn | 3 repo, 14 file: `repo_a` 5 file (3 file `.ts/.tsx`), `repo_b` 4 file (2), `repo_c` 5 file (3); mỗi repo có `package.json` và `supabase/migrations/001_init.sql` |
+| Phiên bản / ngày lấy | Dựng 27/11/2026, commit `785bbf7` (Thịnh), chưa sửa sau đó |
 | Nhãn | `synthetic` |
 | Giới hạn | Repo nhỏ, cố ý cài sẵn tín hiệu → dễ hơn repo thật; không dùng để đo độ chính xác |
 

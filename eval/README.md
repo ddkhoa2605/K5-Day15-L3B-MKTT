@@ -5,7 +5,7 @@
 
 ## 1. Dataset → xử lý
 
-Dataset nào, xử lý gì: tóm 2–3 dòng từ `data/DATA_CARD.md`.
+Ba nguồn (chi tiết `data/DATA_CARD.md`): (1) văn bản luật công khai (Luật 91/2025/QH15, Nghị định 356/2025, bản tin EY về Nghị định 330) tách thành 391 chunk, từ đó Khoa dựng bảng luật `data/legal/*.json` đối chiếu tay; (2) 60 case tự viết có nhãn C1/C2/C3 (`data/cases/cases.jsonl`, nhãn commit trước commit đầu của `codebase/rules.py`); (3) case trích từ code thật của repo công khai Next.js + Supabase, đã ẩn danh (`data/cases/corpus_cases.jsonl`). Không có dữ liệu cá nhân thật.
 
 ## 2. Bộ câu thử dựng ra sao
 
@@ -26,9 +26,12 @@ Dataset nào, xử lý gì: tóm 2–3 dòng từ `data/DATA_CARD.md`.
 
 | Metric (`eval/metric_spec.yaml`) | Cách chấm | Ngưỡng |
 |---|---|---|
-| | code / llm / nguoi | |
-| | | |
-| | | |
+| `phan_loai_viet_tat`: câu tag `vt`, tập nhóm nhạy cảm trong output trùng đúng nhãn | code (`eval/grade.py`) | ≥ 85% |
+| `trich_dan_dung`: mọi mã điều khoản có trong `data/legal/citations.json` và tập mã bằng đúng nhãn | code | 100% |
+| `bao_dong_gia`: câu tag `am`, tỉ lệ có nhóm bị báo kích hoạt sai | code | ≤ 10% |
+| `tu_choi_dung`: câu nhãn cần luật sư / cần người xác nhận, chatbox, tấn công: từ chối đúng, không kết luận chắc chắn | code | ≥ 90% |
+
+Metric có n < 10 chỉ báo k/n, không kết luận theo % (`SMALL_N` trong `grade.py`).
 
 - **Người thứ hai chấm thử:** Nguyễn Văn Minh (không phải người viết spec) chấm độc lập 5 output → khớp 5/5 *(cần ≥4/5; lệch thì viết lại định nghĩa)*
   - Lấy mẫu đều trong `eval/run-2.csv` (dòng 1, 7, 13, 19, 25, mỗi dòng cách nhau 6 câu, không chọn tay). Chấm theo `pass_criterion`: đọc khối JSON cuối output, so trạng thái C1/C2/C3, tập `C3.nhom_nhay_cam`, tập `can_cu`, và kiểm mọi mã có trong `data/legal/citations.json`. Chấm xong mới so với cột `pass`.
@@ -42,8 +45,8 @@ Dataset nào, xử lý gì: tóm 2–3 dòng từ `data/DATA_CARD.md`.
     | `c3-vt-004` | kho | 1 | 1 | Đủ 5 căn cứ, nhóm `tai_chinh` khớp |
 
   - Giới hạn: tiêu chí là so khớp chính xác nên hai người chấm gần như chắc chắn khớp nhau. Chỗ có thể lệch là `dt-r01-001`: hệ thống gắn `dinh_danh_dien_tu` vì có cột `cccd`, việc này có thể hợp lý về mặt pháp lý nhưng vẫn trượt vì nhãn chỉ ghi `suc_khoe`. Mình không sửa `expected`; nếu muốn, câu này nên ghi vào cờ cần Khoa xem lại trong `LABELING.md`.
-- LLM chấm (nếu có): đã kiểm tay __ câu, khớp __/__
-- **Chuẩn "đạt"** (chép nguyên từ `spec.md` §7, chốt trước 19:30 Thứ Sáu 27/11): "__"
+- LLM chấm: không dùng; cả 4 metric chấm bằng code.
+- **Chuẩn "đạt"** (chép nguyên từ `spec.md` §7, chốt trước 19:30 Thứ Sáu 27/11): "Đạt khi ≥ 80% câu trong `eval/benchmark.csv` qua (cột `pass` = 1), và `trich_dan_dung` đạt 100%."
 
 ## 4. Lệnh
 
@@ -69,4 +72,4 @@ Lượt chạy lại vì lỗi kỹ thuật, lượt sau CP4: ghi thêm dòng, k
 
 ## 6. Lỗi chính
 
-Tóm 2–3 dòng từ `eval/report.md`: nhóm lỗi lớn nhất · đã sửa gì · còn lại gì.
+Chi tiết `eval/report.md`. Nhóm lỗi nguy hiểm nhất là **bỏ sót dữ liệu cá nhân gửi ra nước ngoài** (C1 âm tính giả, 5/9 câu trượt ở lượt 1, đều từ code thật). PR #15 thêm lần theo dữ liệu qua biến trung gian, hàm bọc và quy tắc người nhận email, đồng thời sửa prompt phân loại cột mốc thời gian, cột chữ tự do: lượt 1 → lượt 2 là 70% → 80%, nhưng phần tăng nằm chủ yếu ở nhóm gắn nhầm `hanh_vi_mang` (4/4 hết lỗi); nhóm bỏ sót C1 chỉ sửa được 1/5. Còn lại: 4 câu C1 trên code thật, `trich_dan_dung` 81% (chưa tới 100%) nên **chưa đạt chuẩn** ở cả bốn lượt; bộ mù 12 câu chưa chạy.
