@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ship Hợp Pháp: quét repo</title>
+<!-- so-kiem: manila · dựa trên Furrow (bản đồ ghim) + Console (bản ghi) + Almanac (dải tối) của Hallmark, MIT -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --color-paper: oklch(95.5% 0.014 85); --color-paper-2: oklch(99.5% 0.005 85); --color-paper-3: oklch(91.5% 0.018 85);
+  --color-ink: oklch(18% 0.006 60); --color-ink-2: oklch(28% 0.008 60); --color-muted: oklch(44% 0.012 60);
+  --color-rule: oklch(86% 0.014 85); --color-rule-ink: oklch(18% 0.006 60);
+  --color-accent: oklch(70% 0.19 40); --color-accent-ink: oklch(18% 0.006 60); --color-accent-soft: oklch(91% 0.05 50); --color-focus: oklch(60% 0.19 40);
+  --color-cool: oklch(50% 0.12 245); --color-cool-soft: oklch(92% 0.035 245);
+  --color-grid: oklch(89.5% 0.014 85); --color-grid-strong: oklch(84% 0.018 85); --color-sheet: oklch(99.3% 0.004 85);
+  --color-night: oklch(17% 0.012 250); --color-night-2: oklch(22% 0.012 250); --color-night-rule: oklch(34% 0.012 250);
+  --color-night-ink: oklch(95% 0.006 85); --color-night-muted: oklch(74% 0.01 250); --color-night-cool: oklch(80% 0.1 240);
+  --font-display: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif; --font-body: var(--font-display);
+  --font-outlier: "JetBrains Mono", ui-monospace, monospace;
+  --radius-card: 10px; --radius-entry: 14px; --radius-pill: 6px; --rule-hair: 1px;
+  --shadow-lift: 0 1px 1px oklch(18% 0.006 60 / 0.1), 0 2px 4px -1px oklch(18% 0.006 60 / 0.1), 0 24px 44px -20px oklch(18% 0.006 60 / 0.42);
+  --shadow-sheet: 0 1px 2px oklch(18% 0.006 60 / 0.08), 0 14px 28px -16px oklch(18% 0.006 60 / 0.28);
+  --tracking-display: -0.035em; --display-weight: 600;
+  --space-xs: 8px; --space-sm: 12px; --space-md: 20px; --space-lg: 32px; --space-xl: 64px; --space-2xl: 112px;
+  --dur-short: 180ms; --dur-long: 520ms; --ease-out: cubic-bezier(.2,.7,.2,1);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); font-size: 16px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: var(--display-weight); letter-spacing: var(--tracking-display); line-height: 1.05; margin: 0; }
+p { margin: 0; }
+a { color: inherit; text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+::selection { background: var(--color-accent-soft); }
+.wrap { max-width: 1280px; margin: 0 auto; padding-inline: var(--space-lg); }
+.num { font-family: var(--font-outlier); font-variant-numeric: tabular-nums slashed-zero; }
+.muted { color: var(--color-muted); }
+.small { font-size: 14px; }
+
+/* ── header ── */
+.top { border-bottom: var(--rule-hair) solid var(--color-rule-ink); background: var(--color-paper); position: relative; z-index: 2; }
+.top .wrap { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 32px; min-height: 64px; }
+.brand { font-weight: 600; font-size: 19px; letter-spacing: -0.03em; text-decoration: none; display: inline-flex; align-items: center; gap: 10px; }
+.brand svg { width: 22px; height: 22px; }
+.nav { display: flex; flex-wrap: wrap; gap: 6px 26px; font-size: 15px; font-weight: 500; margin-inline: auto; }
+.nav a { text-decoration: none; color: var(--color-ink-2); }
+.nav a:hover { color: var(--color-ink); text-decoration: underline; }
+.top-end { display: flex; align-items: center; gap: 14px; font-size: 14px; }
+
+/* ── controls ── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 var(--space-md);
+  border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill);
+  background: var(--color-paper-2); color: var(--color-ink); font: inherit; font-weight: 500; text-decoration: none; cursor: pointer;
+  box-shadow: inset 0 1px 0 var(--color-sheet), 0 1px 1px var(--color-rule);
+  transition: transform var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+}
+.btn:active { transform: translateY(1px); }
+.btn--primary {
+  background: var(--color-accent); color: var(--color-accent-ink);
+  border-color: color-mix(in oklab, var(--color-accent) 78%, var(--color-ink));
+  box-shadow: inset 0 1px 0 color-mix(in oklab, var(--color-sheet) 32%, transparent), inset 0 -1px 0 color-mix(in oklab, var(--color-ink) 12%, transparent);
+}
+.btn--sm { min-height: 38px; padding: 0 14px; font-size: 14px; }
+
+.field { position: relative; display: block; }
+.field label { position: absolute; left: 14px; top: 8px; font-size: 12px; font-weight: 500; color: var(--color-muted); pointer-events: none; }
+.field input, .field select {
+  width: 100%; height: 58px; padding: 22px 14px 6px; background: var(--color-paper-2); color: var(--color-ink);
+  border: var(--rule-hair) solid var(--color-muted); border-radius: var(--radius-pill); font: inherit; font-size: 15px; appearance: none;
+}
+.field select { background-image: linear-gradient(45deg, transparent 50%, var(--color-ink) 50%), linear-gradient(135deg, var(--color-ink) 50%, transparent 50%); background-position: calc(100% - 20px) 28px, calc(100% - 15px) 28px; background-size: 5px 5px; background-repeat: no-repeat; }
+.field input.num { font-family: var(--font-outlier); }
+
+/* ── hero ── */
+.hero { position: relative; border-bottom: var(--rule-hair) solid var(--color-rule-ink); overflow: hidden; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-xl); align-items: center; padding-block: 72px 88px; }
+.hero h1 { font-size: clamp(40px, 4.6vw, 64px); }
+.hero .lede { margin-top: 22px; font-size: 19px; color: var(--color-ink-2); max-width: 520px; }
+.scan { margin-top: 34px; display: grid; gap: 12px; max-width: 520px; }
+.scan-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.scan-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 6px; }
+.scan-note { margin-top: 14px; font-size: 14px; color: var(--color-muted); }
+.scan-note .num { color: var(--color-ink-2); }
+
+/* the bench: notebook grid holding the code sheet and the obligation card */
+.bench {
+  position: relative; border-radius: var(--radius-card);
+  background:
+    linear-gradient(var(--color-grid) 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(var(--color-grid-strong) 1px, transparent 1px) 0 0 / 40px 40px,
+    linear-gradient(90deg, var(--color-grid-strong) 1px, transparent 1px) 0 0 / 40px 40px,
+    var(--color-paper-2);
+  border: var(--rule-hair) solid var(--color-rule);
+  padding: 28px;
+}
+.sheet {
+  position: relative; width: min(100%, 560px); background: var(--color-sheet); border-radius: 4px;
+  box-shadow: var(--shadow-sheet); border: var(--rule-hair) solid var(--color-rule);
+}
+.tabs { display: flex; border-bottom: var(--rule-hair) solid var(--color-rule-ink); overflow-x: auto; }
+.tab {
+  display: inline-flex; align-items: center; gap: 8px; padding: 12px 16px; border: 0; border-right: var(--rule-hair) solid var(--color-rule);
+  background: transparent; font: inherit; font-size: 13px; color: var(--color-muted); cursor: pointer; white-space: nowrap;
+}
+.tab .num { font-size: 12.5px; }
+.tab[aria-selected="true"] { color: var(--color-ink); background: var(--color-paper-2); box-shadow: inset 0 -2px 0 var(--color-ink); }
+.code { padding: 14px 0 18px; font-family: var(--font-outlier); font-size: 13px; line-height: 1.95; overflow-x: auto; }
+.ln { display: grid; grid-template-columns: 44px 40px minmax(0, 1fr); align-items: center; white-space: pre; color: var(--color-ink-2); }
+.ln .no { text-align: right; color: var(--color-muted); padding-right: 4px; }
+.ln .pin-slot { display: flex; justify-content: center; }
+.ln.hit { background: var(--color-cool-soft); color: var(--color-ink); }
+.ln.hit .no { color: var(--color-cool); font-weight: 500; }
+
+/* pins: disc C1, diamond C2, triangle C3 */
+.pin { width: 14px; height: 14px; display: inline-block; background: var(--color-ink); border: 0; padding: 0; cursor: pointer; position: relative; }
+.pin--c1 { border-radius: 50%; }
+.pin--c2 { transform: rotate(45deg) scale(.86); border-radius: 2px; }
+.pin--c3 { clip-path: polygon(50% 4%, 100% 96%, 0 96%); width: 16px; }
+.pin.open { background: var(--color-accent); box-shadow: 0 0 0 2px var(--color-ink); }
+.pin--c3.open { box-shadow: none; }
+.tag {
+  position: absolute; right: 14px; padding: 3px 9px; border-radius: 4px; background: var(--color-ink); color: var(--color-paper-2);
+  font-family: var(--font-outlier); font-size: 12px; line-height: 1.5; pointer-events: none;
+}
+
+/* obligation card */
+.entry {
+  position: relative; margin: -56px 0 0 auto; width: min(380px, 100%);
+  border-radius: var(--radius-entry); background: var(--color-paper-2); box-shadow: 0 0 0 1px var(--color-ink), var(--shadow-lift); overflow: hidden;
+  transition: opacity var(--dur-long) var(--ease-out), transform var(--dur-long) var(--ease-out);
+}
+.entry.swap { opacity: 0; transform: translateY(8px); }
+.entry-head { background: var(--color-ink); color: var(--color-paper-2); padding: 14px 18px 16px; }
+.entry-kind { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 13px; font-weight: 500; }
+.entry-kind .k { display: inline-flex; align-items: center; gap: 8px; }
+.entry-kind .k i { width: 9px; height: 9px; background: var(--color-accent); display: inline-block; border-radius: 50%; }
+.entry-title { margin-top: 8px; font-size: 22px; font-weight: 600; letter-spacing: -0.025em; line-height: 1.15; }
+.cells {
+  display: grid; grid-template-columns: 1fr 1fr;
+  background:
+    linear-gradient(var(--color-grid) 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(90deg, var(--color-grid) 1px, transparent 1px) 0 0 / 8px 8px,
+    var(--color-paper-2);
+}
+.cell { padding: 10px 16px 12px; border-top: var(--rule-hair) solid var(--color-ink); min-width: 0; }
+.cell:nth-child(odd) { border-right: var(--rule-hair) solid var(--color-ink); }
+.cell.wide { grid-column: 1 / -1; border-right: 0; }
+.cell dt { font-size: 12px; font-weight: 500; color: var(--color-muted); }
+.cell dd { margin: 2px 0 0; font-size: 15px; font-weight: 500; overflow-wrap: anywhere; }
+.cell dd.num { font-size: 14px; }
+.entry-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; border-top: var(--rule-hair) solid var(--color-ink); }
+.chip { display: inline-flex; align-items: center; white-space: nowrap; min-height: 26px; padding: 0 10px; border-radius: 4px; font-size: 13px; font-weight: 500; }
+.chip--found { background: var(--color-cool-soft); color: var(--color-cool); }
+.chip--human { background: var(--color-accent-soft); color: oklch(40% 0.13 40); }
+.chip--draft { background: var(--color-ink); color: var(--color-paper-2); }
+
+/* ── section: three things ── */
+.section { padding-block: var(--space-2xl); }
+.two { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--space-xl); align-items: start; }
+.section h2 { font-size: clamp(32px, 3.8vw, 50px); }
+.section .lede { margin-top: 16px; font-size: 18px; color: var(--color-muted); max-width: 460px; }
+.ruled { list-style: none; margin: 40px 0 0; padding: 0; border-top: var(--rule-hair) solid var(--color-rule-ink); }
+.ruled li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 4px 12px; padding: 18px 0; border-bottom: var(--rule-hair) solid var(--color-rule); }
+.ruled li .pin { margin-top: 8px; cursor: default; }
+.ruled h3 { font-size: 21px; letter-spacing: -0.02em; }
+.ruled p { grid-column: 2; font-size: 15px; color: var(--color-muted); }
+.ruled .law { grid-column: 2; font-family: var(--font-outlier); font-size: 13px; color: var(--color-ink-2); }
+
+/* the folded draft sheet on the bench */
+.bench--flat { min-height: 0; padding: 48px; display: grid; place-items: center; }
+.draft {
+  width: min(100%, 560px); background: var(--color-sheet); border-radius: 3px; padding: 34px 36px 30px;
+  box-shadow: var(--shadow-sheet);
+  background-image:
+    linear-gradient(180deg, transparent calc(33.3% - 1px), oklch(18% 0.006 60 / 0.06) calc(33.3% - 1px), oklch(99.3% 0.004 85 / 0.9) 33.3%, transparent calc(33.3% + 6px)),
+    linear-gradient(180deg, transparent calc(66.6% - 1px), oklch(18% 0.006 60 / 0.06) calc(66.6% - 1px), oklch(99.3% 0.004 85 / 0.9) 66.6%, transparent calc(66.6% + 6px));
+}
+.draft-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; padding-bottom: 14px; border-bottom: 2px solid var(--color-ink); }
+.draft-head h3 { font-size: 20px; letter-spacing: -0.02em; line-height: 1.25; }
+.draft-head p { margin-top: 4px; font-size: 13px; color: var(--color-muted); }
+.draft table { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: 14px; }
+.draft th { text-align: left; font-weight: 500; color: var(--color-muted); font-size: 13px; padding: 11px 12px 11px 0; width: 38%; vertical-align: top; }
+.draft td { padding: 11px 0; vertical-align: top; }
+.draft tr + tr { border-top: var(--rule-hair) solid var(--color-rule); }
+.blank { display: inline-block; min-width: 140px; border-bottom: 1.5px dashed var(--color-accent); color: var(--color-muted); font-size: 13px; }
+.draft-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; padding-top: 14px; border-top: 2px solid var(--color-ink); font-size: 13px; }
+
+/* ── night band: what leaves the machine ── */
+.night { background: var(--color-night); color: var(--color-night-ink); }
+.night .section { padding-block: 96px; }
+.night h2 { color: var(--color-night-ink); }
+.night .lede { color: var(--color-night-muted); }
+.night-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-xl); margin-top: 48px; padding-top: 40px; border-top: var(--rule-hair) solid var(--color-night-ink); }
+.seg { display: inline-flex; border: var(--rule-hair) solid var(--color-night-rule); border-radius: var(--radius-pill); overflow: hidden; }
+.seg button { min-height: 44px; padding: 0 18px; border: 0; background: transparent; color: var(--color-night-muted); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.seg button + button { border-left: var(--rule-hair) solid var(--color-night-rule); }
+.seg button[aria-pressed="true"] { background: var(--color-accent); color: var(--color-accent-ink); }
+.payload { margin-top: 22px; font-family: var(--font-outlier); font-size: 14px; line-height: 2; }
+.payload .hl { display: inline-block; background: var(--color-accent); color: var(--color-accent-ink); padding: 0 6px; border-radius: 2px; }
+.payload .row { color: var(--color-night-cool); }
+.payload .cut { color: var(--color-night-muted); text-decoration: line-through; }
+.keys { border-top: var(--rule-hair) solid var(--color-night-ink); }
+.keys div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 16px; padding: 14px 0; border-bottom: var(--rule-hair) solid var(--color-night-rule); font-size: 15px; }
+.keys dt { font-family: var(--font-outlier); font-size: 14px; color: var(--color-night-ink); }
+.keys dd { margin: 0; color: var(--color-night-muted); }
+
+/* ── footer ── */
+.foot { padding-block: 40px 56px; border-top: var(--rule-hair) solid var(--color-rule-ink); }
+.foot .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px 40px; font-size: 14px; color: var(--color-muted); }
+.foot ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 28px; }
+
+/* ── landing motion ── */
+@media (prefers-reduced-motion: no-preference) {
+  .js .bench .pin { opacity: 0; transform-origin: center; }
+  .js .bench.landed .pin { animation: land var(--dur-long) var(--ease-out) forwards; }
+  .js .bench.landed .ln:nth-child(n) .pin { animation-delay: calc(var(--i, 0) * 140ms); }
+  @keyframes land { from { opacity: 0; translate: 0 -10px; } to { opacity: 1; translate: 0 0; } }
+}
+
+/* ── phone ── */
+@media (max-width: 960px) {
+  .hero-grid, .two, .night-grid { grid-template-columns: minmax(0, 1fr); }
+  .bench { min-height: 0; padding: 16px; }
+  .entry { width: 100%; margin-top: 16px; }
+  .scan-row { grid-template-columns: minmax(0, 1fr); }
+  .nav { margin-inline: 0; order: 3; width: 100%; }
+  .bench--flat { padding: 16px; }
+  .keys div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 22 22" aria-hidden="true"><rect x="1.5" y="1.5" width="19" height="19" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M6 8h10M6 12h6M6 16h8" stroke="currentColor" stroke-width="1.6"/><circle cx="16.5" cy="12" r="2.2" fill="oklch(70% 0.19 40)"/></svg>
+      Ship Hợp Pháp
+    </a>
+    <nav class="nav" aria-label="Chính">
+      <a href="#quet">Quét repo</a>
+      <a href="#ba-nhom">Ba nhóm kiểm</a>
+      <a href="#ho-so">Bản nháp hồ sơ</a>
+      <a href="#gui-ra">Gửi gì ra ngoài</a>
+    </nav>
+    <div class="top-end">
+      <span class="muted">Luật 91/2025/QH15</span>
+      <a class="btn btn--sm" href="#quet">Quét một repo</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- HERO -->
+<section class="hero" id="quet">
+  <div class="wrap hero-grid">
+    <div>
+      <h1>Nghĩa vụ dữ liệu cá nhân, chỉ ra tới từng dòng code.</h1>
+      <p class="lede">Đưa repo Next.js + Supabase trước khi bàn giao cho khách. Ship Hợp Pháp chỉ ra nghĩa vụ nào đã phát sinh, dòng nào làm phát sinh, điều luật nào làm căn cứ. Bạn xem bằng chứng và xác nhận.</p>
+
+      <form class="scan" onsubmit="event.preventDefault()">
+        <div class="field">
+          <label for="repo">Đường dẫn repo</label>
+          <input id="repo" class="num" type="text" value="repo:tests/fixtures/mini_repo">
+        </div>
+        <div class="scan-row">
+          <div class="field">
+            <label for="loai">Loại hình doanh nghiệp</label>
+            <select id="loai">
+              <option value="khong_ro">Chưa rõ</option>
+              <option value="ho_kinh_doanh">Hộ kinh doanh</option>
+              <option value="doanh_nghiep_sieu_nho">Doanh nghiệp siêu nhỏ</option>
+              <option value="doanh_nghiep_nho">Doanh nghiệp nhỏ</option>
+              <option value="khoi_nghiep">Khởi nghiệp</option>
+              <option value="doanh_nghiep_lon">Doanh nghiệp lớn</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="chuthe">Số chủ thể lũy kế</label>
+            <input id="chuthe" class="num" type="text" inputmode="numeric" placeholder="chưa biết">
+          </div>
+        </div>
+        <div class="scan-actions">
+          <button class="btn btn--primary" type="submit">Quét repo</button>
+          <a class="btn" href="#ho-so">Xem bản nháp mẫu</a>
+        </div>
+      </form>
+      <p class="scan-note">Chạy trên máy bạn: <span class="num">python run.py</span>. Phân tích tĩnh, không chạy app.</p>
+    </div>
+
+    <div class="bench" id="bench" aria-label="Ví dụ kết quả quét repo mini_repo">
+      <div class="sheet">
+        <div class="tabs" role="tablist" aria-label="File có bằng chứng">
+          <button class="tab" role="tab" data-file="route" aria-selected="true"><span class="pin pin--c1" aria-hidden="true" style="width:9px;height:9px"></span><span class="num">app/api/chat/route.ts</span></button>
+          <button class="tab" role="tab" data-file="signup" aria-selected="false"><span class="pin pin--c2" aria-hidden="true" style="width:9px;height:9px"></span><span class="num">app/signup/page.tsx</span></button>
+          <button class="tab" role="tab" data-file="sql" aria-selected="false"><span class="pin pin--c3" aria-hidden="true" style="width:10px;height:9px"></span><span class="num">001_init.sql</span></button>
+        </div>
+        <div class="code" id="code" role="tabpanel"></div>
+      </div>
+
+      <article class="entry" id="entry" aria-live="polite">
+        <div class="entry-head">
+          <div class="entry-kind"><span class="k"><i aria-hidden="true"></i><span id="e-kind">C1</span></span><span class="num" id="e-where">route.ts:10</span></div>
+          <div class="entry-title" id="e-title">Chuyển dữ liệu cá nhân ra nước ngoài</div>
+        </div>
+        <dl class="cells" id="e-cells"></dl>
+        <div class="entry-foot">
+          <span class="chip" id="e-status">Đã phát sinh</span>
+          <button class="btn btn--primary btn--sm" type="button" id="e-action">Tôi đã xem, xác nhận</button>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- THREE CHECKS + DRAFT -->
+<section class="section" id="ba-nhom">
+  <div class="wrap two">
+    <div>
+      <h2>Ba câu khách sẽ hỏi trước khi nhận app</h2>
+      <p class="lede">Chỉ ba nhóm kiểm tra, mỗi nhóm trỏ về điều luật cụ thể. Không thêm nhóm thứ tư.</p>
+      <ul class="ruled">
+        <li>
+          <span class="pin pin--c1" aria-hidden="true"></span>
+          <h3>Dữ liệu có ra nước ngoài không</h3>
+          <p>Gọi OpenAI, Anthropic, Google, analytics, email đặt ngoài Việt Nam kèm dữ liệu người dùng.</p>
+          <span class="law">Luat91 D20 · hồ sơ trong 60 ngày</span>
+        </li>
+        <li>
+          <span class="pin pin--c2" aria-hidden="true"></span>
+          <h3>Đồng ý có hợp lệ không</h3>
+          <p>Ô đồng ý tích sẵn, câu "tiếp tục sử dụng là đồng ý", không có chỗ lưu đồng ý.</p>
+          <span class="law">Luat91 D9 · ND356 D6</span>
+        </li>
+        <li>
+          <span class="pin pin--c3" aria-hidden="true"></span>
+          <h3>Còn được miễn trừ không</h3>
+          <p>Doanh nghiệp nhỏ, siêu nhỏ mất miễn trừ khi xử lý dữ liệu nhạy cảm như vị trí, sức khỏe.</p>
+          <span class="law">Luat91 D38 · ND356 D41</span>
+        </li>
+      </ul>
+    </div>
+
+    <div class="bench bench--flat" id="ho-so">
+      <div class="draft">
+        <div class="draft-head">
+          <div>
+            <h3>Hồ sơ đánh giá tác động chuyển dữ liệu xuyên biên giới</h3>
+            <p>Repo mini_repo · căn cứ <span class="num">Luat91 D20.1, D20.2</span></p>
+          </div>
+          <span class="chip chip--draft">Bản nháp</span>
+        </div>
+        <table>
+          <tr><th scope="row">Dòng chuyển</th><td><span class="num">route.ts:10</span> → <span class="num">chat.completions.create</span></td></tr>
+          <tr><th scope="row">Trường cá nhân</th><td><span class="num">users.email</span></td></tr>
+          <tr><th scope="row">Mục đích chuyển</th><td><span class="blank">bạn điền</span></td></tr>
+          <tr><th scope="row">Bên nhận, quốc gia</th><td><span class="blank">bạn điền</span></td></tr>
+          <tr><th scope="row">Biện pháp bảo vệ</th><td><span class="blank">bạn điền</span></td></tr>
+          <tr><th scope="row">Hạn gửi</th><td><span class="num">60 ngày</span> kể từ lần chuyển đầu tiên</td></tr>
+        </table>
+        <div class="draft-foot">
+          <span class="chip chip--human">Chờ người chịu trách nhiệm duyệt</span>
+          <span class="muted">Không tự gửi đi đâu</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NIGHT BAND -->
+<div class="night" id="gui-ra">
+  <section class="section">
+    <div class="wrap">
+      <div class="two" style="align-items:end">
+        <h2>Bạn thấy trước mọi thứ rời khỏi máy.</h2>
+        <div>
+          <p class="lede">Không bao giờ gửi cả mã nguồn. Chế độ <span class="num">rule</span> không gửi gì; <span class="num">hybrid</span> chỉ gửi tên bảng, tên cột và đoạn code đã lọc secret.</p>
+          <div class="seg" role="group" aria-label="Chế độ" style="margin-top:22px">
+            <button type="button" data-mode="rule" aria-pressed="false">rule</button>
+            <button type="button" data-mode="hybrid" aria-pressed="true">hybrid</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="night-grid">
+        <div class="payload" id="payload" aria-live="polite"></div>
+        <dl class="keys">
+          <div><dt>tên bảng, tên cột</dt><dd>Để model phân loại cột viết tắt vào nhóm dữ liệu nhạy cảm</dd></div>
+          <div><dt>đoạn code ±5 dòng</dt><dd>Để model xác nhận đường đi từ dữ liệu cá nhân tới dịch vụ ngoài</dd></div>
+          <div><dt>secret</dt><dd>API key, token bị lọc trước khi gửi</dd></div>
+          <div><dt>kết luận</dt><dd>Vẫn do <span class="num">rules.py</span> quyết, trích dẫn chỉ lấy từ <span class="num">citations.json</span></dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+</div>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <span>Kết quả là gợi ý để người chịu trách nhiệm xác nhận, không phải ý kiến pháp lý.</span>
+    <ul>
+      <li>Không cấp chứng nhận tuân thủ</li>
+      <li>Không tự nộp hồ sơ</li>
+      <li>Không dò app đang chạy</li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+document.documentElement.classList.add('js');
+
+// Dữ liệu lấy từ output thật: SHP_MODE=rule, repo:tests/fixtures/mini_repo
+const FILES = {
+  route: { start: 7, hits: { 10: 'c1' }, lines: [
+    '  const { msg, userId } = await req.json();',
+    '  const supabase = createClient(process.env.SUPABASE_URL!, [đã lọc]);',
+    '  const { data: user } = await supabase.from("Users").select("email")',
+    '  const r = await openai.chat.completions.create({',
+    '    model: "gpt-4o-mini",',
+    '    messages: [{ role: "user", content: user.email + ": " + msg }],',
+    '  });',
+    '  await fetch("https://api.momo.vn/pay", { method: "POST" });',
+    '  return Response.json({ reply: r.choices[0].message.content });',
+  ]},
+  signup: { start: 1, hits: { 5: 'c2', 8: 'c2' }, lines: [
+    'export default function Signup() {',
+    '  return (',
+    '    <form>',
+    '      <label>',
+    '        <input type="checkbox" defaultChecked />',
+    '        Tôi đồng ý với điều khoản sử dụng',
+    '      </label>',
+    '      <p>Bằng việc tiếp tục sử dụng, bạn được coi là đồng ý…</p>',
+    '    </form>',
+  ]},
+  sql: { start: 7, hits: { 12: 'c3' }, lines: [
+    ');',
+    '',
+    'create table bookings (',
+    '  id uuid primary key,',
+    '  user_id uuid references public."Users"(id),',
+    '  vi_tri_gan_nhat text,',
+    '  gia numeric(10, 2),',
+    '  constraint bookings_gia_check check (gia >= 0)',
+    ');',
+  ]},
+};
+
+const ENTRIES = {
+  c1: { file: 'route', kind: 'C1 · Điều 20 Luật 91', where: 'route.ts:10', title: 'Chuyển dữ liệu cá nhân ra nước ngoài',
+        status: ['Đã phát sinh', 'found'], action: 'Tôi đã xem, xác nhận',
+        cells: [['Trường', 'users.email', 1], ['Đích', 'chat.completions.create', 1], ['Căn cứ', 'Luat91 D20.2', 1], ['Hạn', '60 ngày', 1],
+                ['Mức phạt tham khảo (khung, tổ chức)', '30–50 triệu đồng · ND330 D56.1', 0, 1]] },
+  c2: { file: 'signup', kind: 'C2 · Điều 9 Luật 91', where: 'page.tsx:5, :8', title: 'Cách xin đồng ý không hợp lệ',
+        status: ['Đã phát sinh, cách xin sai', 'found'], action: 'Tôi đã xem, xác nhận',
+        cells: [['Dòng 5', 'Ô đồng ý tích sẵn', 0], ['Dòng 8', 'Im lặng là đồng ý', 0], ['Căn cứ', 'Luat91 D9.4d', 1], ['Căn cứ', 'ND356 D6.3', 1],
+                ['Mức phạt tham khảo (khung, tổ chức)', '50–70 triệu đồng · ND330 D43.2b', 0, 1]] },
+  c3: { file: 'sql', kind: 'C3 · Điều 38 Luật 91', where: '001_init.sql:12', title: 'Không còn miễn trừ, cần chốt loại hình',
+        status: ['Cần bạn xác nhận', 'human'], action: 'Chọn loại hình',
+        cells: [['Cột', 'bookings.vi_tri_gan_nhat', 1], ['Nhóm', 'vi_tri_dinh_vi', 1], ['Độ tin cậy', '1.0', 1], ['Còn thiếu', 'Loại hình DN', 0],
+                ['Vì sao', 'Có dữ liệu vị trí: loại hình nào cũng không còn miễn trừ, chỉ đổi căn cứ.', 0, 1]] },
+};
+
+const $ = (s, r = document) => r.querySelector(s);
+const code = $('#code'), bench = $('#bench'), entry = $('#entry');
+let openId = 'c1';
+
+function renderFile(key) {
+  const f = FILES[key];
+  code.replaceChildren();
+  let i = 0;
+  f.lines.forEach((text, idx) => {
+    const n = f.start + idx;
+    const row = document.createElement('div');
+    row.className = 'ln';
+    const no = document.createElement('span'); no.className = 'no'; no.textContent = n;
+    const slot = document.createElement('span'); slot.className = 'pin-slot';
+    const src = document.createElement('span'); src.textContent = text || ' ';
+    const hit = f.hits[n];
+    if (hit) {
+      row.classList.add('hit');
+      const pin = document.createElement('button');
+      pin.type = 'button';
+      pin.className = 'pin pin--' + hit + (hit === openId ? ' open' : '');
+      pin.setAttribute('aria-label', 'Mở ' + hit.toUpperCase() + ', dòng ' + n);
+      pin.style.setProperty('--i', i++);
+      pin.addEventListener('click', () => open(hit));
+      slot.append(pin);
+    }
+    row.append(no, slot, src);
+    code.append(row);
+  });
+  document.querySelectorAll('.tab').forEach((t) => t.setAttribute('aria-selected', String(t.dataset.file === key)));
+}
+
+function fillEntry(id) {
+  const e = ENTRIES[id];
+  $('#e-kind').textContent = e.kind;
+  $('#e-where').textContent = e.where;
+  $('#e-title').textContent = e.title;
+  const st = $('#e-status');
+  st.textContent = e.status[0];
+  st.className = 'chip chip--' + e.status[1];
+  $('#e-action').textContent = e.action;
+  const dl = $('#e-cells');
+  dl.replaceChildren();
+  e.cells.forEach(([k, v, mono, wide]) => {
+    const c = document.createElement('div');
+    c.className = 'cell' + (wide ? ' wide' : '');
+    const dt = document.createElement('dt'); dt.textContent = k;
+    const dd = document.createElement('dd'); dd.textContent = v; if (mono) dd.className = 'num';
+    c.append(dt, dd); dl.append(c);
+  });
+}
+
+function open(id) {
+  openId = id;
+  renderFile(ENTRIES[id].file);
+  entry.classList.add('swap');
+  setTimeout(() => { fillEntry(id); entry.classList.remove('swap'); }, 160);
+}
+
+document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+  const id = Object.keys(ENTRIES).find((k) => ENTRIES[k].file === t.dataset.file);
+  open(id);
+}));
+
+renderFile('route');
+fillEntry('c1');
+new IntersectionObserver((es, o) => { if (es[0].isIntersecting) { bench.classList.add('landed'); o.disconnect(); } }, { threshold: 0.3 }).observe(bench);
+
+// Gửi gì ra ngoài
+const payload = $('#payload');
+function renderPayload(mode) {
+  payload.replaceChildren();
+  const add = (text, cls) => { const d = document.createElement('div'); const s = document.createElement('span'); s.className = cls; s.textContent = text; d.append(s); payload.append(d); };
+  if (mode === 'rule') {
+    add('che_do: rule', 'hl');
+    add('da_gui_ra_ngoai: []', 'row');
+    add('không gửi gì cho model AI', 'row');
+  } else {
+    add('che_do: hybrid', 'hl');
+    add('Users.email', 'row');
+    add('Users.Ho_Ten', 'row');
+    add('bookings.vi_tri_gan_nhat', 'row');
+    add('app/api/chat/route.ts:5–15', 'row');
+    add('OPENAI_API_KEY=sk-…', 'cut');
+    add('SUPABASE_ANON_KEY=eyJ…', 'cut');
+  }
+  document.querySelectorAll('.seg button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+}
+document.querySelectorAll('.seg button').forEach((b) => b.addEventListener('click', () => renderPayload(b.dataset.mode)));
+renderPayload('hybrid');
+</script>
+</body>
+</html>
