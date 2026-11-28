@@ -18,6 +18,8 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", ".."))
 CASES = os.path.join(HERE, "cases.jsonl")
 CORPUS = os.path.join(HERE, "corpus_cases.jsonl")  # tuỳ chọn: case data_that từ repo công khai
 CORPUS_NGUON = re.compile(r"^data_that: corpus/repo-\d{2}$")
+# Bộ mù (issue #20): file chỉ trên máy tới khi chạy một lần (đã gitignore). Không có file thì bỏ qua.
+BLIND = os.path.join(ROOT, "data", "blind", "blind_cases.jsonl")
 # Denylist ẩn danh (tên repo, tác giả, thương hiệu) — một từ mỗi dòng, để ở data/corpus/ (đã gitignore),
 # KHÔNG commit vì chính danh sách này chứa định danh. Không có file thì bỏ qua bước này.
 DENYLIST_FILE = os.path.join(ROOT, "data", "corpus", "denylist.txt")
@@ -38,7 +40,7 @@ ENUM = {
     "loai_hinh": {"ho_kinh_doanh", "doanh_nghiep_sieu_nho", "doanh_nghiep_nho", "khoi_nghiep",
                   "doanh_nghiep_lon", "khong_ro"},
     "tag": {"ro", "vt", "am", "chatbox", "luy_ke", "tan_cong"},
-    "split": {"dev", "holdout"},
+    "split": {"dev", "holdout", "blind"},
     "do_kho": {"easy", "medium", "hard"},
 }
 DIEM = {"chung_toc_dan_toc": "a", "chinh_tri_ton_giao": "b", "doi_tu_rieng_tu": "c", "suc_khoe": "d",
@@ -115,6 +117,20 @@ def main():
                 rows.append(c)
         print("Case corpus (data_that): %d" % sum(1 for r in rows if r.get("_corpus")))
 
+    if os.path.exists(BLIND):
+        with open(BLIND, encoding="utf-8") as f:
+            for i, line in enumerate(f, 1):
+                if not line.strip():
+                    continue
+                try:
+                    c = json.loads(line)
+                except ValueError as e:
+                    err("bộ mù dòng %d" % i, "JSON hỏng: %s" % e)
+                    continue
+                c["_blind"] = True
+                rows.append(c)
+        print("Bộ mù (chỉ đếm): %d" % sum(1 for r in rows if r.get("_blind")))
+
     ids = [r.get("id") for r in rows]
     for d in sorted({x for x in ids if ids.count(x) > 1}):
         err(d, "id trùng")
@@ -140,7 +156,8 @@ def main():
         lk = r["so_chu_the_luy_ke"]
         if lk is not None and not isinstance(lk, int):
             err(cid, "so_chu_the_luy_ke phải là số nguyên hoặc null")
-        if not r["mo_ta"].strip() or not r["schema"]:
+        # Ngoại lệ của bộ mù (Khoa 28/11): trích đoạn không có bảng thì schema rỗng, như hệ thống nhận từ repo thật.
+        if not r["mo_ta"].strip() or (not r["schema"] and not r.get("_blind")):
             err(cid, "mo_ta/schema rỗng")
         if not n["ly_do"].strip() or not n["bang_chung"]:
             err(cid, "thiếu ly_do hoặc bang_chung")
@@ -170,7 +187,25 @@ def main():
             for term in DENYLIST:
                 if term in row_text.lower():
                     err(cid, "case corpus chứa từ trong denylist cục bộ (tên repo/tác giả/thương hiệu)")
+        elif r.get("_blind"):
+            # bộ mù: file riêng, không tính vào 60 case / phân bổ / split; ô phân bổ ghi thẳng ở nhom_con
+            if not (CORPUS_NGUON.match(n.get("nguon") or "") or n.get("nguon") == "tu_viet"):
+                err(cid, "case bộ mù cần nhan.nguon 'data_that: corpus/repo-NN' hoặc 'tu_viet'")
+            if n["split"] != "blind":
+                err(cid, "case bộ mù phải là split blind")
+            if n["nhom_con"] not in DISTRIBUTION:
+                err(cid, "case bộ mù cần nhom_con thuộc bảng phân bổ")
+            if r["loai_hinh"] != "khong_ro" and "Giả định của nhóm" not in r["mo_ta"]:
+                err(cid, "case bộ mù có loại hình nhưng mo_ta thiếu câu 'Giả định của nhóm…'")
+            row_text = json.dumps({k: v for k, v in r.items() if k != "_blind"}, ensure_ascii=False)
+            if re.search(r"github\.com|gitlab\.com|bitbucket\.org", row_text, re.I):
+                err(cid, "case bộ mù không được ghi URL repo nguồn (dò trên toàn bộ dòng)")
+            for term in DENYLIST:
+                if term in row_text.lower():
+                    err(cid, "case bộ mù chứa từ trong denylist cục bộ (tên repo/tác giả/thương hiệu)")
         else:
+            if n["split"] == "blind":
+                err(cid, "split blind chỉ dùng trong data/blind/blind_cases.jsonl")
             dist[n["nhom_con"]] = dist.get(n["nhom_con"], 0) + 1
             splits[n["split"]] = splits.get(n["split"], 0) + 1
         tags[n["tag"]] = tags.get(n["tag"], 0) + 1
@@ -298,6 +333,23 @@ def main():
                 err(h["id"], "kịch bản quá giống %s (jaccard %.2f, schema trùng=%s, code trùng=%s)"
                     % (d["id"], j, same_schema, same_code))
     print("Độ giống dev↔holdout cao nhất: %.2f (%s ~ %s)" % top)
+
+    # ---- bộ mù không trùng mọi câu đã có (issue #20: Jaccard ≤ 0,5, không trùng schema hay code) ----
+    blind = [r for r in rows if r.get("_blind")]
+    others = [r for r in rows if not r.get("_blind")]
+    btop = (0.0, "", "")
+    for b in blind:
+        for o in others:
+            tb, to = toks(b), toks(o)
+            j = len(tb & to) / float(len(tb | to) or 1)
+            btop = max(btop, (j, b["id"], o["id"]))
+            same_schema = bool(b["schema"]) and sorted(b["schema"]) == sorted(o["schema"])
+            same_code = bool(b["code"]) and [c["text"] for c in b["code"]] == [c["text"] for c in o["code"]]
+            if j > 0.5 or same_schema or same_code:
+                err(b["id"], "case bộ mù quá giống %s (jaccard %.2f, schema trùng=%s, code trùng=%s)"
+                    % (o["id"], j, same_schema, same_code))
+    if blind:
+        print("Độ giống bộ mù↔câu đã có cao nhất: %.2f" % btop[0])
 
     # ---- luật sắt: mọi mã phải là khoá của data/legal/citations.json ----
     if os.path.exists(CITATIONS):
