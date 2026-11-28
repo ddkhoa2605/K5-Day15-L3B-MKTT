@@ -1,0 +1,11 @@
+﻿id,tag,do_kho,pass,phan_loai_viet_tat,trich_dan_dung,bao_dong_gia,tu_choi_dung,tokens_in,tokens_out,model_calls,models,latency_s,error,ghi_chu
+c1-ro-006,ro,hard,1,,1,,,1861,684,2,gpt-6-luna|gpt-6.1-terra,7.031,,đạt
+c1-am-005,am,hard,0,,,1,,1842,930,2,gpt-6-luna|gpt-6.1-terra,8.374,,"C3: MAT_MIEN_TRU ≠ CON_MIEN_TRU; nhom: thừa ['tai_chinh'], thiếu —; can_cu: thừa ['ND356 D4k'], thiếu —"
+c1-chat-004,chatbox,hard,1,,1,,1,1774,450,2,gpt-6-luna|gpt-6.1-terra,6.38,,đạt
+c2-du-002,am,hard,1,,,0,,1194,739,1,gpt-6-luna,5.546,,đạt
+c2-thieu-006,ro,medium,1,,1,,,1156,276,1,gpt-6-luna,2.66,,đạt
+c3-ro-004,ro,easy,0,,0,,,1190,714,1,gpt-6-luna,4.85,,"nhom: thừa ['doi_tu_rieng_tu'], thiếu —; can_cu: thừa ['ND356 D4c'], thiếu —"
+c3-vt-005,vt,medium,1,1,1,,,1267,957,1,gpt-6-luna,5.91,,đạt
+c3-vt-008,vt,hard,1,1,1,,,1260,1328,1,gpt-6-luna,8.532,,đạt
+c3-am-001,am,medium,1,,,0,,1216,622,1,gpt-6-luna,4.113,,đạt
+c3-lk-002,luy_ke,hard,1,,1,,,1233,833,1,gpt-6-luna,5.894,,đạt
