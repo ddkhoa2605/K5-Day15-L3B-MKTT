@@ -1,6 +1,6 @@
 # Cách đọc kết quả bộ mù (viết trước khi chạy)
 
-> Ghi lúc 07:05 ngày 28/11, **trước** khi khoá code (12:00) và trước khi chạy bộ mù; manifest đã khoá lúc 06:58 (commit `b7d8141`). Khoa chốt. Sau khi chạy, báo cáo theo đúng các quy tắc dưới đây; không đổi quy tắc theo kết quả. Bộ mù: 12 câu, sha256 trong `eval/blind.manifest`, giao việc ở issue #20.
+> Ghi lúc 07:03 ngày 28/11 (giờ commit `d7444c4`), **trước** khi khoá code (12:00) và trước khi chạy bộ mù; manifest đã khoá lúc 06:58 (commit `b7d8141`). Khoa chốt. Sau khi chạy, báo cáo theo đúng các quy tắc dưới đây; không đổi quy tắc theo kết quả. Bộ mù: 12 câu, sha256 trong `eval/blind.manifest`, giao việc ở issue #20.
 
 ## 1. Chạy gì, báo gì
 - Ba cấu hình chạy **một lần**, cùng commit `code-freeze`: A (rule), C (hybrid, cấu hình mặc định), B (chỉ LLM, **bản có danh sách mã đóng**, `SHP_LLM_CODES=closed`, model mạnh nhất). B nguyên bản không chạy trên bộ mù vì khoá chỉ cho một lần chạy; việc B nguyên bản tự bịa mã đã đo trên dev (50/50 câu có mã ngoài bảng luật).
