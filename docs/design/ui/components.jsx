@@ -4,15 +4,6 @@ const { useState, useEffect, useMemo, useRef, createContext, useContext } = Reac
 const AppCtx = createContext(null);
 const useApp = () => useContext(AppCtx);
 
-const STEPS = [
-  ["quet", "Quét mới"],
-  ["dang-quet", "Đang quét"],
-  ["ket-qua", "Kết quả"],
-  ["duyet", "Cổng duyệt"],
-  ["ho-so", "Hồ sơ nháp"],
-];
-const STEP_OF = { "bang-chung": "ket-qua", "phan-loai": "ket-qua", "luat-su": "ket-qua" };
-
 function Brand() {
   return (
     <a className="brand" href="#/quet">
@@ -21,25 +12,25 @@ function Brand() {
         <path d="M6 8h10M6 12h6M6 16h8" stroke="currentColor" strokeWidth="1.6" />
         <circle cx="16.5" cy="12" r="2.2" fill="oklch(70% 0.19 40)" />
       </svg>
-      Ship Hợp Pháp
+      Lextrace
     </a>
   );
 }
 
-function TopBar({ route }) {
-  const current = STEP_OF[route] || route;
+// Chỉ báo khi KHÔNG gọi được backend; nối được thì không hiện gì.
+function BeStatus({ be }) {
+  if (be.ok === false) return <span className="chip chip--human" title={be.err}>Không gọi được backend</span>;
+  return null;
+}
+
+// Không có thanh bước: đi theo đúng luồng bằng nút ở cuối mỗi màn (quét → xem trước → kết quả → duyệt → hồ sơ).
+function TopBar({ route, be }) {
   return (
     <header className="top">
       <div className="wrap">
         <Brand />
-        <nav className="steps-nav" aria-label="Các bước">
-          {STEPS.map(([id, label], i) => (
-            <a key={id} href={"#/" + id} aria-current={current === id ? "page" : undefined}>
-              <span className="n">{i + 1}</span><span className="t">{label}</span>
-            </a>
-          ))}
-        </nav>
-        <div className="top-end">
+        <div className="top-end" style={{ marginLeft: "auto" }}>
+          {be && <BeStatus be={be} />}
           <a href="#/logic" aria-current={route === "logic" ? "page" : undefined}>Logic rule engine</a>
           <a href="#/ablation" aria-current={route === "ablation" ? "page" : undefined}>Ablation</a>
         </div>
@@ -143,11 +134,76 @@ function Back({ to = "ket-qua", label = "Kết quả" }) {
   return <a className="back" href={"#/" + to}><span aria-hidden="true">←</span>{label}</a>;
 }
 
-// C3 theo rules.evaluate_c3: fixture có cột nhạy cảm chắc chắn (vi_tri_gan_nhat, 1.0)
-function c3Status(loaiHinh, luyKe) {
-  if (loaiHinh === "doanh_nghiep_lon") return "KHONG_THUOC_DIEN_MIEN";
-  if (loaiHinh === "khong_ro" || luyKe === "khong_ro") return "CAN_NGUOI_XAC_NHAN";
-  return "MAT_MIEN_TRU";
+// ---- Phần dùng dữ liệu backend ----
+
+const GROUPS = [["C1", "c1"], ["C2", "c2"], ["C3", "c3"]];
+// Trạng thái coi là "đã phát sinh / cần người xử lý" → vào cổng duyệt
+const ACTIVE = new Set(["KICH_HOAT", "KICH_HOAT_NANG", "MAT_MIEN_TRU", "KHONG_THUOC_DIEN_MIEN", "CAN_NGUOI_XAC_NHAN", "CAN_LUAT_SU"]);
+
+// bang_chung của BE: [{file, line, snippet, nhom?, do_tin_cay?}]
+function Evidence({ items, pin = "c1" }) {
+  if (!items || !items.length) return <p className="small muted">Không có dòng bằng chứng nào trong mã nguồn đã quét.</p>;
+  return (
+    <div className="stack" style={{ "--gap": "12px" }}>
+      {items.map((b, i) => (
+        <div key={i} className="sheet">
+          <div className="file-tag">
+            <span className="num muted">{b.file} · dòng {b.line}</span>
+            {b.nhom && <span className="xs" style={{ fontWeight: 600, color: "var(--color-cool)" }}>{nhomLabel(b.nhom)}{b.do_tin_cay != null ? " · " + Number(b.do_tin_cay).toFixed(1) : ""}</span>}
+          </div>
+          <div className="code">
+            <div className="ln hit"><span className="no">{b.line}</span><span className="slot"><Pin c={pin} open /></span><span>{b.snippet || " "}</span></div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-Object.assign(window, { AppCtx, useApp, TopBar, Pin, Status, STATUS, Chip, Code, Cells, Entry, Cite, NotMeasured, ActionBar, Back, c3Status });
+// can_cu của BE: [{ma, noi_dung}] — số điều khoản do rule engine chọn, FE chỉ hiện
+function CanCu({ items }) {
+  if (!items || !items.length) return <p className="small muted">Rule engine không gắn căn cứ cho trạng thái này.</p>;
+  return (
+    <ul className="ruled">
+      {items.map((c) => (
+        <li key={c.ma} style={{ padding: "10px 0" }}>
+          <span className="num" style={{ fontSize: 13.5, fontWeight: 500 }}>{c.ma}</span>
+          <p className="small" style={{ color: "var(--color-ink-2)", marginTop: 2 }}>{c.noi_dung}</p>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function nhomLabel(n) {
+  return SHP.nhom[n] ? SHP.nhom[n][1] + " (ND356 D4" + SHP.nhom[n][0] + ")" : n;
+}
+
+function ErrorNote({ err }) {
+  if (!err) return null;
+  return (
+    <div className="note note--human" role="alert" style={{ marginTop: 16 }}>
+      <h4>{err.status ? "Backend trả lỗi " + err.status + (err.loi ? " · " + err.loi : "") : "Không gọi được backend"}</h4>
+      {err.message}
+      {err.body && err.body.huong_dan && <p className="small" style={{ marginTop: 6 }}>{err.body.huong_dan}</p>}
+    </div>
+  );
+}
+
+function NeedStep({ what = "lượt quét", to = "quet", label = "Quét mới" }) {
+  return (
+    <div className="screen"><div className="wrap page">
+      <h1>Chưa có {what}</h1>
+      <p className="lede">Màn này hiện dữ liệu thật từ backend. Bắt đầu từ bước trước.</p>
+      <a className="btn btn--primary" style={{ marginTop: 20 }} href={"#/" + to}>{label}</a>
+    </div></div>
+  );
+}
+
+function srcLabel(scan) {
+  if (!scan || !scan.nguon) return "";
+  return scan.nguon.loai + ": " + (scan.nguon.ten || "");
+}
+
+Object.assign(window, { AppCtx, useApp, TopBar, Pin, Status, STATUS, Chip, Code, Cells, Entry, Cite, NotMeasured, ActionBar, Back,
+  GROUPS, ACTIVE, Evidence, CanCu, nhomLabel, ErrorNote, NeedStep, srcLabel });

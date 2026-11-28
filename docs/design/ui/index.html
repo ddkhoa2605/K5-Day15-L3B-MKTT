@@ -3,12 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ship Hợp Pháp</title>
+<title>Lextrace</title>
 <!--
   Bản thiết kế 10 màn theo docs/design/Ship-Hợp-Pháp-Wireframe-MVP.html, theme docs/design/ship-hop-phap.md.
-  Chạy:  python -m http.server 8000 --directory docs/design/ui   rồi mở http://localhost:8000
-  (Không mở thẳng file: trình duyệt chặn nạp file .jsx qua file://.)
+  Chạy cùng backend (ở gốc repo):
+    PowerShell:  $env:SHP_UI="web"; $env:SHP_WEB_DIR="docs/design/ui"; python run.py
+    bash:        SHP_UI=web SHP_WEB_DIR=docs/design/ui python run.py
+  rồi mở http://127.0.0.1:8000  (API ở cùng địa chỉ, hợp đồng: docs/api.md).
+  FE chạy riêng: python -m http.server 8001 --directory docs/design/ui → http://localhost:8001/?api=http://127.0.0.1:8000
+  (Không mở thẳng file: trình duyệt chặn nạp file .jsx qua file://, và backend chặn Origin null.)
 -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Crect x='1.5' y='1.5' width='19' height='19' rx='3' fill='none' stroke='black' stroke-width='1.6'/%3E%3Ccircle cx='16.5' cy='12' r='2.2' fill='%23e8642c'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -24,10 +29,11 @@
 <script>
   if (location.protocol === "file:") {
     document.getElementById("boot").innerHTML =
-      "Trang này cần chạy qua máy chủ cục bộ.<br><br>Ở thư mục gốc repo, chạy:<br><code>python -m http.server 8000 --directory docs/design/ui</code><br>rồi mở <code>http://localhost:8000</code>";
+      "Trang này cần chạy qua máy chủ cục bộ.<br><br>Ở thư mục gốc repo, chạy:<br><code>SHP_UI=web SHP_WEB_DIR=docs/design/ui python run.py</code><br>rồi mở <code>http://127.0.0.1:8000</code>";
   }
 </script>
 <script src="data.js"></script>
+<script src="api.js"></script>
 <script type="text/babel" data-presets="react" src="components.jsx"></script>
 <script type="text/babel" data-presets="react" src="screens-scan.jsx"></script>
 <script type="text/babel" data-presets="react" src="screens-evidence.jsx"></script>

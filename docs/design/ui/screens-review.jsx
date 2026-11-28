@@ -1,17 +1,28 @@
-// S6 Cổng duyệt · S7 Hồ sơ nháp · F Logic rule engine · S8 Ablation
-
-const FINDINGS = [
-  { id: "c1", c: "c1", t: "C1 · users.email → OpenAI, route.ts dòng 10", s: "Luat91 D20.1, D20.2 · hạn 60 ngày", link: "#/bang-chung/c1" },
-  { id: "c2", c: "c2", t: "C2 · Ô đồng ý tích sẵn và im lặng là đồng ý, page.tsx dòng 5, 8", s: "Luat91 D9.3, D9.4d · ND356 D6, D6.3", link: "#/bang-chung/c2" },
-  { id: "c3", c: "c3", t: "C3 · bookings.vi_tri_gan_nhat là dữ liệu vị trí", s: "ND356 D4h · không còn miễn trừ", link: "#/phan-loai" },
-];
+// S6 Cổng duyệt (POST confirm) · S7 Hồ sơ nháp (ban_nhap_markdown của BE) · F Logic rule engine · S8 Ablation
 
 function ScreenDuyet() {
   const { state, set } = useApp();
-  const c3 = c3Status(state.loaiHinh, state.luyKe);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const r = state.result;
+  if (!r) return <NeedStep what="kết quả phân tích" />;
+  const k = r.ket_qua;
+  const findings = GROUPS.filter(([g]) => ACTIVE.has(k[g].trang_thai)).map(([g, c]) => ({ g, c, x: k[g] }));
   const checked = state.approved;
   const toggle = (id) => set({ approved: { ...checked, [id]: !checked[id] } });
-  const canGo = state.reviewer.trim() && state.role && state.ack && Object.values(checked).some(Boolean);
+  const allRead = findings.every((f) => checked[f.c]);
+  const canGo = state.reviewer.trim() && state.role && state.ack && allRead && !busy;
+
+  async function confirm() {
+    if (!canGo) return;
+    setBusy(true); setErr(null);
+    try {
+      const draft = await API.confirm(r.session_id);
+      set({ draft: { ...draft, reviewer: state.reviewer.trim(), role: state.role, at: new Date().toISOString() } });
+      location.hash = "#/ho-so";
+    } catch (x) { setErr(x); } finally { setBusy(false); }
+  }
+
   return (
     <div className="screen">
       <div className="wrap page">
@@ -19,39 +30,32 @@ function ScreenDuyet() {
         <div className="page-head">
           <div>
             <h1>Cổng duyệt của người chịu trách nhiệm</h1>
-            <p className="lede">Chỉ phát hiện bạn đánh dấu mới đi vào hồ sơ nháp. Mở bằng chứng trước khi quyết định.</p>
+            <p className="lede">Mở bằng chứng của từng phát hiện, đánh dấu đã đọc, rồi xác nhận. Bản nháp sinh từ kết luận mới nhất của phiên.</p>
           </div>
-          <Chip kind="none">Chưa có hồ sơ nào được sinh ra</Chip>
+          <Chip kind={state.draft ? "ok" : "none"}>{state.draft ? "Đã sinh bản nháp" : "Chưa có hồ sơ nào được sinh ra"}</Chip>
         </div>
         <div className="grid-2" style={{ gap: 32 }}>
           <div className="sheet">
             <ul className="ruled" style={{ borderTop: 0 }}>
-              {FINDINGS.map((f) => {
-                const blocked = f.id === "c3" && c3 === "CAN_NGUOI_XAC_NHAN";
-                return (
-                  <li key={f.id} style={{ padding: "18px 22px" }}>
-                    <div className="row" style={{ flexWrap: "nowrap", alignItems: "flex-start", "--gap": "14px" }}>
-                      <label className="check" style={{ flex: 1 }}>
-                        <input type="checkbox" checked={!!checked[f.id] && !blocked} disabled={blocked} onChange={() => toggle(f.id)} />
-                        <span>
-                          <span className="row" style={{ "--gap": "8px" }}><Pin c={f.c} size="sm" /><b style={{ fontWeight: 600 }}>{f.t}</b></span>
-                          <span className="num xs muted" style={{ display: "block", marginTop: 4 }}>{f.s}</span>
-                          {blocked && <span className="xs" style={{ display: "block", marginTop: 6, color: "var(--color-accent-text)" }}>Chưa duyệt được: cần chốt loại hình ở bước 1.</span>}
-                          {state.decisions[f.id] === "xac_nhan" && <span className="xs cool" style={{ display: "block", marginTop: 6 }}>Bạn đã xác nhận ở màn bằng chứng.</span>}
-                        </span>
-                      </label>
-                      <a className="small" href={blocked ? "#/quet" : f.link}>{blocked ? "Chốt loại hình" : "Bằng chứng"}</a>
-                    </div>
-                  </li>
-                );
-              })}
-              <li style={{ padding: "18px 22px", background: "color-mix(in oklab, var(--color-accent-soft) 40%, transparent)" }}>
-                <label className="check" style={{ opacity: .7 }}>
-                  <input type="checkbox" disabled />
-                  <span><b style={{ fontWeight: 600 }}>Ví dụ: C1 · đường đi chữ người dùng nhập, cần luật sư</b>
-                    <span className="xs muted" style={{ display: "block", marginTop: 4 }}>Không xác nhận được. Ghi vào hồ sơ như mục chờ. <a href="#/luat-su">Xem vì sao</a></span></span>
-                </label>
-              </li>
+              {findings.length === 0 && <li style={{ padding: "18px 22px" }} className="small muted">Không có phát hiện nào cần duyệt: cả ba nhóm đều không thấy bằng chứng trong mã đã quét.</li>}
+              {findings.map(({ g, c, x }) => (
+                <li key={c} style={{ padding: "18px 22px" }}>
+                  <div className="row" style={{ flexWrap: "nowrap", alignItems: "flex-start", "--gap": "14px" }}>
+                    <label className="check" style={{ flex: 1 }}>
+                      <input type="checkbox" checked={!!checked[c]} onChange={() => toggle(c)} />
+                      <span>
+                        <span className="row" style={{ "--gap": "8px" }}><Pin c={c} size="sm" /><b style={{ fontWeight: 600 }}>{g} · {x.ten}</b><Status s={x.trang_thai} /></span>
+                        <span className="xs muted" style={{ display: "block", marginTop: 4 }}>{x.giai_thich}</span>
+                        {x.can_cu && x.can_cu.length > 0 && <span className="num xs muted" style={{ display: "block", marginTop: 4 }}>{x.can_cu.map((cc) => cc.ma).join(", ")}</span>}
+                        {x.trang_thai === "CAN_NGUOI_XAC_NHAN" && <span className="xs" style={{ display: "block", marginTop: 6, color: "var(--color-accent-text)" }}>Còn thiếu thông tin doanh nghiệp; sửa ở màn kết quả để chốt căn cứ.</span>}
+                        {state.decisions[c] === "xac_nhan" && <span className="xs cool" style={{ display: "block", marginTop: 6 }}>Bạn đã xác nhận ở màn bằng chứng.</span>}
+                        {state.decisions[c] === "bac_bo" && <span className="xs" style={{ display: "block", marginTop: 6, color: "var(--color-accent-text)" }}>Bạn đã bác bỏ ở màn bằng chứng. Bản nháp của backend vẫn dựa trên kết luận của rule engine.</span>}
+                      </span>
+                    </label>
+                    <a className="small" href={x.trang_thai === "CAN_LUAT_SU" ? "#/luat-su" : "#/bang-chung/" + c}>Bằng chứng</a>
+                  </div>
+                </li>
+              ))}
             </ul>
           </div>
 
@@ -74,23 +78,25 @@ function ScreenDuyet() {
               </div>
               <label className="check small">
                 <input type="checkbox" checked={state.ack} onChange={(e) => set({ ack: e.target.checked })} />
-                <span>Tôi đã đọc bằng chứng cho từng phát hiện đã chọn và chịu trách nhiệm về việc dùng hồ sơ nháp này.</span>
+                <span>Tôi đã đọc bằng chứng cho từng phát hiện và chịu trách nhiệm về việc dùng hồ sơ nháp này.</span>
               </label>
+              <p className="xs muted">Tên và vai trò chỉ hiện trên trang này, không gửi về backend.</p>
             </div>
             <div className="panel">
               <h3>Hệ thống sẽ không</h3>
               <ul className="ruled" style={{ marginTop: 10 }}>
-                {["Tự gửi hồ sơ lên cơ quan chuyên trách", "Cấp chứng nhận tuân thủ", "Kết luận bạn đã vi phạm"].map((t) => (
+                {["Tự gửi hồ sơ lên cơ quan chuyên trách", "Cấp chứng nhận", "Đưa ra ý kiến pháp lý thay luật sư"].map((t) => (
                   <li key={t} className="row small" style={{ "--gap": "10px", padding: "9px 0" }}><span aria-hidden="true" style={{ fontWeight: 700 }}>×</span>{t}</li>
                 ))}
               </ul>
             </div>
+            <ErrorNote err={err} />
           </div>
         </div>
       </div>
       <ActionBar>
-        <span className="small muted">{canGo ? "Sẵn sàng sinh bản nháp." : "Nút bật khi đã chọn ít nhất một phát hiện, ghi tên, chọn vai trò và tích xác nhận."}</span>
-        <a className="btn btn--primary" href={canGo ? "#/ho-so" : undefined} aria-disabled={!canGo} onClick={(e) => { if (!canGo) e.preventDefault(); }}>Sinh hồ sơ nháp</a>
+        <span className="small muted">{canGo ? "Sẵn sàng xác nhận kết luận." : "Nút bật khi đã đánh dấu đọc mọi phát hiện, ghi tên, chọn vai trò và tích xác nhận."}</span>
+        <button type="button" className="btn btn--primary" onClick={confirm} disabled={!canGo} aria-disabled={!canGo}>{busy ? "Đang sinh…" : "Xác nhận kết luận"}</button>
       </ActionBar>
     </div>
   );
@@ -98,73 +104,75 @@ function ScreenDuyet() {
 
 function Blank({ children = "CẦN ĐIỀN" }) { return <span className="blank">[{children}]</span>; }
 
+// Markdown tối giản của BE: "## tiêu đề", "- mục", đoạn văn; "__" là ô hệ thống không biết → ô cam
+function inlineBlanks(text, key) {
+  return text.split(/(__+)/).map((p, i) => /^__+$/.test(p) ? <Blank key={key + "-" + i} /> : p);
+}
+function Markdown({ text }) {
+  const out = [];
+  let list = [];
+  const flush = () => { if (list.length) { out.push(<ul key={"u" + out.length}>{list}</ul>); list = []; } };
+  text.split("\n").forEach((line, i) => {
+    if (/^\s*-\s+/.test(line)) { list.push(<li key={i}>{inlineBlanks(line.replace(/^\s*-\s+/, ""), i)}</li>); return; }
+    flush();
+    if (/^#{1,3}\s/.test(line)) out.push(<h3 key={i}>{line.replace(/^#+\s*/, "")}</h3>);
+    else if (line.trim()) out.push(<p key={i}>{inlineBlanks(line, i)}</p>);
+  });
+  flush();
+  return <>{out}</>;
+}
+
 function ScreenHoSo() {
   const { state } = useApp();
-  const c3 = c3Status(state.loaiHinh, state.luyKe);
-  const who = state.reviewer.trim() || "[Tên người duyệt]";
+  const d = state.draft;
+  if (!d) return <NeedStep what="bản nháp" to={state.result ? "duyet" : "quet"} label={state.result ? "Về cổng duyệt" : "Quét mới"} />;
+  const who = d.reviewer || "[Tên người duyệt]";
+  const stamp = "Duyệt bởi: " + who + (d.role ? " (" + d.role + ")" : "") + " · " + d.at + "\nNguồn: " + srcLabel(state.scan) + " · chế độ " + (state.result && state.result.che_do) + "\n\n";
+  const md = stamp + d.ban_nhap_markdown;
+  const json = JSON.stringify({ nguon: state.scan && state.scan.nguon, ket_qua: state.result && state.result.ket_qua,
+    ket_qua_da_xac_nhan: d.ket_qua_da_xac_nhan, nguoi_duyet: who, vai_tro: d.role, luc: d.at, luu_y: state.result && state.result.luu_y }, null, 2);
+  const name = "ban-nhap-" + ((state.scan && state.scan.nguon && state.scan.nguon.ten) || "phien").replace(/[^\w.-]+/g, "_");
   return (
     <div className="screen">
       <div className="wrap page">
         <Back to="duyet" label="Cổng duyệt" />
         <div className="page-head">
           <div>
-            <div className="meta"><span>duyệt bởi {who}</span>{state.role && <span>{state.role.toLowerCase()}</span>}</div>
+            <div className="meta"><span>duyệt bởi {who}</span>{d.role && <span>{d.role.toLowerCase()}</span>}<span>{srcLabel(state.scan)}</span></div>
             <h1>Hồ sơ nháp</h1>
           </div>
           <div className="row">
-            <button type="button" className="btn btn--primary">Tải bản nháp .md</button>
-            <button type="button" className="btn">Tải kết quả JSON</button>
+            <button type="button" className="btn btn--primary" onClick={() => API.download(name + ".md", md, "text/markdown;charset=utf-8")}>Tải bản nháp .md</button>
+            <button type="button" className="btn" onClick={() => API.download(name + ".json", json, "application/json")}>Tải kết quả JSON</button>
           </div>
         </div>
         <div className="grid-2" style={{ gridTemplateColumns: "minmax(0, 8fr) minmax(0, 4fr)", gap: 32 }}>
           <div className="bench" style={{ padding: "36px 40px" }}>
             <article className="draft">
-              <div className="doc-top">
-                <Chip kind="draft">Bản nháp, chưa được luật sư rà soát</Chip>
-                <h2>Hồ sơ đánh giá tác động<br />chuyển dữ liệu cá nhân xuyên biên giới</h2>
-                <p className="small muted" style={{ marginTop: 6 }}>Căn cứ <span className="num">Luat91 D20.1, Luat91 D20.2</span></p>
-              </div>
-              <section>
-                <h3>I. Thông tin bên chuyển dữ liệu</h3>
-                <dl><dt>Tên tổ chức</dt><dd><Blank /></dd><dt>Mã số thuế</dt><dd><Blank /></dd><dt>Người duyệt bản nháp</dt><dd>{who}</dd></dl>
-              </section>
-              <section>
-                <h3>II. Mô tả hoạt động chuyển</h3>
-                <dl>
-                  <dt>Dòng chuyển</dt><dd><span className="num">app/api/chat/route.ts:10</span> → <span className="num">chat.completions.create</span></dd>
-                  <dt>Trường dữ liệu</dt><dd><span className="num">users.email</span> (dữ liệu cá nhân cơ bản)</dd>
-                  <dt>Mục đích chuyển</dt><dd><Blank>CẦN ĐIỀN · hệ thống không biết mục đích kinh doanh</Blank></dd>
-                  <dt>Bên nhận, quốc gia</dt><dd><Blank /></dd>
-                </dl>
-              </section>
-              <section>
-                <h3>III. Biện pháp bảo vệ</h3>
-                <Blank>CẦN ĐIỀN · đính kèm thoả thuận xử lý dữ liệu với bên nhận</Blank>
-              </section>
-              <section style={{ borderBottom: "2px solid var(--color-ink)" }}>
-                <h3>IV. Hạn gửi</h3>
-                <p><span className="num">60 ngày</span> kể từ lần chuyển dữ liệu đầu tiên. Gửi 01 bản chính cho cơ quan chuyên trách.</p>
-              </section>
-              <p className="xs muted" style={{ marginTop: 14 }}>Sinh từ lượt quét <span className="num">{state.repo}</span> · chế độ {state.mode}. Không tự gửi đi đâu.</p>
+              <div className="doc-top"><Chip kind="draft">BẢN NHÁP · chưa được luật sư rà soát</Chip></div>
+              <Markdown text={d.ban_nhap_markdown} />
+              <p className="xs muted" style={{ marginTop: 14 }}>Sinh bởi backend từ kết luận đã xác nhận. Không tự gửi đi đâu.</p>
             </article>
           </div>
           <div className="stack" style={{ "--gap": "18px" }}>
             <div className="panel">
-              <h3>Hồ sơ gồm</h3>
+              <h3>Kết luận đã xác nhận</h3>
               <ul className="ruled" style={{ marginTop: 12 }}>
-                <li className="row small" style={{ justifyContent: "space-between" }}><span>Hồ sơ chuyển dữ liệu xuyên biên giới (C1)</span><Chip kind="ok">Sinh được</Chip></li>
-                <li className="row small" style={{ justifyContent: "space-between" }}><span>Sửa cách xin đồng ý (C2)</span><Chip kind="found">Việc cần làm</Chip></li>
-                <li className="row small" style={{ justifyContent: "space-between" }}><span>Hồ sơ đánh giá tác động xử lý, Điều 21 (C3)</span>{c3 === "CAN_NGUOI_XAC_NHAN" ? <Chip kind="human">Chờ chốt loại hình</Chip> : <Chip kind="found">Phát sinh</Chip>}</li>
-                <li className="row small" style={{ justifyContent: "space-between" }}><span>Phát hiện chờ luật sư</span><span className="num">0</span></li>
+                {GROUPS.map(([g, c]) => (
+                  <li key={g} className="row small" style={{ justifyContent: "space-between" }}>
+                    <span className="row" style={{ "--gap": "8px" }}><Pin c={c} size="sm" />{g}</span>
+                    <Status s={d.ket_qua_da_xac_nhan && d.ket_qua_da_xac_nhan[g]} />
+                  </li>
+                ))}
               </ul>
             </div>
             <div className="note note--human">
               <h4>Ô cam là ô hệ thống không biết</h4>
-              Hệ thống chỉ điền những gì đọc được từ mã nguồn: loại dữ liệu, đích nhận, số dòng. Tên tổ chức, mục đích, hợp đồng, rủi ro đều để trống. Không điền hộ, không bịa.
+              Hệ thống chỉ điền những gì đọc được từ mã nguồn: loại dữ liệu, đích nhận, số dòng. Mục đích, thời gian lưu, hợp đồng với bên nhận đều để trống. Không điền hộ, không bịa.
             </div>
             <div className="note note--plain">
               <h4>Định dạng</h4>
-              Bản nháp là markdown, đúng phạm vi spec §4. Chưa xuất <span className="num">.docx</span> trong 48 giờ.
+              Bản nháp là markdown, đúng phạm vi spec §4. Chưa xuất <span className="num">.docx</span>.
             </div>
           </div>
         </div>

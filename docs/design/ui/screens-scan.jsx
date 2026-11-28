@@ -1,52 +1,167 @@
-// S0 Quét mới · S1 Đang quét + cổng AI · S2 Kết quả tổng quan
+// S0 Quét mới (POST /api/scan) · S1 Xem trước + gửi kiểm tra (POST analyze) · S2 Kết quả (+ POST business)
+
+const MISSING = { loai_hinh: "loại hình tổ chức", so_chu_the_luy_ke: "số chủ thể lũy kế" };
+const SOURCES = [["demo", "Repo demo"], ["github", "Link GitHub"], ["zip", "File .zip"], ["case", "JSON mô tả"]];
+
+// Thông tin doanh nghiệp người dùng tự khai — BE không đoán từ code
+function bizBody(state) {
+  const body = { loai_hinh: state.loaiHinh };
+  const n = String(state.soChuThe).trim();
+  if (!state.soKhongRo && n !== "") body.so_chu_the_luy_ke = Number(n);
+  return body;
+}
+function bizError(state) {
+  if (state.soKhongRo) return null;
+  const n = String(state.soChuThe).trim();
+  if (n === "") return "Nhập số chủ thể lũy kế, hoặc chọn \"Không rõ\".";
+  if (!/^\d+$/.test(n)) return "Số chủ thể phải là số nguyên ≥ 0.";
+  return null;
+}
+
+function BizFields({ options, compact }) {
+  const { state, set } = useApp();
+  const list = (options && options.loai_hinh) || SHP.loaiHinh.map(([ma, ten]) => ({ ma, ten }));
+  return (
+    <div className={compact ? "row" : "stack"} style={compact ? { "--gap": "12px 20px", alignItems: "flex-end" } : { "--gap": "18px" }}>
+      <div className="field" style={compact ? { minWidth: 240 } : undefined}>
+        <label htmlFor="loai">Loại hình tổ chức</label>
+        <select id="loai" value={state.loaiHinh} onChange={(e) => set({ loaiHinh: e.target.value })}>
+          {list.map((o) => <option key={o.ma} value={o.ma}>{o.ten}</option>)}
+        </select>
+      </div>
+      {compact ? (
+        <div className="field" style={{ minWidth: 240 }}>
+          <label htmlFor="sct">Số chủ thể dữ liệu đã xử lý, lũy kế</label>
+          <input id="sct" className="num" type="text" inputMode="numeric" placeholder="Để trống nếu chưa rõ"
+            value={state.soKhongRo ? "" : state.soChuThe} onChange={(e) => { const v = e.target.value.replace(/[.\s,]/g, ""); set({ soChuThe: v, soKhongRo: v === "" }); }} />
+        </div>
+      ) : (
+        <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
+          <legend className="panel-label" style={{ marginBottom: 8 }}>Số chủ thể dữ liệu đã xử lý, tính lũy kế</legend>
+          <div className="choices">
+            {[[false, "Đã biết số"], [true, "Không rõ"]].map(([v, l]) => (
+              <label key={l} className="choice">
+                <input type="radio" name="sokhongro" checked={!!state.soKhongRo === v} onChange={() => set({ soKhongRo: v })} />{l}
+              </label>
+            ))}
+          </div>
+          <div className="field" style={{ marginTop: 10 }}>
+            <label htmlFor="sct">Số chủ thể lũy kế</label>
+            <input id="sct" className="num" type="text" inputMode="numeric" disabled={!!state.soKhongRo}
+              placeholder={state.soKhongRo ? "Không rõ, rule engine sẽ hỏi lại" : "Ví dụ 4200"}
+              value={state.soKhongRo ? "" : state.soChuThe} onChange={(e) => set({ soChuThe: e.target.value.replace(/[.\s,]/g, "") })} />
+          </div>
+          <p className="hint">Lũy kế tổng lượng đã xử lý, không phải người dùng đang hoạt động. Ngưỡng <span className="num">100.000</span> theo <span className="num">ND356 D41.2</span>.</p>
+        </fieldset>
+      )}
+    </div>
+  );
+}
 
 function ScreenQuet() {
   const { state, set } = useApp();
+  const [repos, setRepos] = useState(null);
+  const [options, setOptions] = useState(null);
+  const [zip, setZip] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    API.demoRepos().then((d) => {
+      setRepos(d.repos || []);
+      if (!state.demoRepo && d.repos && d.repos.length) set({ demoRepo: d.repos[0].id });
+    }).catch(() => setRepos([]));
+    API.options().then(setOptions).catch(() => {});
+  }, []);
+
+  async function source() {
+    if (state.nguon === "demo") {
+      if (!state.demoRepo) throw new API.ApiError(400, { thong_bao: "Chưa chọn repo demo." });
+      return { demo_repo: state.demoRepo };
+    }
+    if (state.nguon === "github") {
+      if (!/^https:\/\/github\.com\/[^/\s]+\/[^/\s]+\/?$/.test(state.githubUrl.trim()))
+        throw new API.ApiError(400, { thong_bao: "Link phải có dạng https://github.com/<owner>/<repo>." });
+      return { github_url: state.githubUrl.trim() };
+    }
+    if (state.nguon === "zip") {
+      if (!zip) throw new API.ApiError(400, { thong_bao: "Chưa chọn file .zip." });
+      return { zip_base64: await API.readZip(zip), ten_file: zip.name };
+    }
+    let obj;
+    try { obj = JSON.parse(state.caseText); } catch (e) { throw new API.ApiError(400, { thong_bao: "JSON không đọc được: " + e.message }); }
+    return { case: obj && obj.case ? obj.case : obj };
+  }
+
+  async function submit(e) {
+    e && e.preventDefault();
+    const be = bizError(state);
+    if (be) return setErr(new API.ApiError(400, { thong_bao: be }));
+    setBusy(true); setErr(null);
+    try {
+      const body = { ...(await source()), ...bizBody(state), che_do: state.mode };
+      const scan = await API.scan(body);
+      set({ scan, result: null, draft: null, decisions: {}, colDecisions: {}, approved: {}, ack: false });
+      location.hash = "#/dang-quet";
+    } catch (x) { setErr(x); } finally { setBusy(false); }
+  }
+
   return (
     <div className="screen">
       <div className="wrap page" style={{ paddingBottom: 48 }}>
-        <div className="grid-2r" style={{ gap: 56, alignItems: "center" }}>
-          <div>
+        <div className="grid-2r" style={{ gap: 56, alignItems: "stretch" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
             <h1 style={{ fontSize: "clamp(36px, 4.2vw, 58px)" }}>Nghĩa vụ dữ liệu cá nhân, chỉ ra tới từng dòng code.</h1>
             <p style={{ marginTop: 18, fontSize: 18, color: "var(--color-ink-2)", maxWidth: 520 }}>
               Đưa repo Next.js + Supabase trước khi bàn giao. Hệ thống chỉ đọc mã nguồn, không truy cập app đang chạy.
             </p>
-            <form className="stack" style={{ "--gap": "12px", marginTop: 30, maxWidth: 540 }} onSubmit={(e) => { e.preventDefault(); location.hash = "#/dang-quet"; }}>
-              <div className="field">
-                <label htmlFor="repo">Đường dẫn repo</label>
-                <input id="repo" className="num" type="text" value={state.repo} onChange={(e) => set({ repo: e.target.value })} />
+            <form className="stack" style={{ "--gap": "14px", marginTop: "auto", paddingTop: 30, maxWidth: 540 }} onSubmit={submit}>
+              <div className="seg" role="group" aria-label="Nguồn">
+                {SOURCES.map(([k, l]) => <button key={k} type="button" aria-pressed={state.nguon === k} onClick={() => set({ nguon: k })}>{l}</button>)}
               </div>
-              <p className="hint" style={{ marginTop: 0 }}>Thư mục trên máy (<span className="num">repo:…</span>) hoặc một dòng JSON mô tả hệ thống.</p>
+              {state.nguon === "demo" && (
+                <div className="field">
+                  <label htmlFor="demo">Repo demo trên máy backend</label>
+                  <select id="demo" value={state.demoRepo} onChange={(e) => set({ demoRepo: e.target.value })} disabled={!repos || !repos.length}>
+                    {repos === null && <option>Đang tải…</option>}
+                    {repos && !repos.length && <option value="">Không có repo demo (hoặc chưa nối backend)</option>}
+                    {(repos || []).map((r) => <option key={r.id} value={r.id}>{r.id} · {r.mo_ta}</option>)}
+                  </select>
+                </div>
+              )}
+              {state.nguon === "github" && (
+                <div className="field">
+                  <label htmlFor="gh">Link repo GitHub công khai</label>
+                  <input id="gh" className="num" type="url" placeholder="https://github.com/owner/repo" value={state.githubUrl} onChange={(e) => set({ githubUrl: e.target.value })} />
+                  <p className="hint">Backend tải bản zip của nhánh mặc định (cần mạng, tối đa 30 giây).</p>
+                </div>
+              )}
+              {state.nguon === "zip" && (
+                <div className="field">
+                  <label htmlFor="zip">File .zip mã nguồn (≤ 20 MB)</label>
+                  <input id="zip" type="file" accept=".zip,application/zip" onChange={(e) => setZip(e.target.files[0] || null)} />
+                  <p className="hint">Chỉ đọc <span className="num">.ts .tsx .js .jsx .sql .json</span>…, bỏ <span className="num">node_modules</span>, <span className="num">.git</span>.</p>
+                </div>
+              )}
+              {state.nguon === "case" && (
+                <div className="field">
+                  <label htmlFor="case">Một case JSON (mo_ta, schema, code)</label>
+                  <textarea id="case" className="num" rows="6" value={state.caseText} onChange={(e) => set({ caseText: e.target.value })}
+                    placeholder='{"mo_ta": "...", "schema": ["users(id, email)"], "code": [{"file": "a.ts", "line": 3, "text": "..."}]}' />
+                </div>
+              )}
+              <ErrorNote err={err} />
             </form>
           </div>
 
-          <div className="bench">
-            <div className="sheet" style={{ padding: "22px 24px" }}>
+          <div className="bench" style={{ display: "flex" }}>
+            <div className="sheet" style={{ padding: "22px 24px", flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
-                <h2 style={{ fontSize: 20, letterSpacing: "-0.02em" }}>Ba điều mã nguồn không nói được</h2>
+                <h2 style={{ fontSize: 20, letterSpacing: "-0.02em" }}>Hai điều mã nguồn không nói được</h2>
                 <Chip kind="human">Bạn trả lời</Chip>
               </div>
-              <p className="small muted" style={{ marginBottom: 18 }}>Quyết định bạn còn miễn trừ Điều 21, 22 và khoản 2 Điều 33 hay không. Hệ thống không đoán từ code.</p>
-
-              <div className="stack" style={{ "--gap": "18px" }}>
-                <div className="field">
-                  <label htmlFor="loai">Loại hình tổ chức</label>
-                  <select id="loai" value={state.loaiHinh} onChange={(e) => set({ loaiHinh: e.target.value })}>
-                    {SHP.loaiHinh.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-                  </select>
-                </div>
-                <fieldset style={{ border: 0, margin: 0, padding: 0 }}>
-                  <legend className="panel-label" style={{ marginBottom: 8 }}>Số chủ thể dữ liệu đã xử lý, tính lũy kế</legend>
-                  <div className="choices">
-                    {[["duoi", "Dưới 100.000"], ["tren", "Từ 100.000 trở lên"], ["khong_ro", "Không rõ"]].map(([v, l]) => (
-                      <label key={v} className="choice">
-                        <input type="radio" name="luyke" checked={state.luyKe === v} onChange={() => set({ luyKe: v })} />{l}
-                      </label>
-                    ))}
-                  </div>
-                  <p className="hint">Lũy kế tổng lượng đã xử lý, không phải người dùng đang hoạt động. Ngưỡng <span className="num">100.000</span> theo <span className="num">ND356 D41.2</span>.</p>
-                </fieldset>
-              </div>
+              <p className="small muted" style={{ marginBottom: 18 }}>Quyết định bạn còn miễn trừ Điều 21, 22 và khoản 2 Điều 33 hay không. Hệ thống không đoán từ code; sửa được sau ở màn kết quả mà không gọi lại AI.</p>
+              <BizFields options={options} />
             </div>
           </div>
         </div>
@@ -62,15 +177,15 @@ function ScreenQuet() {
               </div>
             </div>
             <p className="small muted" style={{ margin: "6px 0 16px" }}>
-              {state.mode === "rule" ? "Chế độ rule chỉ dùng luật viết tay: không gọi model, không gửi gì." : "Chế độ hybrid gọi model AI đặt ở nước ngoài. Đây là toàn bộ những gì rời khỏi máy bạn."}
+              {state.mode === "rule" ? "Chế độ rule chỉ dùng luật viết tay: không gọi model, không gửi gì." : "Chế độ hybrid gọi model AI đặt ở nước ngoài. Bước sau hiện đúng danh sách sẽ gửi, trước khi bạn bấm gửi."}
             </p>
             <ul className="ruled">
               {[
-                [state.mode === "hybrid", "Tên bảng, tên cột trong schema"],
-                [state.mode === "hybrid", "Đoạn code ±5 dòng quanh đường đi dữ liệu"],
+                [state.mode === "hybrid", "Mô tả app, tên bảng và tên cột trong schema"],
+                [state.mode === "hybrid", "Đoạn code quanh lời gọi ra ngoài (đã lọc secret)"],
                 [false, "Giá trị thật trong bảng dữ liệu"],
                 [false, "Toàn bộ repo"],
-                [false, "Secret, API key, biến môi trường (lọc trước khi gửi)"],
+                [false, "Secret, API key (thay bằng [REDACTED] trước khi gửi)"],
               ].map(([sent, t], i) => (
                 <li key={i} className="row" style={{ "--gap": "14px", padding: "11px 0" }}>
                   <span className={"chip " + (sent ? "chip--found" : "chip--none")} style={{ minWidth: 64, justifyContent: "center" }}>{sent ? "Gửi" : "Không"}</span>
@@ -93,57 +208,73 @@ function ScreenQuet() {
           </div>
         </div>
         <div className="note note--plain" style={{ marginTop: 22 }}>
-          Hệ thống chỉ ra nghĩa vụ nào đã phát sinh và dòng code nào làm nó phát sinh. Không kết luận vi phạm, không cấp chứng nhận tuân thủ, không gửi gì cho cơ quan nhà nước.
+          Hệ thống chỉ ra nghĩa vụ nào đã phát sinh và dòng code nào làm nó phát sinh. Không đưa ra ý kiến pháp lý, không cấp chứng nhận, không gửi gì cho cơ quan nhà nước.
         </div>
       </div>
       <ActionBar>
-        <span className="small muted">Chi phí mỗi lượt quét: <NotMeasured /> · xem <span className="num">cost/cost-estimate.md</span></span>
-        <a className="btn btn--primary" href="#/dang-quet">Bắt đầu quét</a>
+        <span className="small muted">Bước này chỉ quét tĩnh, chưa gọi AI.</span>
+        <button type="button" className="btn btn--primary" onClick={submit} disabled={busy} aria-disabled={busy}>{busy ? "Đang quét…" : "Quét mã nguồn"}</button>
       </ActionBar>
     </div>
   );
 }
 
 const SCAN_STEPS = [
-  { t: "Đọc schema và cấu hình", d: "scanner.py · không gọi AI", r: "2 bảng, 8 cột", ai: false },
-  { t: "Tìm lời gọi ra ngoài và cách xin đồng ý", d: "scanner.py · không gọi AI", r: "1 lời gọi OpenAI, 2 dấu hiệu đồng ý sai", ai: false },
-  { t: "AI phân loại tên cột", d: "classify.py · model nhỏ", r: "8 cột", ai: true },
-  { t: "AI kiểm chứng đường đi dữ liệu", d: "verify.py · model lớn · xác nhận hoặc bác bỏ", r: "1 đường đi", ai: true },
-  { t: "Rule engine ra kết luận", d: "rules.py · không gọi AI · nơi duy nhất tạo kết luận pháp lý", r: "C1, C2, C3", ai: false },
+  { t: "Đọc schema và cấu hình", d: "scanner.py · không gọi AI", ai: false, static: true },
+  { t: "Tìm lời gọi ra ngoài và cách xin đồng ý", d: "scanner.py · không gọi AI", ai: false, static: true },
+  { t: "AI phân loại tên cột", d: "classify.py · model nhỏ", ai: true },
+  { t: "AI kiểm chứng đường đi dữ liệu", d: "verify.py · model lớn · xác nhận hoặc bác bỏ", ai: true },
+  { t: "Rule engine ra kết luận", d: "rules.py · không gọi AI · nơi duy nhất tạo kết luận pháp lý", ai: false },
 ];
+
+function SendList({ title, part }) {
+  if (!part) return null;
+  return (
+    <div style={{ marginTop: 14 }}>
+      <div className="panel-label" style={{ color: "var(--color-night-cool)" }}>{title} · <span className="num">{part.model}</span></div>
+      <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
+        {(part.noi_dung || []).map((t, i) => <li key={i} className="small">{t}</li>)}
+      </ul>
+      {(part.doan_code || []).map((d, i) => (
+        <pre key={i} className="num xs" style={{ whiteSpace: "pre-wrap", margin: "8px 0 0", padding: 10, background: "var(--color-night-2)", borderRadius: 6 }}>
+          {d.file}:{d.tu_dong}-{d.den_dong}{"\n"}{d.text}
+        </pre>
+      ))}
+      {part.kem_ten_cot_ca_nhan && <p className="xs" style={{ marginTop: 6, color: "var(--color-night-muted)" }}>Kèm: {part.kem_ten_cot_ca_nhan}</p>}
+    </div>
+  );
+}
 
 function ScreenDangQuet() {
   const { state, set } = useApp();
-  const [step, setStep] = useState(0);
-  useEffect(() => {
-    setStep(0);
-    const id = setInterval(() => setStep((s) => (s >= SCAN_STEPS.length ? s : s + 1)), 900);
-    return () => clearInterval(id);
-  }, [state.mode]);
-  const done = step >= SCAN_STEPS.length;
-  const rule = state.mode === "rule";
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const scan = state.scan;
+  if (!scan) return <NeedStep />;
+  const rule = scan.che_do === "rule";
+  const sg = scan.se_gui_ra_ngoai || {};
+  const done = !!(state.result && state.result.session_id === scan.session_id);
+  const stepState = (s) => s.static ? "done" : done ? "done" : busy ? "now" : "wait";
 
-  const log = [
-    ["static", "schema: 2 bảng / 8 cột"],
-    ["static", "sink: openai.chat.completions.create · route.ts:10"],
-    ["static", "consent: defaultChecked · page.tsx:5"],
-    ["static", "consent: \"tiếp tục sử dụng\" · page.tsx:8"],
-    rule ? ["skip", "llm-s phân loại cột: bỏ qua, chế độ rule"] : ["llm-s", "phân loại 8 cột · 1 lô"],
-    rule ? ["skip", "llm-L kiểm chứng đường đi: bỏ qua, chế độ rule"] : ["llm-L", "đường 1/1 · users.email → chat.completions.create"],
-    ["rule", "C1 KICH_HOAT · C2 KICH_HOAT_NANG · C3 " + c3Status(state.loaiHinh, state.luyKe)],
-  ];
-  const shown = log.slice(0, Math.min(log.length, step + 2));
+  async function analyze() {
+    if (busy) return;
+    setBusy(true); setErr(null);
+    try {
+      const result = await API.analyze(scan.session_id);
+      set({ result });
+      location.hash = "#/ket-qua";
+    } catch (x) { setErr(x); } finally { setBusy(false); }
+  }
 
+  const tk = scan.thong_ke || {};
   return (
     <div className="screen">
       <div className="wrap page">
         <div className="page-head">
           <div>
-            <div className="meta"><span>{state.repo}</span><span>chế độ {state.mode}</span></div>
-            <h1>{done ? "Quét xong. Năm bước, hai bước dùng AI." : "Đang quét repo…"}</h1>
-          </div>
-          <div className="seg" role="group" aria-label="Chế độ">
-            {["rule", "hybrid"].map((m) => <button key={m} type="button" aria-pressed={state.mode === m} onClick={() => set({ mode: m })}>{m}</button>)}
+            <div className="meta"><span>{srcLabel(scan)}</span><span>chế độ {scan.che_do}</span></div>
+            <h1>{done ? "Đã phân tích xong." : "Quét tĩnh xong. Xem trước những gì sẽ gửi đi."}</h1>
+            <p className="lede">{tk.so_file} file · {tk.so_cot} cột · {tk.so_loi_goi_ra_ngoai} lời gọi ra ngoài. Chưa có gì được gửi cho model.</p>
           </div>
         </div>
 
@@ -152,123 +283,148 @@ function ScreenDangQuet() {
             <ol className="timeline">
               {SCAN_STEPS.map((s, i) => {
                 const skipped = rule && s.ai;
-                const cls = i < step ? "done" : i === step ? "now" : "wait";
+                const cls = skipped ? "done" : stepState(s);
                 return (
                   <li key={i} className={cls}>
-                    <span className="dot">{i < step ? "✓" : i + 1}</span>
+                    <span className="dot">{cls === "done" ? "✓" : i + 1}</span>
                     <div>
                       <h3>
                         {s.t}
                         {s.ai && <Chip kind={skipped ? "none" : "human"}>{skipped ? "bỏ qua" : "AI"}</Chip>}
-                        {i === step && !done && <span className="chip chip--line pulse">đang chạy</span>}
+                        {cls === "now" && !skipped && <span className="chip chip--line pulse">đang chạy</span>}
                       </h3>
-                      <p>{s.d}{i < step && !skipped ? " · " + s.r : ""}</p>
+                      <p>{s.d}</p>
                     </div>
                   </li>
                 );
               })}
             </ol>
-            <div className="note note--cool">
-              Bước 3 và 4 là hai việc duy nhất AI làm. Bước 5 chỉ nhận từ AI nhãn phân loại cột và cờ xác nhận đường đi; số điều, khoản, mức phạt đọc từ bảng luật JSON.
+
+            <div className="panel">
+              <h3>Quét tĩnh tìm thấy</h3>
+              <ul className="ruled" style={{ marginTop: 10 }}>
+                {(scan.loi_goi_ra_ngoai || []).map((l, i) => (
+                  <li key={"s" + i} className="small" style={{ padding: "8px 0" }}>
+                    <span className="num">{l.file}:{l.line}</span> → <span className="num">{l.dich}</span> <Chip kind="line">{l.loai}</Chip>
+                  </li>
+                ))}
+                {(scan.dong_y && scan.dong_y.tich_san || []).map((d, i) => (
+                  <li key={"t" + i} className="small" style={{ padding: "8px 0" }}><span className="num">{d.file}:{d.line}</span> · ô đồng ý tích sẵn</li>
+                ))}
+                {(scan.dong_y && scan.dong_y.im_lang_dong_y || []).map((d, i) => (
+                  <li key={"i" + i} className="small" style={{ padding: "8px 0" }}><span className="num">{d.file}:{d.line}</span> · câu coi im lặng là đồng ý</li>
+                ))}
+                <li className="small" style={{ padding: "8px 0" }}>
+                  Bảng nhật ký đồng ý: {scan.dong_y && scan.dong_y.bang ? <span className="num">{scan.dong_y.bang}</span> : "không thấy"}
+                  {scan.dong_y && scan.dong_y.bang && (scan.dong_y.du_3_truong ? " · đủ 3 trường" : " · chưa đủ 3 trường")}
+                </li>
+              </ul>
+              {(scan.canh_bao || []).map((c, i) => <p key={i} className="xs" style={{ marginTop: 8, color: "var(--color-accent-text)" }}>{c}</p>)}
             </div>
           </div>
 
           <div className="night" style={{ padding: 22 }}>
-            <div className="row" style={{ justifyContent: "space-between", marginBottom: 16 }}>
-              <h2 style={{ fontSize: 20, letterSpacing: "-0.02em" }}>Nhật ký cổng AI</h2>
-              <span className="xs muted">ghi vào <span className="num">traces/run-N.jsonl</span></span>
+            <div className="row" style={{ justifyContent: "space-between", marginBottom: 6 }}>
+              <h2 style={{ fontSize: 20, letterSpacing: "-0.02em" }}>Sẽ gửi cho model AI</h2>
+              <span className="xs muted">toàn bộ nội dung <span className="num">analyze</span> sẽ gửi</span>
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 }}>
-              {[["Lượt gọi LLM", rule ? "0" : null], ["Token", rule ? "0" : null], ["Chi phí", rule ? "0" : null, "đ"]].map(([l, v, u]) => (
-                <div key={l} className="stat">
-                  <div className="label">{l}</div>
-                  <div className="val">{v == null ? <NotMeasured night /> : <>{v} {u && <small>{u}</small>}</>}</div>
-                </div>
-              ))}
-            </div>
-            <div className="log" style={{ marginTop: 14, borderTop: "1px solid var(--color-night-rule)", minHeight: 260 }}>
-              {shown.map(([k, t], i) => (
-                <div key={i}>
-                  <span className="t">{String(i * 7).padStart(2, "0")}s</span>
-                  <span className={k === "skip" ? "skip" : k.startsWith("llm") ? "k-llm" : k === "rule" ? "k-rule" : "k-static"}>{k === "skip" ? "" : k + " "}</span>
-                  <span className={k === "skip" ? "skip" : undefined}>{t}</span>
-                </div>
-              ))}
-              {!done && <div className="pulse" style={{ color: "var(--color-night-muted)" }}>…</div>}
-            </div>
-            {!rule && <p className="xs muted" style={{ marginTop: 10 }}>Token và chi phí lấy từ <span className="num">usage</span> của API, chưa có lượt chạy hybrid nào cho repo này.</p>}
+            {!sg.model_phan_loai && !sg.model_kiem_chung && <p className="small" style={{ marginTop: 12 }}>Không gửi gì.</p>}
+            <SendList title="Model phân loại" part={sg.model_phan_loai} />
+            <SendList title="Model kiểm chứng" part={sg.model_kiem_chung} />
+            <p className="xs" style={{ marginTop: 16, color: "var(--color-night-muted)" }}>{sg.khong_gui}</p>
+            {done && state.result.su_dung && (
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginTop: 16 }}>
+                {[["Lượt gọi model", state.result.su_dung.so_lan_goi_model], ["Token vào", state.result.su_dung.token_vao], ["Token ra", state.result.su_dung.token_ra]].map(([l, v]) => (
+                  <div key={l} className="stat"><div className="label">{l}</div><div className="val">{v}</div></div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
+        <ErrorNote err={err} />
       </div>
       <ActionBar>
-        <span className="small muted">Thời gian quét: <NotMeasured /></span>
-        <a className={"btn " + (done ? "btn--primary" : "")} href="#/ket-qua" aria-disabled={!done}>Xem kết quả</a>
+        <span className="small muted">{busy ? (rule ? "Rule engine đang chạy…" : "Đang gọi model, thường 5–15 giây…") : rule ? "Chế độ rule: không gửi gì ra ngoài." : "Bấm gửi nghĩa là đồng ý gửi đúng danh sách bên phải."}</span>
+        {done
+          ? <a className="btn btn--primary" href="#/ket-qua">Xem kết quả</a>
+          : <button type="button" className="btn btn--primary" onClick={analyze} disabled={busy} aria-disabled={busy}>{busy ? "Đang kiểm tra…" : rule ? "Chạy kiểm tra" : "Gửi kiểm tra"}</button>}
       </ActionBar>
     </div>
   );
 }
 
 function ScreenKetQua() {
-  const { state } = useApp();
-  const c3 = c3Status(state.loaiHinh, state.luyKe);
-  const lh = SHP.loaiHinh.find(([v]) => v === state.loaiHinh)[1];
-  const c3Codes = SHP.mienTru[state.loaiHinh] || [];
+  const { state, set } = useApp();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
+  const r = state.result;
+  if (!r) return <NeedStep what="kết quả phân tích" to={state.scan ? "dang-quet" : "quet"} label={state.scan ? "Về bước xem trước" : "Quét mới"} />;
+  const k = r.ket_qua;
+  const kinds = GROUPS.map(([g]) => (STATUS[k[g].trang_thai] || [, "none"])[1]);
+  const found = kinds.filter((x) => x === "found").length;
+  const human = kinds.filter((x) => x === "human").length;
+
+  async function update() {
+    const be = bizError(state);
+    if (be) return setErr(new API.ApiError(400, { thong_bao: be }));
+    setBusy(true); setErr(null);
+    try { set({ result: await API.business(r.session_id, bizBody(state)), draft: null }); }
+    catch (x) { setErr(x); } finally { setBusy(false); }
+  }
+
   return (
     <div className="screen">
       <div className="wrap page">
         <div className="page-head">
           <div>
-            <div className="meta"><span>{state.repo}</span><span>chế độ {state.mode}</span><span>{lh.toLowerCase()}</span><span>đã gửi ra ngoài: {state.mode === "rule" ? "không gửi gì" : "tên cột + đoạn code đã lọc"}</span></div>
-            <h1>Hai nghĩa vụ đã phát sinh{c3 === "CAN_NGUOI_XAC_NHAN" ? ", một điểm chờ bạn xác nhận." : ", và không còn miễn trừ."}</h1>
-            <p className="lede">Đây là danh sách nghĩa vụ đã phát sinh, không phải kết luận vi phạm. Mỗi dòng có bằng chứng trong code và điều luật làm căn cứ.</p>
+            <div className="meta">
+              <span>{srcLabel(state.scan)}</span><span>chế độ {r.che_do}</span>
+              <span>đã gửi ra ngoài: {r.da_gui_ra_ngoai && r.da_gui_ra_ngoai.length ? r.da_gui_ra_ngoai.length + " mục" : "không gửi gì"}</span>
+              {r.su_dung && <span>{r.su_dung.so_lan_goi_model} lượt gọi model · {r.su_dung.token_vao + r.su_dung.token_ra} token</span>}
+            </div>
+            <h1>{found ? found + " nghĩa vụ đã phát sinh" : "Không thấy nghĩa vụ nào phát sinh trong mã đã quét"}{human ? ", " + human + " điểm chờ người xác nhận." : "."}</h1>
+            <p className="lede">Đây là danh sách nghĩa vụ đã phát sinh, không phải ý kiến pháp lý. Mỗi dòng có bằng chứng trong code và điều luật làm căn cứ.</p>
           </div>
         </div>
 
-        <div className="note note--human row" style={{ marginBottom: 28, "--gap": "16px 28px", justifyContent: "space-between" }}>
-          <div style={{ flex: "1 1 520px" }}>
-            <h4>{c3 === "CAN_NGUOI_XAC_NHAN" ? "Không còn miễn trừ, nhưng cần bạn chốt loại hình" : "Không còn miễn trừ Điều 21, 22 và khoản 2 Điều 33"}</h4>
-            Cột <span className="num">bookings.vi_tri_gan_nhat</span> là dữ liệu vị trí, nhóm nhạy cảm <span className="num">ND356 D4h</span>. Dù loại hình nào, kết luận đều là không còn miễn trừ; loại hình chỉ đổi căn cứ.
+        <div className={"note row " + (r.thieu_thong_tin && r.thieu_thong_tin.length ? "note--human" : "note--plain")} style={{ marginBottom: 28, "--gap": "16px 28px", justifyContent: "space-between", alignItems: "flex-end" }}>
+          <div style={{ flex: "1 1 260px" }}>
+            <h4>{r.thieu_thong_tin && r.thieu_thong_tin.length ? "Còn thiếu: " + r.thieu_thong_tin.map((t) => MISSING[t] || t).join(", ") : "Thông tin doanh nghiệp"}</h4>
+            Sửa ở đây chỉ chạy lại rule engine, không gọi lại AI.
           </div>
-          {c3 === "CAN_NGUOI_XAC_NHAN" && <a className="btn btn--primary btn--sm" href="#/quet">Chốt loại hình</a>}
+          <BizFields compact />
+          <button type="button" className="btn btn--primary btn--sm" onClick={update} disabled={busy}>{busy ? "Đang cập nhật…" : "Cập nhật kết luận"}</button>
         </div>
+        <ErrorNote err={err} />
 
         <div className="bench">
           <div className="grid-3">
-            <Entry c="c1" kind="C1 · Điều 20 Luật 91" where="route.ts:10" title="Chuyển dữ liệu cá nhân ra nước ngoài"
-              cells={[["Trường", "users.email", { mono: true }], ["Đích", "chat.completions.create", { mono: true }],
-                      ["Căn cứ", "Luat91 D20.1, D20.2", { mono: true }], ["Hạn", "60 ngày", { mono: true }],
-                      ["Mức phạt tham khảo (khung, tổ chức)", "30–50 triệu đồng · ND330 D56.1", { wide: true }]]}
-              foot={<><Status s="KICH_HOAT" /><a className="btn btn--sm" href="#/bang-chung/c1">Xem bằng chứng</a></>} />
-            <Entry c="c2" kind="C2 · Điều 9 Luật 91" where="page.tsx:5, :8" title="Cách xin đồng ý không hợp lệ"
-              cells={[["Dòng 5", "Ô đồng ý tích sẵn"], ["Dòng 8", "Im lặng là đồng ý"],
-                      ["Căn cứ", "Luat91 D9.3, D9.4d", { mono: true }], ["Căn cứ", "ND356 D6, D6.3", { mono: true }],
-                      ["Mức phạt tham khảo (khung, tổ chức)", "50–70 triệu đồng · ND330 D43.2b", { wide: true }]]}
-              foot={<><Status s="KICH_HOAT_NANG" /><a className="btn btn--sm" href="#/bang-chung/c2">Xem bằng chứng</a></>} />
-            <Entry c="c3" kind="C3 · Điều 38 Luật 91" where="001_init.sql:12" title="Miễn trừ cho doanh nghiệp nhỏ"
-              cells={[["Nhóm", "vi_tri_dinh_vi", { mono: true }], ["Độ tin cậy", "1.0", { mono: true }],
-                      ["Loại hình", lh], ["Căn cứ", c3Codes.length && c3 === "MAT_MIEN_TRU" ? c3Codes.join(", ") : "chờ chốt loại hình", { mono: !!c3Codes.length && c3 === "MAT_MIEN_TRU" }],
-                      ["Cột", "bookings.vi_tri_gan_nhat", { mono: true, wide: true }]]}
-              foot={<><Status s={c3} /><a className="btn btn--sm" href="#/phan-loai">Rà soát 8 cột</a></>} />
+            {GROUPS.map(([g, c]) => {
+              const x = k[g];
+              const first = x.bang_chung && x.bang_chung[0];
+              const cells = [["Giải thích", x.giai_thich, { wide: true, text: true }],
+                             ["Căn cứ", x.can_cu && x.can_cu.length ? x.can_cu.map((cc) => cc.ma).join(", ") : "—", { mono: true, wide: true }]];
+              if (x.han_chot) cells.push(["Hạn", x.han_chot, { wide: true }]);
+              if (x.nhom_nhay_cam && x.nhom_nhay_cam.length) cells.push(["Nhóm nhạy cảm", x.nhom_nhay_cam.join(", "), { mono: true, wide: true }]);
+              if (x.muc_phat) cells.push(["Mức phạt tham khảo", x.muc_phat, { wide: true, text: true }]);
+              return (
+                <Entry key={g} c={c} kind={g} where={first ? first.file.split("/").pop() + ":" + first.line : null} title={x.ten} cells={cells}
+                  foot={<><Status s={x.trang_thai} />
+                    {x.trang_thai === "CAN_LUAT_SU" ? <a className="btn btn--sm" href="#/luat-su">Vì sao cần luật sư</a>
+                      : <a className="btn btn--sm" href={"#/bang-chung/" + c}>Bằng chứng ({(x.bang_chung || []).length})</a>}</>} />
+              );
+            })}
           </div>
         </div>
-
-        <div className="grid-2" style={{ marginTop: 28 }}>
-          <div className="note note--plain">
-            <h4>Hệ thống từ chối kết luận khi thiếu căn cứ</h4>
-            Repo này không có đường đi nào thiếu căn cứ. Khi dữ liệu gửi ra ngoài chỉ là chữ người dùng tự nhập, C1 chuyển sang <b>Cần luật sư rà soát</b> thay vì đoán. <a href="#/luat-su">Xem ví dụ trạng thái này</a>
-          </div>
-          <div className="note note--cool">
-            <h4>Hồ sơ nháp chỉ sinh sau khi bạn duyệt</h4>
-            Bạn xác nhận từng phát hiện ở cổng duyệt; phát hiện chưa xác nhận không vào hồ sơ.
-          </div>
-        </div>
+        {(r.canh_bao || []).map((c, i) => <p key={i} className="small" style={{ marginTop: 12, color: "var(--color-accent-text)" }}>{c}</p>)}
+        <div className="note note--plain" style={{ marginTop: 22 }}>{r.luu_y} <a href="#/phan-loai">Xem toàn bộ cột đã quét</a></div>
       </div>
       <ActionBar>
-        <span className="small muted">Kết quả là gợi ý từ phân tích tĩnh để người chịu trách nhiệm xác nhận, không phải ý kiến pháp lý.</span>
+        <span className="small muted">Gợi ý để người chịu trách nhiệm xác nhận, không phải ý kiến pháp lý.</span>
         <a className="btn btn--primary" href="#/duyet">Sang cổng duyệt</a>
       </ActionBar>
     </div>
   );
 }
 
-Object.assign(window, { ScreenQuet, ScreenDangQuet, ScreenKetQua });
+Object.assign(window, { ScreenQuet, ScreenDangQuet, ScreenKetQua, bizBody });

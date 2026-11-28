@@ -30,71 +30,50 @@ function Hop({ role, label, file, from, to, hits, pin, tag, note }) {
   );
 }
 
+const GROUP_KIND = { c1: "C1 · Chuyển dữ liệu xuyên biên giới", c2: "C2 · Xin và lưu sự đồng ý", c3: "C3 · Miễn trừ Điều 38" };
+
 function ScreenBangChung({ which = "c1" }) {
   const { state } = useApp();
-  const hybrid = state.mode === "hybrid";
-  const C = {
-    c1: {
-      kind: "C1 · Chuyển dữ liệu xuyên biên giới", status: "KICH_HOAT",
-      title: "Email người dùng được gửi tới một nền tảng AI ngoài lãnh thổ",
-      lede: "Thuộc trường hợp tại điểm c khoản 1 Điều 20: dùng nền tảng ở ngoài lãnh thổ Việt Nam để xử lý dữ liệu cá nhân thu thập tại Việt Nam.",
-      cites: ["Luat91 D20.1", "Luat91 D20.2"],
-      checks: ["Điều khoản do rule engine chọn từ bảng JSON, model không sinh số điều, số khoản.", "Mức phạt 30–50 triệu đồng (ND330 D56.1) là khung tối đa, không phải mức chắc chắn bị áp.", "Hạn: 60 ngày kể từ lần chuyển dữ liệu đầu tiên."],
-    },
-    c2: {
-      kind: "C2 · Xin và lưu sự đồng ý", status: "KICH_HOAT_NANG",
-      title: "Cách xin đồng ý không hợp lệ ở trang đăng ký",
-      lede: "Ô đồng ý được tích sẵn, và trang coi việc tiếp tục sử dụng là đồng ý. Cả hai đều bị cấm.",
-      cites: ["Luat91 D9.3", "ND356 D6", "Luat91 D9.4d", "ND356 D6.3"],
-      checks: ["Mức phạt khung: 50–70 triệu đồng khi coi im lặng là đồng ý (ND330 D43.2b); 30–50 triệu đồng khi đặt mặc định đồng ý (ND330 D43.1c).", "Cá nhân bị phạt bằng một nửa mức của tổ chức.", "Nghĩa vụ về sự đồng ý không nằm trong miễn trừ của Điều 38."],
-    },
-  }[which];
+  const r = state.result;
+  if (!r) return <NeedStep what="kết quả phân tích" />;
+  const x = r.ket_qua[which.toUpperCase()];
+  const ai = r.che_do !== "rule";
 
   return (
     <div className="screen">
       <div className="wrap page">
         <Back />
         <div className="row" style={{ "--gap": "8px", marginBottom: 28 }}>
-          <a className={"btn btn--sm" + (which === "c1" ? " btn--ink" : "")} href="#/bang-chung/c1"><Pin c="c1" size="sm" />C1</a>
-          <a className={"btn btn--sm" + (which === "c2" ? " btn--ink" : "")} href="#/bang-chung/c2"><Pin c="c2" size="sm" />C2</a>
-          <a className="btn btn--sm" href="#/phan-loai"><Pin c="c3" size="sm" />C3</a>
+          {GROUPS.map(([g, c]) => (
+            <a key={c} className={"btn btn--sm" + (which === c ? " btn--ink" : "")} href={"#/bang-chung/" + c}><Pin c={c} size="sm" />{g}</a>
+          ))}
         </div>
         <div className="grid-2r" style={{ gap: 40 }}>
           <div className="stack" style={{ "--gap": "22px" }}>
-            <div className="row" style={{ "--gap": "10px" }}><span className="panel-label">{C.kind}</span><Status s={C.status} /></div>
-            <h1 style={{ fontSize: "clamp(28px, 3vw, 38px)" }}>{C.title}</h1>
-            <p style={{ color: "var(--color-ink-2)", fontSize: 17 }}>{C.lede}</p>
+            <div className="row" style={{ "--gap": "10px" }}><span className="panel-label">{GROUP_KIND[which]}</span><Status s={x.trang_thai} /></div>
+            <h1 style={{ fontSize: "clamp(28px, 3vw, 38px)" }}>{x.ten}</h1>
+            <p style={{ color: "var(--color-ink-2)", fontSize: 17 }}>{x.giai_thich}</p>
             <div className="sheet" style={{ padding: "18px 22px" }}>
-              <div className="panel-label" style={{ marginBottom: 10 }}>Căn cứ, lấy từ <span className="num">citations.json</span></div>
-              <ul className="ruled">
-                {C.cites.map((c) => <li key={c} style={{ padding: "10px 0" }}><Cite code={c} /></li>)}
-              </ul>
+              <div className="panel-label" style={{ marginBottom: 10 }}>Căn cứ, do rule engine chọn từ <span className="num">citations.json</span></div>
+              <CanCu items={x.can_cu} />
             </div>
             <ul className="stack" style={{ "--gap": "8px", listStyle: "none", padding: 0, margin: 0 }}>
-              {C.checks.map((t, i) => <li key={i} className="row small" style={{ "--gap": "10px", alignItems: "flex-start", flexWrap: "nowrap" }}><span className="cool" aria-hidden="true">✓</span><span>{t}</span></li>)}
+              {[x.han_chot && "Hạn: " + x.han_chot, x.muc_phat,
+                "Điều khoản do rule engine chọn từ bảng JSON, model không sinh số điều, số khoản."].filter(Boolean).map((t, i) => (
+                <li key={i} className="row small" style={{ "--gap": "10px", alignItems: "flex-start", flexWrap: "nowrap" }}><span className="cool" aria-hidden="true">✓</span><span>{t}</span></li>
+              ))}
             </ul>
-            <Decide id={which} />
+            {ACTIVE.has(x.trang_thai) && <Decide id={which} />}
           </div>
 
           <div className="bench">
             <div className="row" style={{ justifyContent: "space-between", marginBottom: 18 }}>
-              <h2 style={{ fontSize: 18, letterSpacing: "-0.02em" }}>{which === "c1" ? "Đường đi từ cột dữ liệu tới lời gọi ra ngoài" : "Hai dòng làm phát sinh"}</h2>
-              <span className="xs muted">{hybrid ? "xác nhận bởi static + AI" : "xác nhận bởi static"}</span>
+              <h2 style={{ fontSize: 18, letterSpacing: "-0.02em" }}>Dòng code làm phát sinh</h2>
+              <span className="xs muted">{ai ? "quét tĩnh + AI kiểm chứng" : "quét tĩnh, không gọi AI"}</span>
             </div>
-            {which === "c1" ? (
-              <div className="path">
-                <Hop role="source" label="Nguồn" file="sql" from={2} to={5} hits={[4]} pin="c1" tag="static ✓" />
-                <Hop role="" label="Đọc" file="route" from={8} to={9} hits={[9]} pin="c1" tag="static ✓" />
-                <Hop role="sink" label="Gửi đi" file="route" from={10} to={13} hits={[10, 12]} pin="c1" tag={hybrid ? "AI xác nhận" : "static ✓"}
-                  note={<>Đích: <span className="num">api.openai.com</span>, đặt ngoài lãnh thổ Việt Nam. Trường mang theo: <span className="num">users.email</span> nối thẳng vào nội dung gửi.</>} />
-              </div>
-            ) : (
-              <div className="path">
-                <Hop role="" label="Dòng 5" file="signup" from={4} to={6} hits={[5]} pin="c2" tag="tích sẵn" note={<>Vi phạm <span className="num">ND356 D6.3</span>: thiết lập mặc định đồng ý.</>} />
-                <Hop role="sink" label="Dòng 8" file="signup" from={7} to={9} hits={[8]} pin="c2" tag="im lặng" note={<>Vi phạm <span className="num">Luat91 D9.4d</span>: im lặng không phải đồng ý.</>} />
-              </div>
-            )}
-            <div className="note note--cool" style={{ marginTop: 22 }}>Người kiểm tra đọc các đoạn trên và tự xác nhận. Nếu một đoạn sai, bấm Bác bỏ và lý do được ghi lại.</div>
+            <Evidence items={x.bang_chung} pin={which} />
+            {which === "c3" && <p className="small" style={{ marginTop: 14 }}><a href="#/phan-loai">Xem toàn bộ cột đã quét</a></p>}
+            <div className="note note--cool" style={{ marginTop: 22 }}>Người kiểm tra đọc các đoạn trên và tự xác nhận. Nếu một đoạn sai, bấm Bác bỏ; quyết định được ghi ở phiên làm việc này.</div>
           </div>
         </div>
       </div>
@@ -105,18 +84,25 @@ function ScreenBangChung({ which = "c1" }) {
 function ScreenPhanLoai() {
   const { state, set } = useApp();
   const [filter, setFilter] = useState("all");
-  const sens = (n) => n in SHP.nhom;
+  const scan = state.scan;
+  if (!scan) return <NeedStep />;
+  // BE chỉ trả nhãn cho cột nhạy cảm (bằng chứng C3); các cột khác không có nhãn từ BE → không tự gán.
+  const tagged = {};
+  ((state.result && state.result.ket_qua.C3.bang_chung) || []).forEach((b) => { if (b.nhom) tagged[b.snippet] = b; });
+  const cols = (scan.cot || []).map((c) => {
+    const key = c.table + "." + c.column;
+    const t = tagged[key];
+    return { col: key, file: c.file, line: c.line, nhom: t ? t.nhom : null, conf: t ? t.do_tin_cay : null };
+  });
+  const sens = (n) => !!n && n in SHP.nhom;
   const groups = {
     all: () => true,
     sens: (c) => sens(c.nhom),
-    basic: (c) => c.nhom === "pii_co_ban",
-    none: (c) => c.nhom === "khong_ca_nhan",
-    check: (c) => c.nhom === "khong_ro" || (sens(c.nhom) && c.conf < 0.7),
+    check: (c) => sens(c.nhom) && c.conf != null && c.conf < 0.7,
+    none: (c) => !c.nhom,
   };
-  const count = (k) => SHP.columns.filter(groups[k]).length;
-  const rows = SHP.columns.filter(groups[filter]);
-  const label = (n) => sens(n) ? SHP.nhom[n][1] : n === "pii_co_ban" ? "Dữ liệu cá nhân cơ bản" : "Không phải dữ liệu cá nhân";
-  const basis = (n) => sens(n) ? "ND356 D4" + SHP.nhom[n][0] : n === "pii_co_ban" ? "ngoài danh mục Điều 4" : "không khớp từ khoá";
+  const count = (k) => cols.filter(groups[k]).length;
+  const rows = cols.filter(groups[filter]);
   const colDecision = state.colDecisions;
   const pick = (col, v) => set({ colDecisions: { ...colDecision, [col]: v } });
 
@@ -126,14 +112,14 @@ function ScreenPhanLoai() {
         <Back />
         <div className="page-head">
           <div>
-            <div className="meta"><span>8 cột</span><span>1 nhạy cảm</span><span>0 cần xem</span><span>chế độ {state.mode}</span></div>
+            <div className="meta"><span>{cols.length} cột</span><span>{count("sens")} nhạy cảm</span><span>{count("check")} cần xem</span><span>chế độ {scan.che_do}</span></div>
             <h1>Phân loại cột theo nhóm dữ liệu nhạy cảm</h1>
-            <p className="lede">Mỗi cột vào một nhãn kèm độ chắc. Độ chắc dưới <span className="num">0.7</span> tự rơi vào danh sách cần xem; rule engine chỉ dùng nhãn từ <span className="num">0.7</span> trở lên.</p>
+            <p className="lede">{state.result ? <>Cột được rule engine dùng làm bằng chứng C3 có nhãn và độ chắc; rule engine chỉ dùng nhãn từ <span className="num">0.7</span> trở lên. Các cột khác backend không trả nhãn riêng.</> : "Chưa phân tích: mới có danh sách cột từ quét tĩnh."}</p>
           </div>
         </div>
 
         <div className="row" style={{ "--gap": "8px", marginBottom: 18 }} role="group" aria-label="Lọc">
-          {[["all", "Tất cả"], ["check", "Cần xem"], ["sens", "Nhạy cảm"], ["basic", "Cơ bản"], ["none", "Không phải DLCN"]].map(([k, l]) => (
+          {[["all", "Tất cả"], ["sens", "Nhạy cảm"], ["check", "Dưới ngưỡng"], ["none", "Không có nhãn"]].map(([k, l]) => (
             <button key={k} type="button" className={"btn btn--sm" + (filter === k ? " btn--ink" : "")} aria-pressed={filter === k} onClick={() => setFilter(k)}>
               {l} <span className="num" style={{ opacity: .7 }}>{count(k)}</span>
             </button>
@@ -148,12 +134,14 @@ function ScreenPhanLoai() {
                 {rows.length === 0 && <tr><td colSpan="4" className="muted">Không có cột nào trong nhóm này.</td></tr>}
                 {rows.map((c) => {
                   const d = colDecision[c.col];
-                  const needs = sens(c.nhom) || c.nhom === "pii_co_ban";
+                  const needs = sens(c.nhom);
                   return (
                     <tr key={c.col} className={sens(c.nhom) && !d ? "needs" : undefined}>
-                      <td><div className="num" style={{ fontWeight: 500 }}>{c.col}</div><div className="xs muted">001_init.sql dòng {c.line}</div></td>
-                      <td><div style={{ fontWeight: 500, color: sens(c.nhom) ? "var(--color-cool)" : undefined }}>{label(c.nhom)}</div><div className="xs muted num">{basis(c.nhom)}</div></td>
-                      <td><div className="num">{c.conf.toFixed(1)}</div><div className="xs muted">{c.conf >= 0.7 ? "khớp từ khoá" : "dưới ngưỡng"}</div></td>
+                      <td><div className="num" style={{ fontWeight: 500 }}>{c.col}</div><div className="xs muted">{c.file.split("/").pop()} dòng {c.line}</div></td>
+                      <td>{c.nhom
+                        ? <><div style={{ fontWeight: 500, color: "var(--color-cool)" }}>{SHP.nhom[c.nhom] ? SHP.nhom[c.nhom][1] : c.nhom}</div><div className="xs muted num">{SHP.nhom[c.nhom] ? "ND356 D4" + SHP.nhom[c.nhom][0] : ""}</div></>
+                        : <span className="xs muted">Không có nhãn từ backend</span>}</td>
+                      <td>{c.conf != null ? <><div className="num">{Number(c.conf).toFixed(1)}</div><div className="xs muted">{c.conf >= 0.7 ? "rule engine dùng" : "dưới ngưỡng"}</div></> : <span className="xs muted">—</span>}</td>
                       <td>
                         {!needs ? <span className="xs muted">Không cần xem</span>
                           : d ? <button type="button" className={"chip " + (d === "dung" ? "chip--ok" : "chip--human")} style={{ border: 0, cursor: "pointer" }} onClick={() => pick(c.col, null)}>{d === "dung" ? "Đã xác nhận" : "Bạn sửa: sai nhãn"}</button>
@@ -174,10 +162,10 @@ function ScreenPhanLoai() {
               <h3>11 nhóm nhạy cảm, Điều 4 NĐ 356</h3>
               <ul className="ruled" style={{ marginTop: 12 }}>
                 {Object.entries(SHP.nhom).map(([k, [d, t]]) => {
-                  const hit = SHP.columns.some((c) => c.nhom === k);
+                  const hit = cols.filter((c) => c.nhom === k).length;
                   return (
                     <li key={k} style={{ display: "grid", gridTemplateColumns: "26px 1fr", gap: 8, padding: "7px 0", fontSize: 13.5, color: hit ? "var(--color-ink)" : "var(--color-muted)", fontWeight: hit ? 600 : 400 }}>
-                      <span className="num">{d}</span><span>{t}{hit && <span className="chip chip--found" style={{ marginLeft: 8, minHeight: 20 }}>1 cột</span>}</span>
+                      <span className="num">{d}</span><span>{t}{hit > 0 && <span className="chip chip--found" style={{ marginLeft: 8, minHeight: 20 }}>{hit} cột</span>}</span>
                     </li>
                   );
                 })}
@@ -185,7 +173,7 @@ function ScreenPhanLoai() {
             </div>
             <div className="note note--human">
               <h4>Vì sao đây là chỗ AI cần thiết</h4>
-              Từ điển từ khoá không bắt được tên cột viết tắt kiểu <span className="num">tt_sk</span>, <span className="num">ghi_chu_bn</span>. Mỗi lần bạn bấm Đúng hoặc Sai được ghi lại làm số liệu cho ablation.
+              Từ điển từ khoá không bắt được tên cột viết tắt kiểu <span className="num">tt_sk</span>, <span className="num">ghi_chu_bn</span>. Bấm Đúng hoặc Sai chỉ lưu ở phiên trình duyệt này, chưa gửi về backend.
             </div>
           </div>
         </div>
@@ -195,17 +183,29 @@ function ScreenPhanLoai() {
 }
 
 function ScreenLuatSu() {
+  const { state } = useApp();
   const [copied, setCopied] = useState(false);
+  const c1 = state.result && state.result.ket_qua.C1;
+  const live = c1 && c1.trang_thai === "CAN_LUAT_SU";
   const question = "Khi người dùng tự nhập nội dung vào ô chat của ứng dụng chúng tôi vận hành, và nội dung đó được gửi tới nền tảng AI đặt ngoài lãnh thổ Việt Nam, hành vi này có thuộc trường hợp \"chủ thể dữ liệu tự chuyển dữ liệu của mình\" tại khoản 6 Điều 20 Luật 91/2025/QH15 hay không?";
   const copy = () => { navigator.clipboard && navigator.clipboard.writeText(question); setCopied(true); setTimeout(() => setCopied(false), 1800); };
   return (
     <div className="screen">
       <div className="wrap page">
         <Back />
-        <div className="note note--plain row" style={{ marginBottom: 26, "--gap": "10px" }}>
-          <Chip kind="line">Ví dụ trạng thái</Chip>
-          <span className="small">Repo <span className="num">mini_repo</span> không rơi vào trạng thái này. Màn hình minh hoạ khi rule engine trả <span className="num">CAN_LUAT_SU</span> cho C1.</span>
-        </div>
+        {live ? (
+          <div className="sheet" style={{ padding: "18px 22px", marginBottom: 26 }}>
+            <div className="row" style={{ "--gap": "10px", marginBottom: 8 }}><Chip kind="human">Lượt quét này</Chip><Status s="CAN_LUAT_SU" /></div>
+            <p style={{ fontSize: 16 }}>{c1.giai_thich}</p>
+            <div style={{ marginTop: 12 }}><CanCu items={c1.can_cu} /></div>
+            <div style={{ marginTop: 12 }}><Evidence items={c1.bang_chung} pin="c1" /></div>
+          </div>
+        ) : (
+          <div className="note note--plain row" style={{ marginBottom: 26, "--gap": "10px" }}>
+            <Chip kind="line">Ví dụ trạng thái</Chip>
+            <span className="small">Lượt quét hiện tại không rơi vào trạng thái này. Phần dưới minh hoạ khi rule engine trả <span className="num">CAN_LUAT_SU</span> cho C1.</span>
+          </div>
+        )}
         <div className="grid-2" style={{ gap: 32 }}>
           <div className="stack" style={{ "--gap": "22px" }}>
             <div className="sheet" style={{ padding: "26px 28px", boxShadow: "0 0 0 1px var(--color-ink), var(--shadow-lift)" }}>
