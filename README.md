@@ -85,7 +85,8 @@ Nhóm dùng stack khác (Node, Streamlit, notebook…): sửa hàm `run_app()` t
 |---|---|---|
 | Lời gọi AI ở quyết định trung tâm | **Thật**: đã nối OpenAI qua `codebase/ai.py`, token lấy từ `usage` của API | Phân loại cột và chế độ `llm`: `gpt-6-luna` (`MODEL_NAME`). Kiểm chứng đường đi dữ liệu: `gpt-6.1-terra` (`MODEL_NAME_VERIFY`). `ai.py` cũng hỗ trợ `MODEL_PROVIDER=anthropic`. Đã thử nối 27/11: 3 câu đầu của benchmark chạy được, token > 0. Chưa phải kết quả đánh giá, xem `eval/report.md` |
 | Quét mã nguồn, rule engine, bảng luật (`data/legal/`) | **Thật** | Chạy bằng code Python, không gọi model; mọi mã điều khoản lấy từ `citations.json` |
-| Repo demo, corpus repo công khai | **Chưa có** | Làm ở CP3 (xem `data/DATA_CARD.md`) |
+| Repo demo (`data/demo_repos/`) | **Giả, nhóm tự dựng** | 3 repo nhỏ `repo_a`, `repo_b`, `repo_c`, cố ý cài sẵn tín hiệu để demo luồng quét repo đầu-cuối; không dùng để đo độ chính xác (xem `data/DATA_CARD.md` Dataset 3) |
+| Corpus repo công khai | **Thật** | 35 repo công khai Next.js + Supabase, chỉ đọc source, ẩn danh; dùng cho bằng chứng (`evidence/data-mining.md`) và case `data_that` (`data/cases/corpus_cases.jsonl`) |
 
 ## Dùng AI vào việc gì
 
@@ -123,5 +124,5 @@ Nhóm dùng Claude Code để viết code, test và tài liệu theo kế hoạc
 | 4 | Bản chạy thử làm trọn lát cắt | `codebase/` · lệnh ở mục "Lệnh" |
 | 5 | Định nghĩa "tốt" + bộ câu thử | `data/DATA_CARD.md` · `eval/` |
 | 6 | Mô phỏng chi phí khi dùng thật | `cost/` |
-| 7 | Slide + demo + video dự phòng | `demo-slides.pdf` ở thư mục gốc · link video: *(chưa có, quay trước CP4)* |
+| 7 | Slide + demo + video dự phòng | `demo-slides.pdf` ở thư mục gốc · link video: [video demo dự phòng (Google Drive)](https://drive.google.com/file/d/14YUbh-9LQblBj9SYhhUYln5zTjXZ8Zj4/view?usp=drive_link) |
 | + | *Bonus:* người dùng thử | `validation/log.md` |
