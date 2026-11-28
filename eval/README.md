@@ -33,7 +33,18 @@ Ba nguồn (chi tiết `data/DATA_CARD.md`): (1) văn bản luật công khai (L
 
 Metric có n < 10 chỉ báo k/n, không kết luận theo % (`SMALL_N` trong `grade.py`).
 
-- **Người thứ hai chấm thử:** __ (không phải người viết spec) chấm độc lập 5 output → khớp __/5 *(cần ≥4/5; lệch thì viết lại định nghĩa)*
+- **Người thứ hai chấm thử:** Nguyễn Văn Minh (không phải người viết spec) chấm độc lập 5 output → khớp 5/5 *(cần ≥4/5; lệch thì viết lại định nghĩa)*
+  - Lấy mẫu đều trong `eval/run-2.csv` (dòng 1, 7, 13, 19, 25, mỗi dòng cách nhau 6 câu, không chọn tay). Chấm theo `pass_criterion`: đọc khối JSON cuối output, so trạng thái C1/C2/C3, tập `C3.nhom_nhay_cam`, tập `can_cu`, và kiểm mọi mã có trong `data/legal/citations.json`. Chấm xong mới so với cột `pass`.
+
+    | Câu | Loại | Người hai chấm | Cột `pass` | Lý do |
+    |---|---|---|---|---|
+    | `c1-ro-001` | thuong | 1 | 1 | 3 trạng thái, nhóm (rỗng), căn cứ đều khớp |
+    | `c1-chat-001` | kho | 1 | 1 | C1 `CAN_LUAT_SU` + `Luat91 D20.6` khớp |
+    | `dt-r01-001` | thuong | 0 | 0 | Thừa nhóm `dinh_danh_dien_tu` (expected chỉ `suc_khoe`) |
+    | `dt-r03-002` | thuong | 0 | 0 | Thừa nhóm `doi_tu_rieng_tu` (expected rỗng) |
+    | `c3-vt-004` | kho | 1 | 1 | Đủ 5 căn cứ, nhóm `tai_chinh` khớp |
+
+  - Giới hạn: tiêu chí là so khớp chính xác nên hai người chấm gần như chắc chắn khớp nhau. Chỗ có thể lệch là `dt-r01-001`: hệ thống gắn `dinh_danh_dien_tu` vì có cột `cccd`, việc này có thể hợp lý về mặt pháp lý nhưng vẫn trượt vì nhãn chỉ ghi `suc_khoe`. Mình không sửa `expected`; nếu muốn, câu này nên ghi vào cờ cần Khoa xem lại trong `LABELING.md`.
 - LLM chấm: không dùng; cả 4 metric chấm bằng code.
 - **Chuẩn "đạt"** (chép nguyên từ `spec.md` §7, chốt trước 19:30 Thứ Sáu 27/11): "Đạt khi ≥ 80% câu trong `eval/benchmark.csv` qua (cột `pass` = 1), và `trich_dan_dung` đạt 100%."
 
