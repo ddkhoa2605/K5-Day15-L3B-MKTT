@@ -297,5 +297,129 @@ class TestReportAndHoldoutLock(unittest.TestCase):
         ablation.check_can_run("dev", ["rule"], provider="fake", limit=3)  # dev thì thử thoải mái
 
 
+def _fake_blind(n=2, split="blind"):
+    """Case giả, KHÔNG phải dữ liệu bộ mù thật (PR này không chứa input hay nhãn bộ mù)."""
+    return [{"id": "blind-%02d" % (i + 1), "mo_ta": "app thử %d" % i, "schema": ["t(id, ten)"], "code": [],
+             "loai_hinh": "khong_ro", "so_chu_the_luy_ke": None,
+             "nhan": {"split": split, "tag": "ro", "C1": "KHONG_KICH_HOAT", "C2": "KHONG_KICH_HOAT",
+                      "C3": "CAN_NGUOI_XAC_NHAN", "nhom_nhay_cam": [], "can_cu": []}} for i in range(n)]
+
+
+class TestBlindTap(unittest.TestCase):
+    """Issue #20 mục 3.3: bộ mù chỉ chạy khi file khớp manifest, khoá riêng, đúng một lần như holdout."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+        self.data = os.path.join(self.dir, "blind_cases.jsonl")
+        self.man = os.path.join(self.dir, "blind.manifest")
+
+    def tearDown(self):
+        shutil.rmtree(self.dir)
+
+    def _write(self, cases, crlf=False):
+        nl = "\r\n" if crlf else "\n"
+        with open(self.data, "w", encoding="utf-8", newline="") as f:
+            f.write("".join(json.dumps(c, ensure_ascii=False) + nl for c in cases))
+
+    def _manifest(self):
+        with open(self.man, "w", encoding="utf-8", newline="\n") as f:
+            f.write(ablation.blind_manifest_text(self.data, khoa_duyet="28/11 09:30 (Khoa)"))
+
+    def test_manifest_roundtrip_loads_cases(self):
+        self._write(_fake_blind())
+        self._manifest()
+        text = open(self.man, encoding="utf-8").read()
+        self.assertIn("sha256: ", text)
+        self.assertIn("so_cau: 2", text)
+        self.assertIn("blind-01 ", text)
+        self.assertNotIn("app thử", text)  # manifest chỉ có mã băm, không có input hay nhãn
+        cases = ablation.load_blind(self.data, self.man)
+        self.assertEqual([c["id"] for c in cases], ["blind-01", "blind-02"])
+
+    def test_any_change_after_manifest_refuses(self):
+        self._write(_fake_blind())
+        self._manifest()
+        changed = _fake_blind()
+        changed[1]["nhan"]["C1"] = "KICH_HOAT"  # sửa nhãn sau khi khoá manifest
+        self._write(changed)
+        with self.assertRaises(SystemExit):
+            ablation.load_blind(self.data, self.man)
+
+    def test_line_hash_checked_even_if_file_hash_edited(self):
+        self._write(_fake_blind())
+        self._manifest()
+        changed = _fake_blind()
+        changed[0]["mo_ta"] = "đổi input"
+        self._write(changed)
+        good = ablation.blind_manifest_text(self.data, khoa_duyet="x").split("\n")
+        old = open(self.man, encoding="utf-8").read().split("\n")
+        # chỉ sửa dòng sha256 của cả file cho khớp, giữ mã băm từng câu cũ
+        patched = [g if g.startswith("sha256:") else o for g, o in zip(good, old)]
+        with open(self.man, "w", encoding="utf-8", newline="\n") as f:
+            f.write("\n".join(patched))
+        with self.assertRaises(SystemExit):
+            ablation.load_blind(self.data, self.man)
+
+    def test_crlf_checkout_still_matches(self):
+        # git trên Windows có thể đổi LF thành CRLF lúc checkout: nội dung không đổi thì vẫn khớp
+        self._write(_fake_blind())
+        self._manifest()
+        self._write(_fake_blind(), crlf=True)
+        self.assertEqual(len(ablation.load_blind(self.data, self.man)), 2)
+
+    def test_missing_files_or_wrong_split_refuse(self):
+        with self.assertRaises(SystemExit):
+            ablation.load_blind(self.data, self.man)  # chưa có file nào
+        self._write(_fake_blind())
+        with self.assertRaises(SystemExit):
+            ablation.load_blind(self.data, self.man)  # chưa có manifest
+        self._write(_fake_blind(split="dev"))
+        self._manifest()
+        with self.assertRaises(SystemExit):
+            ablation.load_blind(self.data, self.man)  # case không phải split blind
+
+    def test_blind_has_its_own_lock_and_holdout_rules(self):
+        self.assertNotEqual(ablation.LOCKS["blind"], ablation.LOCKS["holdout"])
+        self.assertTrue(ablation.LOCKS["blind"].endswith("blind.lock"))
+        for bad in (dict(modes=["rule"], provider="openai", limit=None),
+                    dict(modes=list(ablation.MODES), provider="fake", limit=None),
+                    dict(modes=list(ablation.MODES), provider="openai", limit=3)):
+            with self.assertRaises(SystemExit):
+                ablation.check_can_run("blind", bad["modes"], provider=bad["provider"], limit=bad["limit"])
+        with mock.patch.dict(os.environ, {"SHP_LLM_CODES": "closed"}):
+            ablation.check_can_run("blind", list(ablation.MODES), provider="openai", limit=None)  # không ném
+        lock = os.path.join(self.dir, "blind.lock")
+        ablation.claim_holdout(lock, {"tap": "blind"}, history=[], ten="bộ mù")
+        with self.assertRaises(SystemExit) as cm:
+            ablation.claim_holdout(lock, {"tap": "blind"}, history=[], ten="bộ mù")
+        self.assertIn("bộ mù", str(cm.exception.code))
+        with self.assertRaises(SystemExit) as cm:
+            ablation.claim_holdout(os.path.join(self.dir, "x.lock"), {}, history=["abc Bộ mù"], ten="bộ mù")
+        self.assertIn("bộ mù", str(cm.exception.code))
+
+    def test_blind_requires_closed_llm_codes(self):
+        # Khoa (28/11): bộ mù chạy B với danh sách mã đóng (SHP_LLM_CODES=closed); thiếu thì dừng trước khi ghi khoá
+        full = dict(modes=list(ablation.MODES), provider="openai", limit=None)
+        for val in (None, "", "open"):
+            env = {k: v for k, v in os.environ.items() if k != "SHP_LLM_CODES"}
+            if val is not None:
+                env["SHP_LLM_CODES"] = val
+            with mock.patch.dict(os.environ, env, clear=True):
+                with self.assertRaises(SystemExit) as cm:
+                    ablation.check_can_run("blind", **full)
+                self.assertIn("SHP_LLM_CODES", str(cm.exception.code))
+        with mock.patch.dict(os.environ, {"SHP_LLM_CODES": "closed"}):
+            ablation.check_can_run("blind", **full)  # không ném
+        env = {k: v for k, v in os.environ.items() if k != "SHP_LLM_CODES"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            ablation.check_can_run("holdout", **full)  # holdout giữ nguyên luật cũ
+
+    def test_report_shows_llm_codes(self):
+        cases = ablation.load_cases("dev")[:2]
+        sums = {m: ablation.summarize(ablation.run_mode(cases, m, answer=fake_answer_factory(set()))) for m in ablation.MODES}
+        md = ablation.render_md("blind", sums, meta={"SHP_LLM_CODES": "closed"})
+        self.assertIn("SHP_LLM_CODES=`closed`", md)
+
+
 if __name__ == "__main__":
     unittest.main()
