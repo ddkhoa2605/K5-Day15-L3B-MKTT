@@ -16,7 +16,7 @@ Data BTC cấp đã dùng (nếu có — không commit nguyên file): không dù
 - Việc họ cố làm xong: biết trước khi bàn giao app đã phát sinh những nghĩa vụ dữ liệu cá nhân nào theo luật Việt Nam, và chỉ ra được chúng đến từ đâu trong code.
 - Hôm nay họ giải bằng gì, hỏng ở đâu, vì sao chưa bỏ: tự đọc luật hoặc hỏi chatbot. Hỏng ở chỗ không nối được kết luận về một dòng code cụ thể, và chatbot có thể trích sai số điều (nhóm sẽ đo bằng cấu hình B của ablation). Chưa bỏ vì chưa có công cụ nào khác cho vùng này.
 - Pain: freelancer ship app có dữ liệu người dùng Việt, không biết app đã kích hoạt nghĩa vụ pháp lý nào, nên bị khách hoặc nhà đầu tư hỏi mà không trả lời được, và có thể chịu trách nhiệm hợp đồng.
-- Bằng chứng — số chính + kết luận (chi tiết: `evidence/summary.md`): *(chưa có)*. Sẽ có từ quét 30–50 repo công khai (`evidence/data-mining.md`) và 3 phỏng vấn. Bối cảnh chung theo bài tổng hợp của OX Security: Escape.tech quét 5.600 app vibe-code, có 175 ca lộ thông tin cá nhân *(chưa đối chiếu nghiên cứu gốc; khi lên slide phải trích tên nghiên cứu gốc, không trích trang tổng hợp)*.
+- Bằng chứng — số chính + kết luận (chi tiết: `evidence/summary.md`): **đào data** 35 repo công khai Next.js + Supabase: 32/35 lưu dữ liệu cá nhân cơ bản, 32/35 không có chỗ lưu sự đồng ý, chỉ 2/35 có nhật ký đồng ý gần đủ, 11/35 gọi AI nước ngoài (`evidence/data-mining.md`). **Khảo sát** 31 phản hồi, 27 người đã dựng app: 24/27 chỉ "biết sơ qua" Luật 91 trở xuống; 13/27 gửi dữ liệu người dùng tới API AI nước ngoài; 24/27 đã hỏi chatbot về nghĩa vụ dữ liệu, 15/27 không chắc nó đúng hoặc thấy nó sai. Kết luận: phần lớn app thu dữ liệu cá nhân mà không lưu được sự đồng ý, và người dựng không tự biết nghĩa vụ. **Phỏng vấn chưa có.** Bối cảnh chung theo bài tổng hợp của OX Security: Escape.tech quét 5.600 app vibe-code, có 175 ca lộ thông tin cá nhân *(chưa đối chiếu nghiên cứu gốc; khi lên slide phải trích tên nghiên cứu gốc, không trích trang tổng hợp)*.
 
 ## §2. Impact & quyết định chọn *(guide 1.3)*
 
@@ -167,13 +167,13 @@ flowchart LR
 - Giả định đã chốt cho C3 (Khoa chốt 28/11): cột chữ tự do do người dùng nhập (nội dung chat, ghi chú) tự nó không thuộc nhóm dữ liệu nhạy cảm của Nghị định 356 Điều 4 mà là dữ liệu cá nhân cơ bản, vì Điều 4 liệt kê theo loại thông tin và Điều 41 chỉ làm mất miễn trừ khi trực tiếp xử lý dữ liệu nhạy cảm. Cột vẫn tính nhạy cảm khi tên cột hoặc tên bảng chỉ rõ (ví dụ ghi chú bệnh án) hoặc lĩnh vực của app là y tế, tài chính. Kết luận kèm lời nhắc rằng cột này có thể chứa dữ liệu nhạy cảm do người dùng nhập mà hệ thống không đọc nội dung; trạng thái không đổi.
 - Hai giả định C1 và C3 vừa nêu được thêm **sau khi xem lỗi lượt 1** (đang thực hiện ở PR #15), nên số lượt 2 có phần lạc quan; báo cáo nêu số lượt 1 song song với số lượt 2. Cả hai khớp với các nhãn đã dán **trước** lượt 1 (ba case có dịch vụ email đều `KICH_HOAT`; năm case dev có cột chữ tự do đều `CON_MIEN_TRU`), không đổi nhãn nào, và được viết theo đặc điểm chung chứ không theo câu thử nào. Đây là giả định của nhóm, chưa phải ý kiến luật sư.
 - Ngoài phạm vi C1–C3: dữ liệu của trẻ em (Luật 91 Điều 24), một số repo công khai trong corpus có chạm vào; hệ thống không kiểm nghĩa vụ này và không kết luận về nó. Nhãn được commit trước khi viết rule engine; có 10 mẫu giữ lại chỉ chạy một lần ở cuối.
-- Kết quả: lượt 1 __/__ (__%) · lượt 2 __/__ (__%) — run ID: __ / __ → chi tiết `eval/report.md`, hồ sơ `eval/README.md` *(chưa chạy)*
+- Kết quả: lượt 1 21/30 (70%) · lượt 2 24/30 (80%) — run ID: `run-1@20261128-005902` / `run-2@20261128-023825`. `trich_dan_dung` 15/21 → 17/21 (81%), nên **chưa đạt chuẩn** ở cả hai lượt. Hai lần đo thêm cùng code `b677df6`: run-3 24/30, run-4 23/30 (cũng chưa đạt). → chi tiết `eval/report.md`, hồ sơ `eval/README.md`
 
 ## §8. Chi phí khi dùng thật *(guide 4.2)*
-- Persona + giá: `cost/personas.yaml` · lượt mô phỏng: `cost/simulate-__.csv` (__ phiên) *(chưa chạy)*
-- Chi phí / task thành công: __ (model __) · __ (model __) *(chưa đo)*
-- Chi phí / tháng ở quy mô thật: thấp __ · cơ sở __ · cao __ → chi tiết `cost/cost-estimate.md` *(chưa có)*
-- So với impact / người / tháng (§2): *(chưa so được vì chưa có cả hai số)*
+- Persona + giá: `cost/personas.yaml` (3 persona, số lần dùng *(tự ước tính)*) · lượt mô phỏng: `cost/simulate-1.csv` (50 phiên, seed 42, 0 phiên lỗi, run ID `simulate-1@20261128-132012`)
+- Chi phí / task thành công (tỉ lệ đạt 80% của lượt 2): **$0.0022** thực đo (`gpt-6-luna` phân loại + `gpt-6.1-terra` kiểm chứng, mỗi model giá riêng) · $0.0014 nếu mọi token tính giá `gpt-6-luna` · $0.0140 nếu mọi token tính giá `gpt-6.1-terra`. Giá: developers.openai.com/api/docs/pricing, xem 27/11/2026
+- Chi phí / tháng ở quy mô thật (thực đo): thấp $1.01 (200 người) · cơ sở $5.03 (1.000 người) · cao $15.10 (3.000 người); số người dùng *(tự ước tính)* → chi tiết `cost/cost-estimate.md`
+- So với impact / người / tháng (§2): chi phí model khoảng $0.005 / người / tháng (cơ sở). Impact / người / tháng **chưa đo** (§2 chưa có số lần / tháng và thời gian mỗi lần vì chưa phỏng vấn), nên chưa so được; chỉ kết luận được chi phí model không phải rào cản.
 - Thiết kế để giữ chi phí thấp: model nhỏ cho phân loại cột, model lớn chỉ cho kiểm chứng đường đi; mỗi lần quét gọi phân loại cột một lần cho tất cả cột; đặt trần số lần gọi model mỗi lần quét; log chi phí từng lần gọi.
 
 ## §9. Rủi ro & an toàn
@@ -207,4 +207,7 @@ flowchart LR
 
 | Thời điểm | Đổi gì | Vì sao |
 |---|---|---|
-|  |  |  |
+| 28/11 21:30 | Điền `eval/report.md` (kết quả lượt 1, 2; 4 nhóm lỗi; một lần cải tiến; phần còn lại) và mục 1, 3, 6 của `eval/README.md`. Chỉ chép số từ file kết quả đã commit (`eval/run-1.csv` … `run-4.csv`, `grade.py --dry`, `run.py score`); không chạy lại, không sửa file kết quả, nhãn hay chuẩn "đạt". | Hai file còn là khung trống lúc CP4. Báo cáo ghi thật: cải tiến chủ yếu sửa nhóm gắn nhầm `hanh_vi_mang`, nhóm bỏ sót C1 (đau nhất) chỉ sửa 1/5. |
+| 28/11 21:30 | Điền §1 (số bằng chứng), §7 (dòng kết quả), §8 (chi phí) trong spec này. | Chép từ `evidence/summary.md`, `eval/report.md`, `cost/cost-estimate.md` đã có trước đó; không thêm số mới. §2 (impact) vẫn để "chưa đo" vì chưa phỏng vấn. |
+| 28/11 21:30 | Điền bảng `docs/ai-usage.md`; thêm `reflection/doan-dang-khoa.md`. | Khai báo dùng AI chi tiết theo README; reflection cá nhân theo guide 5.3. |
+| 28/11 21:45 | Thêm `demo-slides.pdf` ở thư mục gốc, là bản sao nguyên vẹn của `LexTrace.pdf` (đã commit lúc 13:17, trước CP4). Nội dung slide không đổi. | Guide 5.1 và rubric Phần 0 yêu cầu slide PDF đúng tên `demo-slides.pdf` ở thư mục gốc. |
